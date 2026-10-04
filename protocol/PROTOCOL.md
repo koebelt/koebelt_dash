@@ -258,6 +258,33 @@ SiK radio) to fly or drive.
 LoRa modules on SPI (not UART) need a small ground-station board that
 passes packets to USB serial; the app sees that board as a `lora` radio.
 
+## Serial bridge modules
+
+Bluetooth modules with a UART (HM-10 and clones, HC-05/HC-06, JDY, HC-08,
+RN4870, DFRobot Bluno) pass bytes between the app and the board's serial
+port, so the board speaks newline-delimited JSON as on USB serial. Their
+UART is usually 9600 baud, so the device sends telemetry at a rate set by
+the module's baud, the same rule in every library:
+
+| UART baud    | Telemetry          |
+|--------------|--------------------|
+| ≤ 19200      | 2 Hz, compact set  |
+| ≤ 57600      | 5 Hz               |
+| above        | 10 Hz              |
+
+No `pc` or `tracks`, `state` every 2 s, control accepted. The app paces its
+writes to the module (20-byte packets, 25 ms apart), sends `ctl` at 5 Hz
+and asks for 5 Hz telemetry. It recognises these BLE services:
+
+| Module | Service | App writes | App subscribes |
+|--------|---------|-----------|----------------|
+| HM-10 family | `ffe0` | `ffe1` | `ffe1` |
+| DFRobot Bluno | `dfb0` | `dfb1` | `dfb1` |
+| Microchip RN4870 / BM70 | `49535343-fe7d-4ae5-8fa9-9fafd205e455` | `…8841-43f4-a8d4-ecbe34729bb3` | `…1e4d-4bd9-ba61-23c647249616` |
+
+Bluetooth Classic modules (HC-05, HC-06) are paired in the operating
+system and appear to the app as serial ports.
+
 ## Video
 
 Video does not travel over KoebeltLink. A device declares camera streams in
