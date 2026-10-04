@@ -1,0 +1,48 @@
+# koebelt_link_ros bridge configuration
+name: Cell-B
+kind: arm            # drone, rover, arm, rocket, bench, generic
+transport: wifi      # wifi | ble | serial:/dev/ttyUSB0 | radio:/dev/ttyUSB1:sik
+# fallback: radio:/dev/ttyUSB1:sik   # takes over telemetry when the first link goes quiet
+port: 47800
+
+# map existing topics to app channels (omit what you don't have)
+sensors:
+  imu:    /imu/data          # sensor_msgs/Imu
+  lidar:  /points            # sensor_msgs/PointCloud2
+  joints: /joint_states      # sensor_msgs/JointState
+  power:  /battery_state     # sensor_msgs/BatteryState
+  # odom: /odom              # nav_msgs/Odometry -> position, velocity, attitude
+  # gps:  /fix               # sensor_msgs/NavSatFix
+
+controls:
+  twist: /cmd_vel                         # rovers, geometry_msgs/Twist
+  jog:   /servo_node/delta_joint_cmds      # arms, MoveIt Servo (control_msgs/JointJog)
+  mode:  /koebelt/mode                    # std_msgs/String
+  max_linear: 1.0                         # m/s at full stick
+  max_angular: 1.5                        # rad/s at full stick
+  joint_names: [joint_1, joint_2, joint_3, joint_4, joint_5, joint_6]
+
+# camera shown in the app (sensor_msgs/CompressedImage, JPEG), served as MJPEG
+video:
+  topic: /camera/image_raw/compressed
+  port: 8081
+  label: Wrist
+
+safety:
+  stop_service: /robot/estop     # std_srvs/Trigger
+  failsafe_timeout: 1.8
+  failsafe_action: hold
+
+# any numeric topic as a custom channel (tile, HUD widget, CSV columns)
+channels:
+  - id: motor_temp
+    topic: /motors/temperature     # std_msgs/Float32MultiArray
+    type: Float32MultiArray        # Float64, Float32, Int32, …, Temperature, FluidPressure
+    axes: [M1, M2, M3, M4]
+    unit: C
+    hz: 10
+
+# tunable values shown on the app's Tune screen, published as std_msgs/Float64
+# on /koebelt/param/<KEY> when written
+params:
+  - {key: MAX_SPD, default: 1.0, min: 0.1, max: 3.0, unit: m/s}
