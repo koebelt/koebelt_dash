@@ -52,8 +52,11 @@ const tileSources = [
 ];
 
 /// Identifies the app to tile servers, as the OpenStreetMap tile usage
-/// policy asks: app name, version and where to find it.
-const tileUserAgent = 'koebelt-dash/$appVersion (+$repoUrl)';
+/// policy asks: app name, version, where to find it and a contact.
+const tileUserAgent = 'koebelt-dash/$appVersion (+$repoUrl; $contactEmail)';
+
+/// Contact for tile servers and package registries.
+const contactEmail = 'contact@koebelt.com';
 
 /// The tile source the settings select, or null for the plain grid.
 TileSource? tileSourceFor(Settings st) => st.mapTiles == 'custom'

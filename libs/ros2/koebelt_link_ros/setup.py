@@ -17,6 +17,7 @@ setup(
     install_requires=["setuptools", "koebelt-link>=1.5"],
     zip_safe=True,
     maintainer="Thomas Koebel",
+    maintainer_email="contact@koebelt.com",
     description="Bridge ROS 2 topics to the koebelt dash app over KoebeltLink.",
     license="MIT",
     tests_require=["pytest"],

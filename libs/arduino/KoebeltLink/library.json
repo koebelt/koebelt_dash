@@ -4,7 +4,7 @@
   "description": "Stream sensors to the koebelt dash app and receive control input.",
   "keywords": "drone, robot, telemetry, rover, esp32",
   "repository": { "type": "git", "url": "https://github.com/koebelt/koebelt_dash" },
-  "authors": [{ "name": "Thomas Koebel" }],
+  "authors": [{ "name": "Thomas Koebel", "email": "contact@koebelt.com", "maintainer": true }],
   "license": "MIT",
   "frameworks": "arduino",
   "platforms": ["espressif32", "raspberrypi", "teensy"],

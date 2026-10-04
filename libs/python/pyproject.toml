@@ -9,7 +9,7 @@ description = "Connect drones, robots and test rigs to the koebelt dash app."
 readme = "README.md"
 requires-python = ">=3.8"
 license = { text = "MIT" }
-authors = [{ name = "Thomas Koebel" }]
+authors = [{ name = "Thomas Koebel", email = "contact@koebelt.com" }]
 dependencies = []
 
 [project.optional-dependencies]

@@ -3,7 +3,7 @@
   <name>koebelt_link_ros</name>
   <version>1.5.0</version>
   <description>Bridge ROS 2 topics to the koebelt dash app over KoebeltLink.</description>
-  <maintainer email="maintainer@example.com">Thomas Koebel</maintainer>
+  <maintainer email="contact@koebelt.com">Thomas Koebel</maintainer>
   <license>MIT</license>
 
   <exec_depend>rclpy</exec_depend>

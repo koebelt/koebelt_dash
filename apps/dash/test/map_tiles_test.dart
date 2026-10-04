@@ -23,6 +23,7 @@ void main() {
   test('User-Agent names the app, its version and where to find it', () {
     expect(tileUserAgent, startsWith('koebelt-dash/'));
     expect(tileUserAgent, contains('github.com/koebelt/koebelt_dash'));
+    expect(tileUserAgent, contains('contact@koebelt.com'));
     expect(tileUserAgent, isNot(contains('flutter_map')));
   });
 
