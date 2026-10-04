@@ -11,7 +11,7 @@ jobs:
         with: { channel: stable }
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
-      - run: python -m venv ../../libs/python/.venv && ../../libs/python/.venv/bin/pip install -e ../../libs/python
+      - run: python -m venv ../../libs/python/.venv && ../../libs/python/.venv/bin/pip install -e ../../libs/python pymavlink
       - run: flutter pub get
       - run: flutter analyze
       - run: flutter test
@@ -46,7 +46,103 @@ jobs:
             - source-path: libs/arduino/KoebeltLink
             - name: ArduinoJson
             - name: ESP32Servo
-          sketch-paths: libs/arduino/KoebeltLink/examples
+            - name: NimBLE-Arduino
+          # The other examples need a board without built-in Wi-Fi.
+          sketch-paths: |
+            - libs/arduino/KoebeltLink/examples/Quickstart
+            - libs/arduino/KoebeltLink/examples/SerialRover
+            - libs/arduino/KoebeltLink/examples/ThrustBench
+            - libs/arduino/KoebeltLink/examples/RadioRover
+            - libs/arduino/KoebeltLink/examples/CameraRover
+            - libs/arduino/KoebeltLink/examples/AnyBoard
+            - libs/arduino/KoebeltLink/examples/BluetoothModule
+            - libs/arduino/KoebeltLink/examples/NimBLE
+
+  arduino-boards:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - fqbn: arduino:samd:arduino_zero_native
+            platforms: |
+              - name: arduino:samd
+            libraries: |
+              - name: Ethernet
+              - name: WiFiEspAT
+            sketches: |
+              - libs/arduino/KoebeltLink/examples/EthernetW5500
+              - libs/arduino/KoebeltLink/examples/EspAtCoprocessor
+              - libs/arduino/KoebeltLink/examples/BluetoothModule
+          - fqbn: adafruit:nrf52:feather52840
+            platforms: |
+              - name: adafruit:nrf52
+                source-url: https://adafruit.github.io/arduino-board-index/package_adafruit_index.json
+            libraries: ""
+            sketches: |
+              - libs/arduino/KoebeltLink/examples/AnyBoard
+              - libs/arduino/KoebeltLink/examples/BluetoothModule
+          - fqbn: esp8266:esp8266:nodemcuv2
+            platforms: |
+              - name: esp8266:esp8266
+                source-url: https://arduino.esp8266.com/stable/package_esp8266com_index.json
+            libraries: ""
+            sketches: |
+              - libs/arduino/KoebeltLink/examples/AnyBoard
+              - libs/arduino/KoebeltLink/examples/SerialRover
+              - libs/arduino/KoebeltLink/examples/BluetoothModule
+          - fqbn: rp2040:rp2040:rpipicow
+            platforms: |
+              - name: rp2040:rp2040
+                source-url: https://github.com/earlephilhower/arduino-pico/releases/download/global/package_rp2040_index.json
+            libraries: ""
+            sketches: |
+              - libs/arduino/KoebeltLink/examples/AnyBoard
+              - libs/arduino/KoebeltLink/examples/SerialRover
+              - libs/arduino/KoebeltLink/examples/BluetoothModule
+          - fqbn: arduino:renesas_uno:unor4wifi
+            platforms: |
+              - name: arduino:renesas_uno
+            libraries: |
+              - name: ArduinoBLE
+            sketches: |
+              - libs/arduino/KoebeltLink/examples/AnyBoard
+              - libs/arduino/KoebeltLink/examples/SerialRover
+              - libs/arduino/KoebeltLink/examples/BluetoothModule
+          - fqbn: arduino:samd:nano_33_iot
+            platforms: |
+              - name: arduino:samd
+            libraries: |
+              - name: WiFiNINA
+              - name: ArduinoBLE
+            sketches: |
+              - libs/arduino/KoebeltLink/examples/AnyBoard
+              - libs/arduino/KoebeltLink/examples/SerialRover
+              - libs/arduino/KoebeltLink/examples/BluetoothModule
+          - fqbn: arduino:mbed_nano:nano33ble
+            platforms: |
+              - name: arduino:mbed_nano
+            libraries: |
+              - name: ArduinoBLE
+            sketches: |
+              - libs/arduino/KoebeltLink/examples/AnyBoard
+              - libs/arduino/KoebeltLink/examples/SerialRover
+              - libs/arduino/KoebeltLink/examples/BluetoothModule
+    steps:
+      - uses: actions/checkout@v4
+      # The Adafruit nRF52 core packages its build with adafruit-nrfutil.
+      - if: contains(matrix.fqbn, 'nrf52')
+        run: pip install adafruit-nrfutil
+      - uses: arduino/compile-sketches@v1
+        with:
+          fqbn: ${{ matrix.fqbn }}
+          platforms: ${{ matrix.platforms }}
+          libraries: |
+            - source-path: libs/arduino/KoebeltLink
+            - name: ArduinoJson
+            ${{ matrix.libraries }}
+          sketch-paths: |
+            ${{ matrix.sketches }}
 
   rust:
     runs-on: ubuntu-latest

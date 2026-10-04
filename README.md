@@ -46,6 +46,11 @@ connects your hardware to it.
 - **Game controllers**: Xbox, PlayStation, Switch Pro and generic gamepads
   over USB or Bluetooth, and RC transmitters in joystick mode. Mode 2 by
   default, every axis and button can be learned, with dead zone and expo.
+- **Third-party Bluetooth modules**: HM-10 and its clones, DFRobot Bluno and
+  Microchip RN4870 are found over Bluetooth LE like KoebeltLink devices; HC-05 /
+  HC-06 Classic modules paired with the computer show up under Bluetooth. The
+  app paces itself to the module's slow UART and asks the board behind it for
+  its name and pairing code.
 - **Radio links**: SiK, XBee, HC-12 and LoRa radios through a USB modem,
   with shared rate profiles so both ends agree on what fits through the air.
   LoRa is telemetry only (STOP still gets through).
@@ -62,6 +67,13 @@ connects your hardware to it.
 - **Tune**: parameter tables declared by the firmware, with search, a live
   response chart per group, unsaved-change tracking, revert and write-to-device.
 - **Replay**: record sessions at 10 Hz, then scrub and play them back at 1, 2 or 4×.
+- **Boards that connect as they are**: ArduPilot and PX4 vehicles over
+  MAVLink (USB, telemetry radios, Wi-Fi on UDP 14550): telemetry, map,
+  parameters, arming, modes, sticks, take-off, go to, return, land and STOP.
+  Betaflight and INAV flight controllers over MSP (telemetry, PID tuning,
+  STOP), and the DJI Tello over its SDK. Flight controllers and boards on USB
+  are recognised by their USB id and asked what they run, so they show up by
+  name and connect with one tap.
 - **Devices and pairing**: discovery over the LAN (UDP broadcast), BLE and USB
   serial; radio links set up by type, with the app listening for the device on
   the far side; 10-minute pairing codes with per-device keys, and adding a
@@ -86,8 +98,10 @@ platform can do:
 
 | | Arduino | Python | Rust | ROS 2 bridge |
 |---|---|---|---|---|
-| Wi-Fi (UDP) | ESP32, Pico W, Nano 33 IoT | yes | yes, `std` | yes |
-| BLE peripheral | ESP32 | yes (`bless`) | `no_std`: your stack implements `Transport` | yes |
+| Wi-Fi (UDP) | ESP32, ESP8266, Pico W, UNO R4 WiFi, Nano 33 IoT, MKR WiFi 1010 / 1000, Nano RP2040 Connect, Portenta, GIGA | yes | yes, `std` | yes |
+| Any networking library (`beginUdp(udp)`): W5500/ENC28J60 Ethernet, QNEthernet, WiFiEspAT, WiFi101 | yes | – | any `Transport` | – |
+| BLE peripheral | ESP32 (Bluedroid or NimBLE), nRF52 (Bluefruit), Nano 33 BLE / IoT, UNO R4 WiFi (ArduinoBLE) | yes (`bless`) | `no_std`: your stack implements `Transport` | yes |
+| Bluetooth serial modules (HM-10 family, HC-05/06, RN4870, Bluno) | `beginModule()` | `module=` | `.module()` | – |
 | USB serial | any `Stream` | yes (`pyserial`) | yes (`stty`, no deps) | yes |
 | Radio: SiK, XBee, HC-12, LoRa UART | `beginRadio()` | `radio=` | `.radio()` | `radio:` |
 | LoRa on SPI | `fallback(LORA)` | via a UART module | via a UART module | via a UART module |
@@ -115,7 +129,7 @@ cd libs/python && python3 -m venv .venv && .venv/bin/pip install -e .
 
 | Component | Command | Covers |
 |-----------|---------|--------|
-| App | `cd apps/dash && flutter test` | protocol vectors, codec, full sessions against the simulator (stop, failsafe, params), Python interop over UDP, MJPEG parsing and the simulated camera end to end, radio profiles and heartbeat rates, controller mapping and driving a simulated drone |
+| App | `cd apps/dash && flutter test` | MAVLink against a pymavlink vehicle over UDP (needs `pip install pymavlink` in the venv), MSP against a simulated Betaflight board, Tello against a fake drone, board recognition, protocol vectors, codec, full sessions against the simulator (stop, failsafe, params), Python interop over UDP, MJPEG parsing and the simulated camera end to end, radio profiles and heartbeat rates, controller mapping and driving a simulated drone |
 | App screenshots | `CAPTURE_DIR=/tmp/shots flutter test test/capture_test.dart` (and `capture_features_test.dart`) | renders the screens at phone, tablet and desktop sizes |
 | Python | `cd libs/python && .venv/bin/python -m pytest` | vectors, handshake, control, stop, failsafe, params, pairing, point cloud over real UDP; radio rates and telemetry-only rules; MJPEG server |
 | Arduino core | `make -C libs/arduino/KoebeltLink/test` | same behaviours on the host with a fake transport, radio profiles, video declaration, plus a compile check of every guide snippet |
