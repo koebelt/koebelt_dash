@@ -668,6 +668,7 @@ safety:
             'cpp',
             r'''// Rocket flight computer: phases, pyro, countdown.
 #include <KoebeltLink.h>
+#include <LoRa.h>        // sandeepmistry/arduino-LoRa: include it so the IDE links it
 
 KLink link("Nova", KLink::ROCKET);
 KParam mainAlt, pulseMs, launchG;

@@ -185,7 +185,7 @@ Guide quickstart(String pair) => Guide('quickstart', 'Quickstart', "Install the 
     'Where next',
     'The quickstart covers the basics. The guides below go deeper:',
     bullets: [
-      'Connections: how Wi-Fi, BLE, USB serial and radio links work, and how to fix discovery problems.',
+      'Connections: how Wi-Fi, BLE, USB serial and radio links work, which boards connect as they are (ArduPilot, PX4, Betaflight, INAV, Tello), and how to fix discovery problems.',
       'Video, map and controllers: show a camera, put the device on a map, drive with a gamepad.',
       'Device examples: a complete program for a drone, rover, robot arm, rocket, thrust bench and a custom device.',
       'Custom sensors and fields: stream any value, add tunable parameters and your own commands.',

@@ -73,6 +73,96 @@ const connectionGuides = [
     ],
   ),
   Guide(
+    'boards',
+    'Supported boards',
+    'Flight controllers, drones and boards that connect as they are, and those that run the KoebeltLink library.',
+    10,
+    section: 'connections',
+    platforms: [],
+    [
+      Step.rich(
+        'Boards that connect as they are',
+        'No library, no code: the app speaks their own protocol. Plug them in, power them on or join their Wi-Fi, then Devices > Pair device. They show up named, with what they run, and one tap connects.',
+        table: [
+          ['Board', 'Firmware', 'Link', 'In the app'],
+          [
+            'Pixhawk 6C / 6X, Cube Orange, Holybro, Matek, SpeedyBee, any ArduPilot board',
+            'ArduPilot: Copter, Plane, Rover, Sub',
+            'USB, telemetry radio, Wi-Fi (UDP 14550)',
+            'Telemetry, map, Tune, arm, modes, sticks, take-off, go to, return, land, STOP',
+          ],
+          ['Pixhawk family with PX4', 'PX4', 'USB, telemetry radio, Wi-Fi (UDP 14550)', 'Same as ArduPilot'],
+          [
+            'Betaflight and INAV flight controllers (F4, F7, H7)',
+            'Betaflight, INAV, EmuFlight',
+            'USB',
+            'Telemetry, PID tuning, STOP (disarm). Fly with your RC transmitter.',
+          ],
+          ['DJI / Ryze Tello, Tello EDU', 'Tello SDK', 'Wi-Fi: join TELLO-XXXXXX', 'Telemetry, take-off, sticks, land, short moves, STOP'],
+        ],
+      ),
+      Step.rich(
+        'Boards that run the library',
+        'Everything else talks KoebeltLink through the library on the board (or on the computer next to it):',
+        table: [
+          ['Board', 'Links'],
+          ['ESP32, ESP32-S3, ESP32-C3, ESP32-CAM, Arduino Nano ESP32', 'Wi-Fi, Bluetooth LE, USB serial, radios'],
+          ['ESP8266 (NodeMCU, Wemos D1 mini)', 'Wi-Fi, USB serial, radios'],
+          ['Raspberry Pi Pico W', 'Wi-Fi, USB serial, radios'],
+          ['Arduino UNO R4 WiFi', 'Wi-Fi, Bluetooth LE, USB serial'],
+          ['Arduino Nano 33 IoT, MKR WiFi 1010, Nano RP2040 Connect', 'Wi-Fi, Bluetooth LE, USB serial'],
+          ['Arduino Nano 33 BLE', 'Bluetooth LE, USB serial'],
+          ['Teensy 4.x, STM32, any Arduino board', 'USB serial, radios'],
+          ['Raspberry Pi, Jetson, any Linux or macOS computer', 'Python or Rust library, or the ROS 2 bridge'],
+        ],
+        note: 'On USB, the app recognises these boards by their USB id and asks them what they run, so a KoebeltLink board shows up with its own name too.',
+      ),
+      Step.rich(
+        'ArduPilot and PX4 (MAVLink)',
+        'The app is a MAVLink ground station: it sends its heartbeat once a second, asks for telemetry, and maps its controls onto the autopilot\'s:',
+        table: [
+          ['App', 'ArduCopter', 'ArduPlane', 'ArduRover', 'PX4'],
+          ['Manual (sticks)', 'ALT_HOLD', 'FBWA', 'MANUAL', 'ALTCTL'],
+          ['Hold', 'LOITER', 'LOITER', 'HOLD', 'AUTO.LOITER'],
+          ['Auto', 'AUTO', 'AUTO', 'AUTO', 'AUTO.MISSION'],
+          ['Return home', 'RTL', 'RTL', 'RTL', 'AUTO.RTL'],
+          ['Land', 'LAND', 'QLAND (VTOL)', 'HOLD', 'AUTO.LAND'],
+          ['Take off', 'GUIDED + take-off', 'TAKEOFF', '–', 'take-off'],
+        ],
+        bullets: [
+          'USB: plug the flight controller in. Pixhawk, Cube and other STM32 boards are recognised by their USB id and probed.',
+          'Telemetry radio: Pair device > Radio > SiK telemetry radio, then Listen for device. SiK radios carry MAVLink as they are.',
+          'Wi-Fi: anything that sends MAVLink to UDP port 14550 appears on its own: ESP8266/ESP32 telemetry bridges, a companion computer running mavlink-router or MAVProxy pointed at this device, or SITL. Or add it by IP address with MAVLink selected.',
+          'Sticks are sent as MANUAL_CONTROL while armed in a manual mode. ArduPilot only accepts them from the ground station in SYSID_MYGCS (255, the default).',
+          'Go to and sequences use DO_REPOSITION; the vehicle needs a GPS fix and a home position.',
+          'Parameters appear on the Tune screen, grouped by prefix. The autopilot saves them as soon as they are written.',
+        ],
+        warn: true,
+        note: 'STOP force-disarms the vehicle: the motors stop even in flight, exactly as STOP does on every other device. Set FS_GCS_ENABLE (ArduPilot) or the data link loss action (PX4) so the vehicle acts on its own if the app goes away.',
+      ),
+      Step.rich(
+        'Betaflight and INAV (MSP)',
+        'Plug the flight controller in over USB; it shows up with its craft name and firmware. MSP is the configuration protocol of these firmwares, not a flight link, so the app:',
+        bullets: [
+          'shows attitude, altitude, battery, current, RSSI, GPS and the arming state;',
+          'tunes the roll, pitch and yaw PID gains on the Tune screen, and Save writes them to the board;',
+          'disarms on STOP (arming is disabled until you reset it in the app);',
+          'does not send sticks: fly with your radio, as Betaflight is designed for.',
+        ],
+        note: 'Bench work only with props off: a quad on USB can still spin up if it is armed from the radio.',
+      ),
+      Step.rich(
+        'Tello',
+        'Join the Tello\'s Wi-Fi (TELLO-XXXXXX) from this phone or computer and open Pair device: the Tello appears under Wi-Fi. Arm, then Take off; sticks fly it in Manual, Hold hovers, Land lands, STOP stops the motors at once.',
+        bullets: [
+          'The Tello has no GPS. Its position in the app is worked out from its speed, so it drifts; Set home resets it.',
+          'Go to sends short relative moves (20 cm to 5 m per axis).',
+          'Its camera streams H.264, which the app does not show yet.',
+        ],
+      ),
+    ],
+  ),
+  Guide(
     'wifi',
     'Wi-Fi',
     'Join a network, how the app finds the device, and what to do when it does not.',
@@ -449,7 +539,7 @@ fn main() -> std::io::Result<()> {
         c: {
           'arduino': [
             'cpp',
-            '// LoRa on SPI (sandeepmistry/LoRa library):\nlink.fallback(KLink::LORA, 868E6);        // 868 MHz Europe, 915 MHz Americas\n\n// A LoRa module with a UART (E22, E32) in transparent mode:\nSerial2.begin(115200, SERIAL_8N1, 16, 17);\nlink.beginRadio(Serial2, KRadio::LORA);',
+            '// LoRa on SPI (sandeepmistry/LoRa library; include it in the sketch):\n#include <LoRa.h>\n\nlink.fallback(KLink::LORA, 868E6);        // 868 MHz Europe, 915 MHz Americas\n\n// A LoRa module with a UART (E22, E32) in transparent mode:\nSerial2.begin(115200, SERIAL_8N1, 16, 17);\nlink.beginRadio(Serial2, KRadio::LORA);',
           ],
           'python': ['python', 'dev.connect(wifi=True, fallback={"radio": ("/dev/ttyUSB1", "lora")})'],
           'rust': ['rust', 'let mut dev = Device::new("Nova", Kind::Rocket).wifi("", "").radio("/dev/ttyUSB1", Radio::Lora).start()?;'],
@@ -491,6 +581,125 @@ void loop() {
 }''',
           ],
         },
+      ),
+    ],
+  ),
+  Guide(
+    'chips',
+    'Other Wi-Fi and Bluetooth chips',
+    'Bluetooth modules on a UART, Ethernet, ESP-AT co-processors and other networking libraries.',
+    8,
+    section: 'connections',
+    platforms: ['arduino', 'python', 'rust'],
+    [
+      Step.rich(
+        'Bluetooth modules on a UART',
+        'An HM-10, HC-05 or similar module turns any board with a spare serial port into a Bluetooth device, even an Arduino without radio. The module passes bytes through; the library sends telemetry at a rate its baud rate can carry.',
+        complete: true,
+        c: {
+          'arduino': [
+            'cpp',
+            r'''#include <KoebeltLink.h>
+
+KLink link("Module-Bot", KLink::ROVER);
+float speed = 0, turn = 0;
+
+void setup() {
+  // Module TX -> RX1, module RX -> TX1 (through a divider on 5 V boards).
+  Serial1.begin(9600);               // the module's factory baud rate
+  link.beginModule(Serial1, 9600);   // 2 Hz telemetry; set the module to 115200 for 10 Hz
+  link.onControl([](const KControl& c) { speed = c.ry; turn = c.lx; });
+  link.onStop([] { speed = turn = 0; });
+  link.failsafe(1500, KMode::HOLD);
+}
+
+void loop() {
+  link.battery(7.4, 80);
+  link.update();
+}''',
+          ],
+          'python': [
+            'python',
+            r'''# A Raspberry Pi with an HM-10 on its GPIO UART (enable it in raspi-config).
+from koebelt_link import Device
+
+dev = Device("Module-Bot", kind="rover")
+dev.connect(module=("/dev/serial0", 9600))
+
+
+@dev.on_control
+def drive(c):
+    print("drive", c.ry, "turn", c.lx)
+
+
+def loop():
+    dev.battery(7.4, 80)
+
+
+dev.run(hz=50, loop=loop)''',
+          ],
+          'rust': [
+            'rust',
+            r'''use koebelt_link::{Device, Kind};
+
+fn main() -> std::io::Result<()> {
+    // An HM-10 on the Raspberry Pi's GPIO UART.
+    let mut dev = Device::new("Module-Bot", Kind::Rover).module("/dev/serial0", 9600).start()?;
+    dev.on_control(|c| println!("drive {} turn {}", c.ry, c.lx));
+    loop {
+        dev.battery(7.4, 80.0)?;
+        dev.tick_blocking(50.0);
+    }
+}''',
+          ],
+        },
+        table: [
+          ['Module', 'Kind', 'In the app'],
+          ['HM-10, HM-19, AT-09, BT05, JDY-08/23, HC-08, CC41', 'Bluetooth LE', 'Pair device > Nearby, under Bluetooth'],
+          ['Microchip RN4870 / RN4871 / BM70', 'Bluetooth LE', 'Pair device > Nearby'],
+          ['DFRobot Bluno boards', 'Bluetooth LE', 'Pair device > Nearby'],
+          ['Adafruit Bluefruit LE UART Friend', 'Bluetooth LE (Nordic UART)', 'Pair device > Nearby'],
+          ['HC-05, HC-06', 'Bluetooth Classic', 'Pair it in the computer\'s Bluetooth settings; it then appears under Bluetooth (desktop apps only)'],
+        ],
+        note: 'The app asks the board behind the module for its name and pairing code before adding it, so pairing works as with any other device. Modules are slow: the app sends sticks 5 times a second over them.',
+      ),
+      Step.rich(
+        'Bluetooth stacks on the board',
+        'beginBLE() uses whatever Bluetooth the board has:',
+        table: [
+          ['Board', 'Stack', 'Include in the sketch'],
+          ['ESP32, ESP32-S3, ESP32-C3', 'Bluedroid (in the core)', 'nothing'],
+          ['ESP32 with NimBLE-Arduino installed', 'NimBLE: about 100 KB less RAM', '#include <NimBLEDevice.h>'],
+          ['Adafruit nRF52 (Feather nRF52840, ItsyBitsy, CLUE)', 'Bluefruit (in the core)', 'nothing'],
+          ['Nano 33 BLE, Nano 33 IoT, UNO R4 WiFi, Nano RP2040 Connect', 'ArduinoBLE', '#include <ArduinoBLE.h>'],
+        ],
+      ),
+      Step.rich(
+        'Any networking library',
+        'For network chips the library does not know, set the network up with its own library and hand over its UDP object. The library calls begin(47800) on it and does the rest:',
+        c: {
+          'arduino': [
+            'cpp',
+            r'''// W5500 / W5100 Ethernet (also EthernetENC for ENC28J60, QNEthernet on Teensy 4.1)
+#include <Ethernet.h>
+EthernetUDP udp;
+Ethernet.begin(mac);
+link.beginUdp(udp);
+
+// An ESP-01 running ESP-AT as Wi-Fi for a board without it (WiFiEspAT)
+#include <WiFiEspAT.h>
+WiFiUDP udp;
+WiFi.init(Serial1);
+WiFi.begin("ssid", "password");
+link.beginUdp(udp);''',
+          ],
+        },
+        bullets: [
+          'Built in, nothing to set up: ESP32, ESP8266, Raspberry Pi Pico W, UNO R4 WiFi (WiFiS3), Portenta, GIGA.',
+          'Separate libraries, used once the sketch includes them: WiFiNINA (Nano 33 IoT, MKR WiFi 1010, Nano RP2040 Connect, Adafruit AirLift), WiFi101 (MKR1000, WINC1500).',
+          'Anything else with an Arduino-style UDP class: pass it to beginUdp().',
+        ],
+        note: 'The Arduino IDE links a library only when the sketch includes it, so include your board\'s Wi-Fi or Bluetooth library at the top of the sketch.',
       ),
     ],
   ),
