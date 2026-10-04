@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>koebelt_link_ros</name>
+  <version>1.5.0</version>
+  <description>Bridge ROS 2 topics to the koebelt dash app over KoebeltLink.</description>
+  <maintainer email="maintainer@example.com">Thomas Koebel</maintainer>
+  <license>MIT</license>
+
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+  <exec_depend>std_srvs</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>sensor_msgs_py</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>nav_msgs</exec_depend>
+  <exec_depend>control_msgs</exec_depend>
+  <exec_depend>python3-yaml</exec_depend>
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+
+  <test_depend>python3-pytest</test_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>
