@@ -20,6 +20,40 @@ static const KRadioProfile RADIO_PROFILES[] = {
 };
 const KRadioProfile& kRadioProfile(KRadio r) { return RADIO_PROFILES[static_cast<uint8_t>(r)]; }
 
+/// A UART bridge module: a Bluetooth module (HM-10, HC-05/HC-06, JDY,
+/// RN4870, Bluno) or any transparent serial link whose speed is set by its
+/// UART. Telemetry follows the baud rate so the module's buffer never
+/// overflows: 2 Hz compact up to 19200 baud, 5 Hz to 57600, 10 Hz above.
+class KModuleTransport : public KTransport {
+ public:
+  KModuleTransport(Stream& s, uint32_t baud) : _s(s), _baud(baud) {}
+  size_t read(char* buf, size_t cap) override {
+    while (_s.available() > 0) {
+      size_t n = _lines.feed(static_cast<char>(_s.read()), buf, cap);
+      if (n) return n;
+    }
+    return 0;
+  }
+  void write(const char* msg, size_t len) override {
+    _s.write(reinterpret_cast<const uint8_t*>(msg), len);
+    _s.write('\n');
+  }
+  void announce(const char* msg, size_t len) override { write(msg, len); }
+  bool lowBandwidth() const override { return true; }
+  float maxRateHz() const override { return _baud <= 19200 ? 2 : _baud <= 57600 ? 5 : 10; }
+  size_t maxMessage() const override { return _baud <= 19200 ? 250 : 1000; }
+
+ private:
+  Stream& _s;
+  uint32_t _baud;
+  KLineReader _lines;
+};
+
+bool KLink::beginModule(Stream& s, uint32_t baud) {
+  addTransport(new KModuleTransport(s, baud));
+  return true;
+}
+
 KMode kModeParse(const char* s) {
   if (!s) return KMode::UNKNOWN;
   for (uint8_t i = 0; i < static_cast<uint8_t>(KMode::UNKNOWN); i++)

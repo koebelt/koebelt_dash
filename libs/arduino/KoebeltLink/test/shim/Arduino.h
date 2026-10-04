@@ -31,6 +31,10 @@ class Stream {
   virtual int available() = 0;
   virtual int read() = 0;
   virtual size_t write(uint8_t) = 0;
+  virtual size_t write(const uint8_t* b, size_t n) {
+    for (size_t i = 0; i < n; i++) write(b[i]);
+    return n;
+  }
 };
 
 #define SERIAL_8N1 0x800001c
@@ -42,7 +46,7 @@ class HardwareSerial : public Stream {
   int available() override { return 0; }
   int read() override { return -1; }
   size_t write(uint8_t) override { return 1; }
-  size_t write(const uint8_t*, size_t n) { return n; }
+  size_t write(const uint8_t*, size_t n) override { return n; }
   int availableForWrite() { return 256; }
   template <typename T> size_t print(const T&) { return 0; }
   template <typename T> size_t println(const T&) { return 0; }

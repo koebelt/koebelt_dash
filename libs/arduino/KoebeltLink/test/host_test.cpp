@@ -283,6 +283,149 @@ void test_discover() {
   CHECK(t.of("announce").size() == 1);
 }
 
+// ---- third-party networking: any library's UDP class
+struct FakeIP {
+  uint8_t a = 0, b = 0, c = 0, d = 0;
+  FakeIP() = default;
+  FakeIP(uint8_t a, uint8_t b, uint8_t c, uint8_t d) : a(a), b(b), c(c), d(d) {}
+  bool operator==(const FakeIP& o) const { return a == o.a && b == o.b && c == o.c && d == o.d; }
+};
+
+struct Datagram {
+  FakeIP ip;
+  uint16_t port;
+  std::string data;
+};
+
+// Shaped like EthernetUDP / WiFiEspAT's UDP: only the usual methods.
+struct FakeEthernetUdp {
+  std::deque<Datagram> in;
+  std::vector<Datagram> out;
+  Datagram cur, building;
+  uint16_t bound = 0;
+  uint8_t begin(uint16_t p) {
+    bound = p;
+    return 1;
+  }
+  int parsePacket() {
+    if (in.empty()) return 0;
+    cur = in.front();
+    in.pop_front();
+    return static_cast<int>(cur.data.size());
+  }
+  FakeIP remoteIP() { return cur.ip; }
+  uint16_t remotePort() { return cur.port; }
+  int read(char* buf, size_t cap) {
+    size_t n = cur.data.size() < cap ? cur.data.size() : cap;
+    memcpy(buf, cur.data.data(), n);
+    return static_cast<int>(n);
+  }
+  int beginPacket(FakeIP ip, uint16_t port) {
+    building = {ip, port, ""};
+    return 1;
+  }
+  size_t write(const uint8_t* b, size_t n) {
+    building.data.append(reinterpret_cast<const char*>(b), n);
+    return n;
+  }
+  int endPacket() {
+    out.push_back(building);
+    return 1;
+  }
+  std::vector<std::string> to(FakeIP ip, uint16_t port, const char* t) {
+    std::vector<std::string> r;
+    for (auto& d : out) {
+      JsonDocument j;
+      deserializeJson(j, d.data);
+      if (d.ip == ip && d.port == port && strcmp(j["t"] | "", t) == 0) r.push_back(d.data);
+    }
+    return r;
+  }
+};
+
+void test_third_party_udp() {
+  KLink l("Teensy-Bot", KLink::ROVER);
+  FakeEthernetUdp udp;
+  CHECK(l.beginUdp(udp, 47800));
+  CHECK(udp.bound == 47800);
+  const FakeIP app(10, 0, 0, 7), other(10, 0, 0, 9);
+  for (int i = 0; i < 110; i++) {
+    g_millis += 10;
+    l.update();
+  }
+  CHECK(!udp.to(FakeIP(255, 255, 255, 255), 47801, "announce").empty());
+  udp.in.push_back({app, 50000, "{\"t\":\"hello\"}"});
+  udp.in.push_back({other, 50001, "{\"t\":\"arm\",\"v\":true}"});  // not the session peer
+  for (int i = 0; i < 30; i++) {
+    udp.in.push_back({app, 50000, "{\"t\":\"ctl\",\"s\":1,\"lx\":0,\"ly\":0,\"rx\":0,\"ry\":0}"});
+    g_millis += 10;
+    l.update();
+  }
+  CHECK(!udp.to(app, 50000, "hello").empty());
+  CHECK(!l.armed());
+  udp.in.push_back({app, 50000, "{\"t\":\"arm\",\"v\":true}"});
+  g_millis += 10;
+  l.update();
+  CHECK(l.armed());
+}
+
+struct Wire : Stream {
+  std::string in, out;
+  int available() override { return static_cast<int>(in.size()); }
+  int read() override {
+    if (in.empty()) return -1;
+    int c = static_cast<unsigned char>(in[0]);
+    in.erase(0, 1);
+    return c;
+  }
+  size_t write(uint8_t c) override {
+    out.push_back(static_cast<char>(c));
+    return 1;
+  }
+  int count(const char* t) const {
+    int n = 0;
+    std::string needle = std::string("\"t\":\"") + t + "\"";
+    for (size_t p = out.find(needle); p != std::string::npos; p = out.find(needle, p + 1)) n++;
+    return n;
+  }
+};
+
+void test_bluetooth_module_rates() {
+  // An HM-10 at its default 9600 baud: 2 Hz, compact, announced on the UART.
+  KLink l("Uno-Bot", KLink::ROVER);
+  Wire hm10;
+  CHECK(l.beginModule(hm10, 9600));
+  for (int i = 0; i < 110; i++) {
+    g_millis += 10;
+    l.update();
+  }
+  CHECK(hm10.count("announce") >= 1);
+  hm10.in = "{\"t\":\"hello\"}\n";
+  hm10.out.clear();
+  for (int i = 0; i < 100; i++) {
+    hm10.in += "{\"t\":\"ctl\",\"s\":1,\"lx\":0,\"ly\":0,\"rx\":0,\"ry\":0}\n";
+    l.imu(0, 0, 9.81f, 0, 0, 0);
+    l.position(1, 2, 0);
+    g_millis += 10;
+    l.update();
+  }
+  CHECK(hm10.count("tlm") >= 1 && hm10.count("tlm") <= 3);
+  CHECK(hm10.out.find("\"imu\"") == std::string::npos);  // compact at 2 Hz
+  CHECK(!l.failsafeActive());                               // control is accepted
+
+  // The same module set to 115200 baud: 10 Hz.
+  KLink f("Fast-Bot", KLink::ROVER);
+  Wire fast;
+  f.beginModule(fast, 115200);
+  fast.in = "{\"t\":\"hello\"}\n";
+  for (int i = 0; i < 100; i++) {
+    f.imu(0, 0, 9.81f, 0, 0, 0);
+    g_millis += 10;
+    f.update();
+  }
+  CHECK(fast.count("tlm") >= 8 && fast.count("tlm") <= 12);
+}
+
 int main() {
   test_handshake();
   test_control_stop_failsafe();
@@ -293,6 +436,8 @@ int main() {
   test_pairing();
   test_point_cloud();
   test_discover();
+  test_third_party_udp();
+  test_bluetooth_module_rates();
   printf("%d checks, %d failures\n", checks, failures);
   return failures ? 1 : 0;
 }

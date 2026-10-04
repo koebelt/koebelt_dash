@@ -8,6 +8,7 @@
 #include <stdint.h>
 
 #include "KTransport.h"
+#include "KUdp.h"
 
 #define KOEBELT_LINK_VERSION "1.5.0"
 
@@ -96,13 +97,30 @@ class KLink {
   bool begin(const char* ssid, const char* pass, uint16_t port = 47800);
   /// Use an already-connected network interface (Ethernet, Wi-Fi joined elsewhere).
   bool beginUdp(uint16_t port = 47800);
-  /// Advertise the KoebeltLink BLE service (ESP32).
+  /// Advertise the KoebeltLink BLE service: ESP32 (NimBLE-Arduino if
+  /// installed, else the core's Bluedroid), nRF52 (Adafruit Bluefruit), and
+  /// ArduinoBLE boards (Nano 33 BLE / IoT, UNO R4 WiFi, Nano RP2040 Connect).
   bool beginBLE();
   /// Newline-delimited JSON over any Stream (USB serial).
   bool beginSerial(Stream& s);
   /// A radio modem on a UART (SiK, HC-12, XBee, a LoRa UART module). Start the
   /// UART at kRadioProfile(type).baud first. Rates follow the profile.
   bool beginRadio(Stream& s, KRadio type = KRadio::SIK);
+  /// A serial bridge module on a UART: Bluetooth LE modules (HM-10, AT-09,
+  /// BT05, JDY, HC-08, RN4870, DFRobot Bluno), Bluetooth Classic modules
+  /// (HC-05, HC-06). Start the UART at the module's baud first; telemetry
+  /// follows it: 2 Hz up to 19200 baud, 5 Hz to 57600, 10 Hz above.
+  bool beginModule(Stream& s, uint32_t baud = 9600);
+  /// UDP through a networking library you set up yourself: Ethernet (W5500,
+  /// W5100, ENC28J60 with EthernetENC), QNEthernet on Teensy 4.1, WiFiEspAT
+  /// (an ESP-01 or ESP32 running ESP-AT as Wi-Fi co-processor), WiFi101…
+  /// Pass its UDP object; the library calls begin(port) on it.
+  template <typename U>
+  bool beginUdp(U& udp, uint16_t port = 47800) {
+    if (udp.begin(port) != 1) return false;
+    addTransport(new KUdpTransportT<U>(udp));
+    return true;
+  }
   /// Second transport used when the first goes quiet. LORA takes a frequency in Hz.
   bool fallback(TransportType t, double param = 0);
   /// Any custom transport.
