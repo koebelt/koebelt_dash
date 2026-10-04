@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "koebelt-link"
+version = "1.5.0"
+description = "Connect drones, robots and test rigs to the koebelt dash app."
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "MIT" }
+authors = [{ name = "Thomas Koebel" }]
+dependencies = []
+
+[project.optional-dependencies]
+serial = ["pyserial>=3.5"]
+ble = ["bless>=0.2.6"]
+camera = ["opencv-python-headless>=4.5"]
+dev = ["pytest>=7", "pyyaml>=6"]
+
+[project.scripts]
+koebelt-link-sim = "koebelt_link.sim:main"
+
+[tool.setuptools]
+packages = ["koebelt_link"]
+
+[tool.setuptools.package-data]
+koebelt_link = ["py.typed"]
