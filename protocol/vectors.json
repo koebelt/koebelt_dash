@@ -1,0 +1,145 @@
+{
+  "_comment": "Messages every implementation must parse. 'decoded' lists the fields a decoder must expose.",
+  "vectors": [
+    {
+      "name": "ctl",
+      "wire": "{\"t\":\"ctl\",\"s\":812,\"lx\":0,\"ly\":0.4,\"rx\":0,\"ry\":-0.1}",
+      "decoded": {
+        "t": "ctl",
+        "s": 812,
+        "lx": 0.0,
+        "ly": 0.4,
+        "rx": 0.0,
+        "ry": -0.1
+      }
+    },
+    {
+      "name": "mode",
+      "wire": "{\"t\":\"mode\",\"m\":\"RTH\"}",
+      "decoded": {
+        "t": "mode",
+        "m": "RTH"
+      }
+    },
+    {
+      "name": "arm",
+      "wire": "{\"t\":\"arm\",\"v\":true}",
+      "decoded": {
+        "t": "arm",
+        "v": true
+      }
+    },
+    {
+      "name": "stop",
+      "wire": "{\"t\":\"stop\"}",
+      "decoded": {
+        "t": "stop"
+      }
+    },
+    {
+      "name": "pset",
+      "wire": "{\"t\":\"pset\",\"p\":{\"RATE_RLL_P\":0.14}}",
+      "decoded": {
+        "t": "pset",
+        "p": {
+          "RATE_RLL_P": 0.14
+        }
+      }
+    },
+    {
+      "name": "pair",
+      "wire": "{\"t\":\"pair\",\"code\":\"4F7-K2Q\",\"key\":\"00112233445566778899aabbccddeeff\"}",
+      "decoded": {
+        "t": "pair",
+        "code": "4F7-K2Q",
+        "key": "00112233445566778899aabbccddeeff"
+      }
+    },
+    {
+      "name": "jog",
+      "wire": "{\"t\":\"jog\",\"j\":[0,0,1,0,0,-1]}",
+      "decoded": {
+        "t": "jog",
+        "j": [
+          0,
+          0,
+          1,
+          0,
+          0,
+          -1
+        ]
+      }
+    },
+    {
+      "name": "cmd",
+      "wire": "{\"t\":\"cmd\",\"c\":\"countdown\",\"a\":{\"s\":10}}",
+      "decoded": {
+        "t": "cmd",
+        "c": "countdown",
+        "a": {
+          "s": 10
+        }
+      }
+    },
+    {
+      "name": "unknown fields are ignored",
+      "wire": "{\"t\":\"ping\",\"ts\":5,\"zz\":[1,2]}",
+      "decoded": {
+        "t": "ping",
+        "ts": 5
+      }
+    },
+    {
+      "name": "point cloud i16cm",
+      "wire": "{\"t\":\"pc\",\"f\":\"i16cm\",\"n\":2,\"d\":\"ZAAAAAAA/v8BAPQB\"}",
+      "decoded": {
+        "t": "pc",
+        "points_m": [
+          [
+            1.0,
+            0.0,
+            0.0
+          ],
+          [
+            -0.02,
+            0.01,
+            5.0
+          ]
+        ]
+      }
+    }
+  ],
+  "radio": [
+    {
+      "id": "sik",
+      "baud": 57600,
+      "tlm_hz": 5,
+      "ctl_hz": 10
+    },
+    {
+      "id": "lora",
+      "baud": 115200,
+      "tlm_hz": 2,
+      "ctl_hz": 0
+    },
+    {
+      "id": "hc12",
+      "baud": 9600,
+      "tlm_hz": 2,
+      "ctl_hz": 5
+    },
+    {
+      "id": "xbee",
+      "baud": 57600,
+      "tlm_hz": 5,
+      "ctl_hz": 10
+    },
+    {
+      "id": "other",
+      "baud": 57600,
+      "tlm_hz": 2,
+      "ctl_hz": 5
+    }
+  ],
+  "_radio_comment": "Radio link profiles shared by the app and every library: serial baud between host and radio, telemetry rate, control heartbeat rate (0 = telemetry only: control, STOP and mode changes are not accepted)."
+}
