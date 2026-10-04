@@ -29,8 +29,9 @@ def init(self, *a, **k):
     devices.append(self)
 
 
-def connect(self, wifi=False, ble=False, serial=None, *, radio=None, port=47800, baud=115200, fallback=None):
-    assert wifi or ble or serial or radio, "connect() needs a transport"
+def connect(self, wifi=False, ble=False, serial=None, *, radio=None, module=None, port=47800, baud=115200, fallback=None):
+    assert wifi or ble or serial or radio or module, "connect() needs a transport"
+    assert module is None or (isinstance(module[0], str) and isinstance(module[1], int)), "module=(path, baud)"
     for r in [radio, (fallback or {}).get("radio")]:
         assert r is None or isinstance(r, str) or r[1] in RADIO_PROFILES, f"unknown radio {r}"
     for k in fallback or {}:

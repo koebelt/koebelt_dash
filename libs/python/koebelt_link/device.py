@@ -178,12 +178,15 @@ class Device:
         self._state_dirty = True
 
     # ------------------------------------------------------------ connection
-    def connect(self, wifi: bool = False, ble: bool = False, serial: Optional[str] = None, *, radio: Optional[RadioPort] = None, port: int = 47800,
-                baud: int = 115200, fallback: Optional[Dict[str, Any]] = None) -> "Device":
+    def connect(self, wifi: bool = False, ble: bool = False, serial: Optional[str] = None, *, radio: Optional[RadioPort] = None,
+                module: Optional[Tuple[str, int]] = None, port: int = 47800, baud: int = 115200,
+                fallback: Optional[Dict[str, Any]] = None) -> "Device":
         """Open transports. The first one is primary; `fallback` takes over when it goes quiet.
 
         `radio` is a radio modem on a serial port: "/dev/ttyUSB1" for a SiK
         radio, or (path, profile) with profile sik, lora, hc12, xbee or other.
+        `module` is a Bluetooth serial module on a UART, (path, baud), e.g.
+        ("/dev/serial0", 9600) for an HM-10 or HC-05.
         """
         if wifi:
             self._add(UdpTransport(port))
@@ -191,12 +194,14 @@ class Device:
             self._add(SerialTransport(serial, baud))
         if radio:
             self._add(self._radio(radio))
+        if module:
+            self._add(SerialTransport(module[0], module[1]).use_module(module[1]))
         if ble:
             from .transports import BleTransport
 
             self._add(BleTransport(self.name))
         if not self.transports:
-            raise ValueError("pick at least one transport: wifi=True, ble=True, serial='/dev/ttyUSB0' or radio='/dev/ttyUSB1'")
+            raise ValueError("pick at least one transport: wifi=True, ble=True, serial='/dev/ttyUSB0', radio='/dev/ttyUSB1' or module=('/dev/serial0', 9600)")
         for k, v in (fallback or {}).items():
             if k == "serial":
                 self._add(SerialTransport(v, baud))

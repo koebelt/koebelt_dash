@@ -102,6 +102,7 @@ enum Spec {
     Udp,
     Serial(String, u32),
     Radio(String, Radio),
+    Module(String, u32),
     Custom(Box<dyn Transport + Send>),
 }
 
@@ -130,6 +131,11 @@ impl DeviceBuilder {
     /// A radio modem on a serial port: `.radio("/dev/ttyUSB1", Radio::Sik)`.
     pub fn radio(mut self, path: &str, radio: Radio) -> Self {
         self.links.push(Spec::Radio(path.into(), radio));
+        self
+    }
+    /// A Bluetooth serial module (HM-10, HC-05…) on a UART: `.module("/dev/serial0", 9600)`.
+    pub fn module(mut self, path: &str, baud: u32) -> Self {
+        self.links.push(Spec::Module(path.into(), baud));
         self
     }
     /// Any other transport (a TCP serial bridge, a custom radio…).
@@ -168,6 +174,7 @@ impl DeviceBuilder {
                 }
                 Spec::Serial(p, b) => Box::new(SerialTransport::open(&p, b)?),
                 Spec::Radio(p, r) => Box::new(SerialTransport::radio(&p, r)?),
+                Spec::Module(p, b) => Box::new(SerialTransport::module(&p, b)?),
                 Spec::Custom(t) => t,
             });
         }

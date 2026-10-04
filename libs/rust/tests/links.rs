@@ -220,3 +220,26 @@ fn mjpeg_server_streams_newest_frame() {
     let want = [&b"--frame\r\nContent-Type: image/jpeg\r\nContent-Length: 104\r\n\r\n"[..], &jpeg[..]].concat();
     assert_eq!(&part[..want.len()], &want[..]);
 }
+
+#[test]
+fn bluetooth_module_rates_follow_baud() {
+    assert_eq!([9600, 19200, 38400, 57600, 115200].map(koebelt_link::module_rate_hz), [2, 2, 5, 5, 10]);
+    let (a, b) = UnixStream::pair().unwrap();
+    b.set_nonblocking(true).unwrap();
+    let t = StreamTransport::new(a.try_clone().unwrap(), a).module(9600);
+    let mut dev = Device::new("Module-Bot", Kind::Rover).state_dir(dir("module")).transport(t).start().unwrap();
+    let mut app = LineApp { s: b, buf: vec![], got: vec![] };
+    let seen = Arc::new(Mutex::new(0));
+    let s2 = seen.clone();
+    dev.on_control(move |_| *s2.lock().unwrap() += 1);
+    app.send(r#"{"t":"hello","v":1}"#);
+    for _ in 0..50 {
+        dev.link.imu([0.0, 0.0, 9.81], [0.0; 3]);
+        dev.link.position([1.0, 2.0, 0.0]);
+        app.pump(&mut dev, 20, true);
+    }
+    let tlm = app.of("tlm");
+    assert!((1..=3).contains(&tlm.len()), "2 Hz at 9600 baud, got {}", tlm.len());
+    assert!(!tlm.last().unwrap().contains("imu"), "compact set");
+    assert!(*seen.lock().unwrap() > 0, "modules carry control");
+}

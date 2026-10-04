@@ -38,6 +38,8 @@ while True:
 - Links: `wifi`, `ble`, `serial`, `radio` (SiK, LoRa, HC-12, XBee or other:
   rates follow the shared radio profile), and `fallback={"radio": (...)}` for
   a second link that takes over telemetry when the first goes quiet.
+- Bluetooth serial modules: `module=("/dev/serial0", 9600)` for an HM-10 or
+  HC-05 on a UART; telemetry follows the baud rate.
 - Video: `dev.camera(0, label="Front")` streams a webcam or Pi camera, or
   serve your own frames with `MjpegServer` and declare it with `dev.video(srv.url)`.
 - Callbacks: `on_control`, `on_mode`, `on_arm`, `on_stop`, `on_reset`, `on_jog`,

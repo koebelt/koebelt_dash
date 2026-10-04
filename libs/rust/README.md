@@ -30,7 +30,8 @@ let mut dev = Device::new("Mule", Kind::Rover)
     .wifi("", "")                                // primary
     .radio("/dev/ttyAMA0", Radio::Sik)           // takes over telemetry on failsafe
     .start()?;
-// or .serial("/dev/ttyUSB0", 115200), or .transport(any_transport)
+// or .serial("/dev/ttyUSB0", 115200), .module("/dev/serial0", 9600) for a
+// Bluetooth serial module, or .transport(any_transport)
 ```
 
 Serial ports are configured with `stty` (Linux, macOS) or `mode` (Windows).

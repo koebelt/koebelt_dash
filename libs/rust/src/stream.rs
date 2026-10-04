@@ -5,7 +5,7 @@ use std::collections::VecDeque;
 use std::io::{self, Read, Write};
 use std::sync::mpsc::{self, Receiver};
 
-use crate::{LineReader, Radio, RadioProfile, Transport};
+use crate::{LineReader, Radio, RadioProfile, Transport, module_rate_hz};
 
 /// Newline-delimited JSON over any reader/writer pair. With a radio profile
 /// ([`StreamTransport::radio`]) it follows that radio's rates.
@@ -50,6 +50,13 @@ impl StreamTransport {
 
     pub fn profile(&self) -> Option<RadioProfile> {
         self.profile
+    }
+
+    /// A serial bridge module (HM-10, HC-05, RN4870, Bluno…) on a UART at
+    /// `baud`: telemetry follows the baud rate, control is accepted.
+    pub fn module(mut self, baud: u32) -> Self {
+        self.profile = Some(RadioProfile { id: "module", baud, tlm_hz: module_rate_hz(baud), ctl_hz: 10 });
+        self
     }
 }
 
@@ -107,6 +114,11 @@ impl SerialTransport {
     /// A radio modem on `path`, at the radio's usual baud rate.
     pub fn radio(path: &str, radio: Radio) -> io::Result<StreamTransport> {
         Ok(Self::open(path, radio.profile().baud)?.radio(radio))
+    }
+
+    /// A Bluetooth serial module on `path` (a UART such as /dev/serial0).
+    pub fn module(path: &str, baud: u32) -> io::Result<StreamTransport> {
+        Ok(Self::open(path, baud)?.module(baud))
     }
 }
 

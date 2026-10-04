@@ -7,7 +7,7 @@ import threading
 from typing import Any, Callable, List, Optional, Tuple
 
 from .protocol import (BLE_RX, BLE_SERVICE, BLE_TX, RADIO_PROFILES, UDP_ANNOUNCE_PORT, UDP_DEVICE_PORT, LineDecoder, Msg, decode,
-                       encode)
+                       encode, module_rate_hz)
 
 
 class Transport:
@@ -30,6 +30,14 @@ class Transport:
         self.low_bandwidth = True
         self.max_rate_hz = float(tlm)
         self.accepts_control = ctl > 0
+        return self
+
+    def use_module(self, baud: int) -> "Transport":
+        """A serial bridge module (HM-10, HC-05, RN4870…) at `baud`: rates
+        follow the baud rate, control is accepted."""
+        self.low_bandwidth = True
+        self.max_rate_hz = module_rate_hz(baud)
+        self.accepts_control = True
         return self
 
     def poll(self) -> List[Msg]:

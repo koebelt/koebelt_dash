@@ -26,6 +26,12 @@ RADIO_PROFILES = {
     "other": (57600, 2, 5),
 }
 
+def module_rate_hz(baud: int) -> float:
+    """Telemetry rate for a serial bridge module (HM-10, HC-05…) at `baud`:
+    2 Hz up to 19200 baud, 5 Hz to 57600, 10 Hz above. Same in every library."""
+    return 2.0 if baud <= 19200 else 5.0 if baud <= 57600 else 10.0
+
+
 #: Fields sent on links of 2 Hz or less.
 COMPACT_FIELDS = ("pos", "att", "gps", "bat", "rocket")
 

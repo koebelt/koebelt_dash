@@ -326,3 +326,26 @@ def test_shortcuts_cover_every_builtin_channel(pair):
     for k in ("att", "vel", "rssi", "joints", "tool", "ft", "thrust", "rpm", "temp", "throttle", "rocket"):
         assert k in d, k
     assert d["rocket"] == [120.0, 3.5, 0.0]
+
+
+def test_bluetooth_module_rates_follow_baud(tmp_path):
+    from koebelt_link import SocketTransport
+    from koebelt_link.protocol import module_rate_hz
+
+    assert [module_rate_hz(b) for b in (9600, 19200, 38400, 57600, 115200)] == [2, 2, 5, 5, 10]
+    a, b = socket.socketpair()
+    dev = Device("Module-1", kind="rover", state_dir=str(tmp_path))
+    dev.add_transport(SocketTransport(a).use_module(9600))
+    app = LineApp(dev, b)
+    seen = []
+    dev.on_control(seen.append)
+    app.send({"t": "hello", "v": 1})
+    t0 = time.monotonic()
+    while time.monotonic() - t0 < 1.0:
+        dev.imu(0, 0, 9.81, 0, 0, 0)
+        dev.position(1, 2, 0)
+        app.pump(0.02, ctl=True)
+    tl = app.of("tlm")
+    assert 1 <= len(tl) <= 3 and "imu" not in tl[-1]["d"]  # 2 Hz, compact
+    assert seen, "modules carry control"
+    dev.close()

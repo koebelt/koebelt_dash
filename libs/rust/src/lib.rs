@@ -55,6 +55,19 @@ pub enum Radio {
     Other,
 }
 
+/// Telemetry rate for a serial bridge module (HM-10, HC-05, RN4870…) at
+/// `baud`: 2 Hz up to 19200 baud, 5 Hz to 57600, 10 Hz above. Same in every
+/// library.
+pub const fn module_rate_hz(baud: u32) -> u8 {
+    if baud <= 19200 {
+        2
+    } else if baud <= 57600 {
+        5
+    } else {
+        10
+    }
+}
+
 /// Link rates for a [`Radio`]. Same table in every library and in
 /// protocol/vectors.json.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
