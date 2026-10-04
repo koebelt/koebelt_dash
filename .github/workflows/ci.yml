@@ -1,0 +1,60 @@
+name: ci
+on: [push, pull_request]
+
+jobs:
+  app:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: apps/dash } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable }
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: python -m venv ../../libs/python/.venv && ../../libs/python/.venv/bin/pip install -e ../../libs/python
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test
+
+  python:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: libs/python } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install -e ".[dev]" && pytest -q
+      - run: PYTHONPATH=../ros2/koebelt_link_ros pytest -q ../ros2/koebelt_link_ros/test
+
+  arduino-core:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: make -C libs/arduino/KoebeltLink/test
+
+  arduino-esp32:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: arduino/compile-sketches@v1
+        with:
+          fqbn: esp32:esp32:esp32
+          platforms: |
+            - name: esp32:esp32
+              source-url: https://espressif.github.io/arduino-esp32/package_esp32_index.json
+          libraries: |
+            - source-path: libs/arduino/KoebeltLink
+            - name: ArduinoJson
+            - name: ESP32Servo
+          sketch-paths: libs/arduino/KoebeltLink/examples
+
+  rust:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: libs/rust } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with: { targets: thumbv7em-none-eabihf }
+      - run: cargo test
+      - run: cargo clippy --all-targets -- -D warnings
+      - run: cargo build --no-default-features --features embassy --target thumbv7em-none-eabihf
