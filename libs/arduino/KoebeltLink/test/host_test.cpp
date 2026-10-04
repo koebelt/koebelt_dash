@@ -1,0 +1,298 @@
+// Host tests for the KoebeltLink core. Build and run:
+//   make -C test
+#include <Arduino.h>
+#include <ArduinoJson.h>
+#include <math.h>
+#include <stdio.h>
+
+#include <deque>
+#include <string>
+#include <vector>
+
+#include "KoebeltLink.h"
+
+uint32_t g_millis = 1000;
+
+struct FakeTransport : KTransport {
+  std::deque<std::string> in;
+  std::vector<std::string> out, announced;
+  bool control = true, low = false;
+  float rate = 0;
+  size_t read(char* buf, size_t cap) override {
+    if (in.empty()) return 0;
+    std::string m = in.front();
+    in.pop_front();
+    if (m.size() >= cap) return 0;
+    memcpy(buf, m.data(), m.size());
+    return m.size();
+  }
+  void write(const char* msg, size_t len) override { out.emplace_back(msg, len); }
+  void announce(const char* msg, size_t len) override { announced.emplace_back(msg, len); }
+  bool acceptsControl() const override { return control; }
+  bool lowBandwidth() const override { return low; }
+  float maxRateHz() const override { return rate; }
+
+  std::vector<JsonDocument> of(const char* t) const {
+    std::vector<JsonDocument> r;
+    for (auto& s : out) {
+      JsonDocument d;
+      deserializeJson(d, s);
+      if (strcmp(d["t"] | "", t) == 0) r.push_back(d);
+    }
+    return r;
+  }
+};
+
+static int failures = 0, checks = 0;
+#define CHECK(c)                                                  \
+  do {                                                            \
+    checks++;                                                     \
+    if (!(c)) {                                                   \
+      failures++;                                                 \
+      printf("FAIL %s:%d  %s\n", __FILE__, __LINE__, #c);         \
+    }                                                             \
+  } while (0)
+
+static void run(KLink& l, FakeTransport& t, uint32_t ms, bool ctl = true) {
+  for (uint32_t i = 0; i < ms; i += 10) {
+    if (ctl) t.in.push_back("{\"t\":\"ctl\",\"s\":1,\"lx\":0,\"ly\":0,\"rx\":0,\"ry\":0}");
+    g_millis += 10;
+    l.update();
+  }
+}
+
+// callbacks (function pointers, like on the boards)
+static int stops = 0, writes = 0;
+static KMode lastMode = KMode::UNKNOWN;
+static KControl lastCtl;
+static float lastParam = 0;
+static float lastJog[6];
+
+void test_handshake() {
+  KLink l("Kite-03", KLink::DRONE);
+  FakeTransport t;
+  l.addTransport(&t);
+  l.setSensors("GPS, IMU,BARO");
+  l.param("RATE_RLL_P", 0.135f, 0, 0.5f);
+  auto temp = l.channel("motor_temp", {"M1", "M2"}, "C", 10);
+  run(l, t, 1100, false);
+  CHECK(!t.announced.empty());
+  t.in.push_back("{\"t\":\"hello\",\"v\":1}");
+  l.imu(0, 0, 9.81f, 0, 0, 0.1f);
+  l.gps(47.1, 8.2, 400, 12);
+  temp.publish(40.5, 41);
+  run(l, t, 100);
+  auto h = t.of("hello");
+  CHECK(h.size() == 1 && h[0]["ok"] == true && strcmp(h[0]["id"], "kite-03") == 0 && strcmp(h[0]["kind"], "drone") == 0);
+  CHECK(h[0]["sensors"].size() == 3 && strcmp(h[0]["sensors"][1], "IMU") == 0);
+  auto p = t.of("params");
+  CHECK(p.size() == 1 && strcmp(p[0]["p"][0][0], "RATE_RLL_P") == 0);
+  CHECK(t.of("chan").size() == 1);
+  auto tl = t.of("tlm");
+  CHECK(!tl.empty());
+  bool gps = false, custom = false;
+  for (auto& d : tl) {
+    if (d["d"]["gps"].is<JsonArray>()) gps = fabs(d["d"]["gps"][0].as<double>() - 47.1) < 1e-4;
+    if (d["d"]["motor_temp"].is<JsonArray>()) custom = fabs(d["d"]["motor_temp"][0].as<float>() - 40.5f) < 1e-4;
+  }
+  CHECK(gps && custom);
+  CHECK(l.connected());
+}
+
+void test_control_stop_failsafe() {
+  KLink l("Mule", KLink::ROVER);
+  FakeTransport t;
+  l.addTransport(&t);
+  l.onControl([](const KControl& c) { lastCtl = c; });
+  l.onStop([] { stops++; });
+  l.onMode([](KMode m) { lastMode = m; });
+  l.failsafe(300, KMode::HOLD);
+  t.in.push_back("{\"t\":\"hello\"}");
+  t.in.push_back("{\"t\":\"arm\",\"v\":true}");
+  t.in.push_back("{\"t\":\"mode\",\"m\":\"MANUAL\"}");
+  t.in.push_back("{\"t\":\"ctl\",\"s\":7,\"lx\":0.5,\"ly\":0,\"rx\":0,\"ry\":-1}");
+  g_millis += 10;
+  l.update();
+  CHECK(l.armed() && l.mode() == KMode::MANUAL && lastMode == KMode::MANUAL);
+  CHECK(lastCtl.lx == 0.5f && lastCtl.ry == -1 && lastCtl.seq == 7);
+
+  run(l, t, 500, false);
+  CHECK(l.failsafeActive() && l.mode() == KMode::HOLD);
+  run(l, t, 30);
+  CHECK(!l.failsafeActive());
+
+  for (int i = 0; i < 3; i++) t.in.push_back("{\"t\":\"stop\"}");
+  run(l, t, 20);
+  CHECK(l.stopped() && !l.armed() && stops == 1);
+  t.in.push_back("{\"t\":\"mode\",\"m\":\"AUTO\"}");
+  run(l, t, 20);
+  CHECK(l.mode() == KMode::HOLD);
+  auto st = t.of("state");
+  CHECK(!st.empty() && st.back()["estop"] == true);
+  t.in.push_back("{\"t\":\"reset\"}");
+  run(l, t, 20);
+  CHECK(!l.stopped() && !l.armed());
+}
+
+void test_control_only_on_fast_links() {
+  KLink l("Rocketeer", KLink::ROCKET);
+  FakeTransport lora;
+  lora.control = false;
+  lora.low = true;
+  lora.rate = kRadioProfile(KRadio::LORA).tlmHz;
+  l.addTransport(&lora);
+  lastCtl = KControl();
+  l.onControl([](const KControl& c) { lastCtl = c; });
+  lora.in.push_back("{\"t\":\"hello\"}");
+  lora.in.push_back("{\"t\":\"ctl\",\"lx\":1}");
+  l.position(0, 0, 120);
+  l.imu(1, 2, 3, 4, 5, 6);
+  run(l, lora, 1000, false);
+  CHECK(lastCtl.lx == 0);
+  auto tl = lora.of("tlm");
+  CHECK(!tl.empty() && tl[0]["d"]["pos"].is<JsonArray>() && !tl[0]["d"]["imu"].is<JsonArray>());
+  CHECK(tl.size() <= 3);  // 2 Hz on low-bandwidth links
+  CHECK(!l.failsafeActive());  // rockets ignore the failsafe
+  // Nothing that moves the device over a telemetry-only link, but STOP works.
+  lora.in.push_back("{\"t\":\"arm\",\"v\":true}");
+  lora.in.push_back("{\"t\":\"cmd\",\"c\":\"countdown\",\"a\":{\"s\":10}}");
+  run(l, lora, 50, false);
+  CHECK(!l.armed());
+  lora.in.push_back("{\"t\":\"stop\"}");
+  run(l, lora, 50, false);
+  CHECK(l.stopped());
+}
+
+void test_radio_profiles() {
+  // Same table as protocol/vectors.json.
+  CHECK(!strcmp(kRadioProfile(KRadio::SIK).id, "sik") && kRadioProfile(KRadio::SIK).baud == 57600 && kRadioProfile(KRadio::SIK).ctlHz == 10);
+  CHECK(!strcmp(kRadioProfile(KRadio::LORA).id, "lora") && kRadioProfile(KRadio::LORA).ctlHz == 0);
+  CHECK(kRadioProfile(KRadio::HC12).baud == 9600 && kRadioProfile(KRadio::HC12).tlmHz == 2 && kRadioProfile(KRadio::HC12).ctlHz == 5);
+  CHECK(kRadioProfile(KRadio::XBEE).tlmHz == 5 && kRadioProfile(KRadio::OTHER).ctlHz == 5);
+
+  // SiK: control accepted, telemetry capped at 5 Hz with the full field set, no point clouds.
+  KLink l("Mule", KLink::ROVER);
+  FakeTransport sik;
+  sik.low = true;
+  sik.rate = kRadioProfile(KRadio::SIK).tlmHz;
+  l.addTransport(&sik);
+  static const float cloud[2][3] = {{1, 2, 0}, {3, 4, 0}};
+  l.points(cloud, 2);
+  lastCtl = KControl();
+  l.onControl([](const KControl& c) { lastCtl = c; });
+  sik.in.push_back("{\"t\":\"hello\"}");
+  sik.in.push_back("{\"t\":\"ctl\",\"lx\":0.5}");
+  for (int i = 0; i < 100; i++) {
+    l.imu(0, 0, 9.81f, 0, 0, 0);
+    l.position(i, 0, 0);
+    run(l, sik, 10);
+  }
+  CHECK(lastCtl.lx == 0 || lastCtl.lx == 0.5f);
+  auto tl = sik.of("tlm");
+  CHECK(tl.size() >= 4 && tl.size() <= 6);
+  CHECK(tl[0]["d"]["imu"].is<JsonArray>());
+  CHECK(sik.of("pc").empty());
+}
+
+void test_video_state_label_connect() {
+  static int connects = 0;
+  KLink l("Cam", KLink::ROVER);
+  FakeTransport t;
+  l.addTransport(&t);
+  l.video(":81/stream", "fpv", "mjpeg", "Front");
+  l.param("MAX_SPD", 2, 0, 5, "m/s", 0.1f, "Top speed");
+  l.setState("gear", "LOW");
+  l.onConnect([] { connects++; });
+  t.in.push_back("{\"t\":\"hello\"}");
+  run(l, t, 600);
+  auto h = t.of("hello");
+  CHECK(!h.empty() && h[0]["video"][0]["url"] == ":81/stream" && h[0]["video"][0]["label"] == "Front");
+  auto p = t.of("params");
+  CHECK(!p.empty() && p[0]["p"][0][6] == "Top speed");
+  auto st = t.of("state");
+  CHECK(!st.empty() && st.back()["ext"]["gear"] == "LOW");
+  CHECK(connects == 1);
+}
+
+void test_params_jog_cmd() {
+  KLink l("Cell", KLink::ARM);
+  FakeTransport t;
+  l.addTransport(&t);
+  KParam kp = l.param("J1_KP", 120, 0, 400);
+  kp.onChange([](float v) { lastParam = v; });
+  l.onParamsWritten([] { writes++; });
+  l.onJog([](const float* j) { memcpy(lastJog, j, sizeof(lastJog)); });
+  static char lastCmd[16];
+  static float lastArg;
+  l.onCommand([](const char* c, JsonObjectConst a) {
+    strncpy(lastCmd, c, sizeof(lastCmd) - 1);
+    lastArg = a["v"] | -1.0f;
+  });
+  t.in.push_back("{\"t\":\"hello\"}");
+  t.in.push_back("{\"t\":\"pset\",\"p\":{\"J1_KP\":999,\"NOPE\":1}}");
+  t.in.push_back("{\"t\":\"jog\",\"j\":[0,0,1,0,0,-1]}");
+  t.in.push_back("{\"t\":\"cmd\",\"c\":\"gripper\",\"a\":{\"v\":0.9}}");
+  run(l, t, 30);
+  CHECK(kp.value() == 400 && lastParam == 400 && writes == 1);  // clamped to max
+  auto ack = t.of("pack");
+  CHECK(ack.size() == 1 && ack[0]["keys"].size() == 1);
+  CHECK(lastJog[2] == 1 && lastJog[5] == -1);
+  CHECK(strcmp(lastCmd, "gripper") == 0 && fabs(lastArg - 0.9f) < 1e-5);
+}
+
+void test_pairing() {
+  KLink l("Kite-9", KLink::DRONE);
+  FakeTransport t;
+  l.addTransport(&t);
+  l.pair("4f7-k2q");
+  run(l, t, 1100, false);
+  CHECK(!t.announced.empty() && t.announced.back().find("\"pair\":\"4F7-K2Q\"") != std::string::npos);
+  t.in.push_back("{\"t\":\"pair\",\"code\":\"XXX-XXX\",\"key\":\"deadbeef\"}");
+  run(l, t, 10, false);
+  CHECK(!l.paired());
+  t.in.push_back("{\"t\":\"pair\",\"code\":\"4F7-K2Q\",\"key\":\"00112233445566778899aabbccddeeff\"}");
+  run(l, t, 10, false);
+  CHECK(l.paired() && t.of("paired").size() == 1);
+  t.in.push_back("{\"t\":\"hello\",\"key\":\"wrong\"}");
+  run(l, t, 10, false);
+  CHECK(t.of("hello").back()["ok"] == false);
+  t.in.push_back("{\"t\":\"hello\",\"key\":\"00112233445566778899aabbccddeeff\"}");
+  run(l, t, 10);
+  CHECK(t.of("hello").back()["ok"] == true);
+}
+
+void test_point_cloud() {
+  KLink l("Scan", KLink::ROVER);
+  FakeTransport t;
+  l.addTransport(&t);
+  static const float pts[2][3] = {{1, 0, 0}, {-0.02f, 0.01f, 5}};
+  t.in.push_back("{\"t\":\"hello\"}");
+  l.points(pts, 2);
+  run(l, t, 150);
+  auto pc = t.of("pc");
+  // Must match protocol/vectors.json "point cloud i16cm".
+  CHECK(pc.size() == 1 && pc[0]["n"] == 2 && strcmp(pc[0]["d"], "ZAAAAAAA/v8BAPQB") == 0);
+}
+
+void test_discover() {
+  KLink l("Kite-2", KLink::DRONE);
+  FakeTransport t;
+  l.addTransport(&t);
+  t.in.push_back("{\"t\":\"discover\"}");
+  run(l, t, 10, false);
+  CHECK(t.of("announce").size() == 1);
+}
+
+int main() {
+  test_handshake();
+  test_control_stop_failsafe();
+  test_control_only_on_fast_links();
+  test_radio_profiles();
+  test_video_state_label_connect();
+  test_params_jog_cmd();
+  test_pairing();
+  test_point_cloud();
+  test_discover();
+  printf("%d checks, %d failures\n", checks, failures);
+  return failures ? 1 : 0;
+}
