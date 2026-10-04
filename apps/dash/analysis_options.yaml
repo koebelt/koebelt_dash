@@ -1,0 +1,19 @@
+analyzer:
+  exclude:
+    - build/**
+    - android/**
+    - ios/**
+    - web/**
+    - windows/**
+    - macos/**
+    - linux/**
+include: package:flutter_lints/flutter.yaml
+
+linter:
+  rules:
+    # Physics and painters keep the short axis names of the design prototype (P, L, R, S…).
+    non_constant_identifier_names: false
+    constant_identifier_names: false
+
+formatter:
+  page_width: 160
