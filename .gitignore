@@ -1,0 +1,18 @@
+.DS_Store
+.idea/
+.vscode/
+*.iml
+
+# python
+libs/python/.venv/
+__pycache__/
+*.egg-info/
+.pytest_cache/
+
+# rust
+libs/rust/target/
+libs/rust/Cargo.lock
+
+# arduino host tests
+libs/arduino/KoebeltLink/test/host_test
+libs/arduino/KoebeltLink/test/host_test.dSYM/
