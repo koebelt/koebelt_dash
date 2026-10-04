@@ -1380,7 +1380,7 @@ class ControlScreen extends StatelessWidget {
         };
 }
 
-/// Shown instead of the controls on telemetry-only links (LoRa).
+/// Shown instead of the controls on telemetry-only links (LoRa) and MSP.
 class TelemetryOnly extends StatelessWidget {
   const TelemetryOnly(this.d, {super.key});
   final Dash d;
@@ -1390,14 +1390,23 @@ class TelemetryOnly extends StatelessWidget {
       padding: const EdgeInsets.all(24),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 520),
-        child: KNotice(
-          tone: Tone.warning,
-          title: 'Telemetry-only link',
-          child: Text(
-            '${d.deviceName} is connected through ${d.radio?.name ?? 'a radio'}, which carries telemetry only. Sticks, modes and commands do not reach the device this way; STOP does, within about a second. '
-            'Control it over its main link (Wi-Fi, Bluetooth or a SiK radio) and rely on its failsafe when that link is out of range.',
-          ),
-        ),
+        child: d.device?.proto == 'msp'
+            ? KNotice(
+                tone: Tone.info,
+                title: 'Monitoring and tuning',
+                child: Text(
+                  '${d.deviceName} runs ${d.device?.model.split(' · ').first ?? 'Betaflight or INAV'} and is connected over MSP, the configuration link. '
+                  'The app shows its telemetry, tunes its PID gains on the Tune screen, and STOP disarms it. Fly it with your RC transmitter.',
+                ),
+              )
+            : KNotice(
+                tone: Tone.warning,
+                title: 'Telemetry-only link',
+                child: Text(
+                  '${d.deviceName} is connected through ${d.radio?.name ?? 'a radio'}, which carries telemetry only. Sticks, modes and commands do not reach the device this way; STOP does, within about a second. '
+                  'Control it over its main link (Wi-Fi, Bluetooth or a SiK radio) and rely on its failsafe when that link is out of range.',
+                ),
+              ),
       ),
     ),
   );

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../core/dash.dart';
@@ -117,6 +119,7 @@ class DevicesScreen extends StatelessWidget {
             Text(dev.name, style: KText.headingXs),
             if (act) const KTag('Active', tone: TagTone.accent),
             if (dev.simulated) const SimTag() else KTag(dev.transport.label, height: 22),
+            if (dev.proto != 'koebelt') KTag(_PairDialogState._protoLabel(dev.proto), tone: TagTone.info, height: 22),
           ],
         ),
         const SizedBox(height: 8),
@@ -198,6 +201,7 @@ class _PairDialogState extends State<_PairDialog> {
   String? error;
   final _name = TextEditingController(text: 'My robot'), _host = TextEditingController();
   DeviceKind _kind = DeviceKind.rover;
+  String _proto = 'koebelt';
   late String tab = widget.simulated
       ? 'Simulated'
       : widget.radio
@@ -275,8 +279,8 @@ class _PairDialogState extends State<_PairDialog> {
     final p = _port;
     if (p == null) return;
     final f = _heard;
-    if (f != null && f.pair != null) {
-      // The device is in pairing mode: pair over the radio so it gets a key.
+    if (f != null && (f.pair != null || !f.native)) {
+      // In pairing mode (it gets a key over the radio), or a MAVLink vehicle.
       final e = await widget.d.pair(f);
       if (!mounted) return;
       if (e != null) {
@@ -285,15 +289,24 @@ class _PairDialogState extends State<_PairDialog> {
       }
       final dev = widget.d.devices.where((x) => x.id == f.id).firstOrNull;
       if (dev != null && _baudValue != _module.baud) dev.baud = _baudValue;
+      if (dev != null) unawaited(widget.d.connect(dev.id));
     } else {
       widget.d.addRadio(p, _module, baud: _baudValue, name: f?.name, kind: f == null ? DeviceKind.generic : DeviceKind.parse(f.kind));
     }
     if (mounted) Navigator.pop(context);
   }
 
+  /// One tap: add the device (pairing it when it shows our code) and
+  /// connect to it.
   Future<void> _pair(Found f) async {
     final e = await widget.d.pair(f);
-    if (mounted) setState(() => error = e);
+    if (!mounted) return;
+    if (e != null) {
+      setState(() => error = e);
+      return;
+    }
+    unawaited(widget.d.connect(f.id));
+    Navigator.pop(context);
   }
 
   @override
@@ -316,7 +329,10 @@ class _PairDialogState extends State<_PairDialog> {
             else if (tab == 'Radio')
               ..._radio(context, found.where((f) => f.transport == 'radio').toList())
             else
-              ..._nearby(context, found.where((f) => f.transport != 'radio').toList()),
+              ..._nearby(context, [
+                for (final c in const ['USB', 'Wi-Fi', 'Bluetooth']) ...found.where((f) => f.transport != 'radio' && _categoryOf(f) == c),
+                ...found.where((f) => f.transport != 'radio' && !const ['USB', 'Wi-Fi', 'Bluetooth'].contains(_categoryOf(f))),
+              ]),
           ],
         );
       },
@@ -377,6 +393,15 @@ class _PairDialogState extends State<_PairDialog> {
       ),
     ];
   }
+
+  static String _protoLabel(String p) => switch (p) {
+    'mavlink' => 'MAVLink',
+    'msp' => 'MSP',
+    'tello' => 'Tello',
+    _ => p,
+  };
+
+  static String _categoryOf(Found f) => f.module == 'btserial' ? 'Bluetooth' : _category(f.transport);
 
   static String _category(String transport) => switch (transport) {
     'udp' => 'Wi-Fi',
@@ -483,7 +508,11 @@ class _PairDialogState extends State<_PairDialog> {
           tone: Tone.positive,
           title: 'Heard ${_heard!.name}',
           child: Text(
-            '${DeviceKind.parse(_heard!.kind).label}${_heard!.model.isEmpty ? '' : ' · ${_heard!.model}'}. ${_heard!.pair != null ? 'It is in pairing mode and will get a key.' : 'It is not in pairing mode; it is added without a key.'}',
+            '${DeviceKind.parse(_heard!.kind).label}${_heard!.model.isEmpty ? '' : ' · ${_heard!.model}'}. ${!_heard!.native
+                ? 'It speaks MAVLink: no pairing needed.'
+                : _heard!.pair != null
+                ? 'It is in pairing mode and will get a key.'
+                : 'It is not in pairing mode; it is added without a key.'}',
           ),
         ),
       if (_radioNote != null) KNotice(tone: Tone.warning, child: Text(_radioNote!)),
@@ -507,7 +536,9 @@ class _PairDialogState extends State<_PairDialog> {
 
   List<Widget> _nearby(BuildContext context, List<Found> found) {
     return [
-      const Text('Power on the device and hold its pair button for three seconds.'),
+      const Text(
+        'Plug in or power on the board. Flight controllers and drones appear on their own; boards running the KoebeltLink library also show up here while in pairing mode.',
+      ),
       Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -515,16 +546,16 @@ class _PairDialogState extends State<_PairDialog> {
           if (scanning && found.isEmpty)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 20),
-              child: Row(children: [ScanDot(), SizedBox(width: 12), MonoLabel('Scanning BLE and local network…')]),
+              child: Row(children: [ScanDot(), SizedBox(width: 12), MonoLabel('Scanning Wi-Fi, Bluetooth and USB boards…')]),
             )
           else if (found.isEmpty)
             const Padding(padding: EdgeInsets.symmetric(vertical: 20), child: MonoLabel('No new devices found'))
           else
             for (final (i, f) in found.indexed) ...[
-              if (i == 0 || found[i - 1].transport != f.transport)
+              if (i == 0 || _categoryOf(found[i - 1]) != _categoryOf(f))
                 Padding(
                   padding: const EdgeInsets.only(top: 14),
-                  child: MonoLabel(_category(f.transport), color: K.textSecondary),
+                  child: MonoLabel(_categoryOf(f), color: K.textSecondary),
                 ),
               Container(
                 padding: const EdgeInsets.symmetric(vertical: 14),
@@ -537,13 +568,21 @@ class _PairDialogState extends State<_PairDialog> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(f.name, style: KText.bodyMd),
+                          Row(
+                            children: [
+                              Flexible(
+                                child: Text(f.name, style: KText.bodyMd, maxLines: 1, overflow: TextOverflow.ellipsis),
+                              ),
+                              if (!f.native) ...[const SizedBox(width: 8), KTag(_protoLabel(f.proto), tone: TagTone.info, height: 20)],
+                            ],
+                          ),
                           const SizedBox(height: 6),
-                          MonoLabel('${DeviceKind.parse(f.kind).label} · ${f.via}'),
+                          MonoLabel([DeviceKind.parse(f.kind).label, if (f.model.isNotEmpty) f.model, f.via].join(' · '), maxLines: 2, height: 1.4),
                         ],
                       ),
                     ),
-                    KButton('Pair', size: KSize.sm, onPressed: () => _pair(f)),
+                    const SizedBox(width: 12),
+                    KButton(f.native && f.pair != null ? 'Pair' : 'Connect', size: KSize.sm, onPressed: () => _pair(f)),
                   ],
                 ),
               ),
@@ -553,8 +592,25 @@ class _PairDialogState extends State<_PairDialog> {
       if (error != null) KNotice(tone: Tone.negative, child: Text(error!)),
       if (manual) ...[
         const MonoLabel('Add by IP address'),
+        Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          children: [
+            for (final (p, l) in const [('koebelt', 'KoebeltLink'), ('mavlink', 'MAVLink'), ('tello', 'Tello')])
+              Pressable(
+                onTap: () => setState(() {
+                  _proto = p;
+                  if (p == 'tello') _host.text = '192.168.10.1';
+                  if (p != 'koebelt') _kind = DeviceKind.drone;
+                }),
+                builder: (_, _, _) => KTag(l, tone: p == _proto ? TagTone.accent : TagTone.neutral),
+              ),
+          ],
+        ),
         KInput(controller: _name, placeholder: 'Name', height: 40, style: KText.bodySm),
-        KInput(controller: _host, placeholder: '192.168.1.42', height: 40, style: KText.bodySm),
+        KInput(controller: _host, placeholder: _proto == 'mavlink' ? '192.168.4.1 or 192.168.4.1:14555' : '192.168.1.42', height: 40, style: KText.bodySm),
+        if (_proto == 'mavlink')
+          const MonoLabel('The app listens on UDP 14550, like any ground station; the port is the vehicle\'s, if you know it.', maxLines: 3, height: 1.5),
         Wrap(
           spacing: 6,
           runSpacing: 6,
@@ -573,7 +629,8 @@ class _PairDialogState extends State<_PairDialog> {
             size: KSize.sm,
             onPressed: () {
               if (_host.text.trim().isEmpty) return;
-              widget.d.addManual(_name.text.trim().isEmpty ? _host.text.trim() : _name.text.trim(), _host.text.trim(), _kind);
+              final dev = widget.d.addManual(_name.text.trim().isEmpty ? _host.text.trim() : _name.text.trim(), _host.text.trim(), _kind, proto: _proto);
+              unawaited(widget.d.connect(dev.id));
               Navigator.pop(context);
             },
           ),
@@ -582,7 +639,9 @@ class _PairDialogState extends State<_PairDialog> {
       Text.rich(
         TextSpan(
           children: [
-            const TextSpan(text: 'Device not showing up? It needs the KoebeltLink library. '),
+            const TextSpan(
+              text: 'Device not showing up? Boards with ArduPilot, PX4, Betaflight or INAV connect as they are; anything else needs the KoebeltLink library. ',
+            ),
             WidgetSpan(
               child: _Link('Open the quickstart', () {
                 Navigator.pop(context);

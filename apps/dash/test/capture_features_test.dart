@@ -12,6 +12,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:koebelt_dash/app.dart';
 import 'package:koebelt_dash/core/dash.dart';
 import 'package:koebelt_dash/screens/device_menu.dart';
+import 'package:koebelt_dash/link/discovery.dart';
 import 'package:koebelt_dash/screens/devices.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -43,6 +44,7 @@ void main() {
     ['sim-nova', 'live', 'desktop', 'cam', '', ''],
     ['sim-nova', 'guides', 'tablet', '', '', ''],
     ['sim-nova', 'devices', 'desktop', '', '', 'radio'],
+    ['sim-nova', 'devices', 'desktop', '', '', 'boards'],
   ];
 
   testWidgets('capture features', (tester) async {
@@ -94,6 +96,64 @@ void main() {
       );
       if (extra == 'menu') {
         await tester.tap(find.byType(DeviceBtn));
+      }
+      if (extra == 'boards') {
+        showPairDialog(tester.element(find.byType(DashApp)), dash, (_) {});
+        await tester.pump();
+        // What a scan finds on a bench with a few boards plugged in.
+        dash.found
+          ..clear()
+          ..['mavlink:/dev/cu.usbmodem1'] = Found(
+            id: 'mavlink:/dev/cu.usbmodem1',
+            name: 'ArduCopter',
+            kind: 'drone',
+            transport: 'serial',
+            address: '/dev/cu.usbmodem1',
+            via: 'USB · CubePilot Cube',
+            model: 'ArduPilot · system 1',
+            proto: 'mavlink',
+          )
+          ..['msp:/dev/cu.usbmodem2'] = Found(
+            id: 'msp:/dev/cu.usbmodem2',
+            name: 'Racer 5',
+            kind: 'drone',
+            transport: 'serial',
+            address: '/dev/cu.usbmodem2',
+            via: 'USB · STM32 flight controller',
+            model: 'Betaflight',
+            proto: 'msp',
+          )
+          ..['kite'] = Found(
+            id: 'kite',
+            name: 'Kite-03',
+            kind: 'drone',
+            transport: 'serial',
+            address: '/dev/cu.usbserial-3',
+            via: 'USB · ESP32 (native USB)',
+            pair: 'ABC-DEF',
+            model: 'Quadcopter · 1.4 kg',
+          )
+          ..['mav-1@10.0.0.5:14555'] = Found(
+            id: 'mav-1@10.0.0.5:14555',
+            name: 'ArduRover',
+            kind: 'rover',
+            transport: 'udp',
+            address: '10.0.0.5:14555',
+            via: 'Wi-Fi · 10.0.0.5:14555',
+            model: 'ArduPilot · system 1',
+            proto: 'mavlink',
+          )
+          ..['tello@192.168.10.1'] = Found(
+            id: 'tello@192.168.10.1',
+            name: 'Tello',
+            kind: 'drone',
+            transport: 'udp',
+            address: '192.168.10.1',
+            via: 'Wi-Fi · 192.168.10.1',
+            model: 'DJI Tello',
+            proto: 'tello',
+          );
+        dash.emit();
       }
       if (extra == 'radio') {
         showPairDialog(tester.element(find.byType(DashApp)), dash, (_) {}, radio: true);

@@ -5,6 +5,11 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 import '../link/ble_transport.dart';
+import '../link/board_discovery.dart';
+import '../link/bytes.dart';
+import '../link/mavlink_adapter.dart';
+import '../link/msp.dart';
+import '../link/tello.dart';
 import '../link/discovery.dart';
 import '../link/protocol.dart';
 import '../link/radio.dart';
@@ -211,8 +216,21 @@ class Dash extends ChangeNotifier implements SequenceHost, PadTarget {
   double get linkLostFor {
     if (replay != null || session == null) return 0;
     if (linkTest > 0) return 6 - linkTest;
-    final s = session!.silence, limit = radio == null ? 1.0 : math.max(1.0, 3.0 / radio!.tlmHz);
+    final slow = device == null ? null : linkRates(device!);
+    final s = session!.silence, limit = slow == null ? 1.0 : math.max(1.0, 3.0 / slow.tlmHz);
     return s > limit ? s : 0;
+  }
+
+  /// Rates for slow links: radios follow their profile, third-party serial
+  /// modules (HM-10, HC-05…) run at 5 Hz because they sit on a 9600-baud UART.
+  /// Null for fast links.
+  static ({int ctlHz, int tlmHz})? linkRates(DeviceInfo d) {
+    if (d.transport == TransportKind.radio) {
+      final r = radioModule(d.radio);
+      return (ctlHz: r.ctlHz, tlmHz: r.tlmHz);
+    }
+    if (d.module != null) return (ctlHz: 5, tlmHz: 5);
+    return null;
   }
 
   /// Radio profile of the open link, null for Wi-Fi, BLE, USB and simulators.
@@ -276,6 +294,9 @@ class Dash extends ChangeNotifier implements SequenceHost, PadTarget {
   final Map<String, Found> found = {};
   LanDiscovery? _lan;
   BleDiscovery? _ble;
+  MavlinkUdpDiscovery? _mav;
+  TelloDiscovery? _tello;
+  UsbBoardScanner? _usb;
   int _scanners = 0;
 
   // sequences
@@ -485,6 +506,23 @@ class Dash extends ChangeNotifier implements SequenceHost, PadTarget {
   }
 
   // ------------------------------------------------------------ connection
+  /// Adapter for a board with its own firmware (ArduPilot, PX4, Betaflight,
+  /// INAV, Tello), over the device's link.
+  Transport boardTransport(DeviceInfo d) {
+    if (d.proto == 'tello') return TelloTransport(host: d.address);
+    final radio = d.transport == TransportKind.radio ? radioModule(d.radio) : null;
+    final ByteLink link;
+    if (d.transport == TransportKind.udp) {
+      final i = d.address.lastIndexOf(':');
+      final host = i > 0 ? d.address.substring(0, i) : d.address;
+      final port = i > 0 ? int.tryParse(d.address.substring(i + 1)) ?? 0 : 0;
+      link = HubByteLink(host: host, port: port, localPort: mavlinkGcsPort, name: 'Wi-Fi · $host');
+    } else {
+      link = SerialByteLink(d.address, baud: d.baud ?? radio?.baud ?? 115200, name: radio == null ? 'USB · ${d.address}' : 'Radio · ${radio.name}');
+    }
+    return d.proto == 'msp' ? MspTransport(link) : MavlinkTransport(link);
+  }
+
   Future<void> connect(String id) async {
     final d = devices.where((x) => x.id == id).firstOrNull;
     if (d == null || !d.online) return;
@@ -494,29 +532,34 @@ class Dash extends ChangeNotifier implements SequenceHost, PadTarget {
     connectError = null;
     notifyListeners();
     final Transport tr;
-    switch (d.transport) {
-      case TransportKind.sim:
-        final lt = LoopbackTransport('Simulator');
-        (_sims[id] ??= SimDevice(d)).attach(lt);
-        tr = lt;
-        await Future<void>.delayed(const Duration(milliseconds: 900));
-      case TransportKind.udp:
-        tr = UdpTransport(d.address);
-      case TransportKind.ble:
-        tr = BleTransport(d.address, name: d.name);
-      case TransportKind.serial:
-        tr = SerialTransport(d.address, baud: d.baud ?? 115200);
-      case TransportKind.radio:
-        final r = radioModule(d.radio);
-        tr = SerialTransport(d.address, baud: d.baud ?? r.baud, radio: r);
+    if (d.proto != 'koebelt') {
+      tr = boardTransport(d);
+    } else {
+      switch (d.transport) {
+        case TransportKind.sim:
+          final lt = LoopbackTransport('Simulator');
+          (_sims[id] ??= SimDevice(d)).attach(lt);
+          tr = lt;
+          await Future<void>.delayed(const Duration(milliseconds: 900));
+        case TransportKind.udp:
+          tr = UdpTransport(d.address);
+        case TransportKind.ble:
+          tr = BleTransport(d.address, name: d.name, profile: bleProfile(d.module));
+        case TransportKind.serial:
+          tr = SerialTransport(d.address, baud: d.baud ?? 115200);
+        case TransportKind.radio:
+          final r = radioModule(d.radio);
+          tr = SerialTransport(d.address, baud: d.baud ?? r.baud, radio: r);
+      }
     }
     if (connecting != id) return; // cancelled
-    final r = d.transport == TransportKind.radio ? radioModule(d.radio) : null;
+    final r = linkRates(d);
     final s = DeviceSession(
       tr,
       onMessage: (m) => _onMsg(id, m),
       key: d.key,
-      ctlHz: r?.ctlHz ?? 20,
+      // MSP is a configuration link: no stick heartbeat (STOP still works).
+      ctlHz: d.proto == 'msp' ? 0 : r?.ctlHz ?? 20,
       pingEvery: r == null ? const Duration(seconds: 1) : const Duration(seconds: 5),
     );
     s.axes = () => input;
@@ -748,7 +791,10 @@ class Dash extends ChangeNotifier implements SequenceHost, PadTarget {
     final before = settings.toJson();
     f(settings);
     if (before['failsafe'] != settings.failsafe) _send({'t': 'fs', 'action': settings.failsafe, 'ms': 1800});
-    if (before['rateHz'] != settings.rateHz) _send({'t': 'rate', 'hz': math.min(settings.rateHz, radio?.tlmHz ?? 60)});
+    if (before['rateHz'] != settings.rateHz) {
+      final slow = device == null ? null : linkRates(device!);
+      _send({'t': 'rate', 'hz': math.min(settings.rateHz, slow?.tlmHz ?? 60)});
+    }
     saveSettings();
     notifyListeners();
   }
@@ -1036,7 +1082,11 @@ class Dash extends ChangeNotifier implements SequenceHost, PadTarget {
       found.clear();
       _lan = LanDiscovery()..start(_onFound);
       _ble = BleDiscovery()..start(_onFound);
+      _mav = MavlinkUdpDiscovery()..start(_onFound);
+      _tello = TelloDiscovery()..start(_onFound);
       serialPorts().forEach(_onFound);
+      // Flight controllers and boards on USB say what they run when asked.
+      _usb = UsbBoardScanner()..start(_onFound, skip: (path) => devices.any((d) => d.address == path) || session != null && device?.address == path);
     }
   }
 
@@ -1045,13 +1095,21 @@ class Dash extends ChangeNotifier implements SequenceHost, PadTarget {
     if (_scanners == 0) {
       _lan?.stop();
       _ble?.stop();
+      _mav?.stop();
+      _tello?.stop();
+      _usb?.stop();
       _lan = null;
       _ble = null;
+      _mav = null;
+      _tello = null;
+      _usb = null;
     }
   }
 
   void _onFound(Found f) {
-    if (devices.any((d) => d.id == f.id)) return;
+    if (devices.any((d) => d.id == f.id || (f.transport != 'udp' && f.transport != 'ble' && d.address == f.address && d.proto == f.proto))) return;
+    // An identified USB board replaces the plain port entry.
+    if (f.transport == 'serial' && !f.id.startsWith('serial:')) found.remove('serial:${f.address}');
     found[f.id] = f;
     notifyListeners();
   }
@@ -1077,23 +1135,44 @@ class Dash extends ChangeNotifier implements SequenceHost, PadTarget {
         _ => TransportKind.udp,
       },
       radio: f.radio,
+      proto: f.proto,
+      module: f.module,
     );
-    if (f.pair != null && f.pair == currentPairCode && info.transport != TransportKind.sim) {
-      final key = List.generate(16, (_) => math.Random.secure().nextInt(256).toRadixString(16).padLeft(2, '0')).join();
+    // Behind a third-party module the advertisement only names the module:
+    // ask the board itself (name, kind, pairing code) over the same link.
+    final listen = f.native && f.pair == null && info.module != null;
+    if (f.native && info.transport != TransportKind.sim && (listen || f.pair == currentPairCode)) {
       final Transport tr = switch (info.transport) {
-        TransportKind.ble => BleTransport(info.address, name: info.name),
-        TransportKind.serial => SerialTransport(info.address),
+        TransportKind.ble => BleTransport(info.address, name: info.name, profile: bleProfile(info.module)),
+        TransportKind.serial => SerialTransport(info.address, baud: info.baud ?? 115200),
         TransportKind.radio => SerialTransport(info.address, baud: radioModule(info.radio).baud, radio: radioModule(info.radio)),
         _ => UdpTransport(info.address),
       };
       try {
         await tr.open();
-        final ok = tr.messages.firstWhere((m) => m['t'] == 'paired').timeout(const Duration(seconds: 5));
-        tr.send({'t': 'pair', 'code': f.pair, 'key': key});
-        await ok;
-        info.key = key;
+        var code = f.pair;
+        if (listen) {
+          final heard = tr.messages.firstWhere((m) => m['t'] == 'announce').timeout(const Duration(seconds: 4));
+          tr.send({'t': 'discover', 'v': protocolVersion});
+          try {
+            final a = await heard;
+            code = a['pair'] as String?;
+            if (a['name'] is String) info.name = a['name'];
+            if (a['kind'] is String) info.kind = DeviceKind.parse(a['kind']);
+            if (a['model'] is String) info.model = a['model'];
+          } on TimeoutException {
+            // Not announcing: added in open mode, as before.
+          }
+        }
+        if (code != null && code == currentPairCode) {
+          final key = List.generate(16, (_) => math.Random.secure().nextInt(256).toRadixString(16).padLeft(2, '0')).join();
+          final ok = tr.messages.firstWhere((m) => m['t'] == 'paired').timeout(const Duration(seconds: 5));
+          tr.send({'t': 'pair', 'code': code, 'key': key});
+          await ok;
+          info.key = key;
+        }
       } catch (e) {
-        return 'Pairing failed: no answer from ${f.name}';
+        return 'Pairing failed: no answer from ${info.name}';
       } finally {
         await tr.close();
       }
@@ -1128,10 +1207,24 @@ class Dash extends ChangeNotifier implements SequenceHost, PadTarget {
   }
 
   /// Adds a Wi-Fi device by address (for networks that block broadcast).
-  void addManual(String name, String host, DeviceKind kind) {
-    devices.add(DeviceInfo(id: 'udp:$host', name: name, kind: kind, transport: TransportKind.udp, address: host, via: 'Wi-Fi · $host'));
+  /// Adds a device by address (for networks that block broadcast). With
+  /// [proto] `mavlink`, [host] may carry the vehicle's port ("192.168.4.1:14555").
+  DeviceInfo addManual(String name, String host, DeviceKind kind, {String proto = 'koebelt'}) {
+    final via = 'Wi-Fi · $host';
+    final info = DeviceInfo(
+      id: proto == 'koebelt' ? 'udp:$host' : '$proto:$host',
+      name: name,
+      kind: kind,
+      transport: TransportKind.udp,
+      address: host,
+      via: via,
+      proto: proto,
+    );
+    devices.removeWhere((d) => d.id == info.id);
+    devices.add(info);
     _saveDevices();
     notifyListeners();
+    return info;
   }
 
   @override

@@ -51,6 +51,8 @@ class DeviceInfo {
     this.lastSeen,
     this.radio,
     this.baud,
+    this.proto = 'koebelt',
+    this.module,
   });
 
   final String id;
@@ -78,6 +80,15 @@ class DeviceInfo {
   /// Serial speed override for serial and radio links.
   int? baud;
 
+  /// What the device speaks: `koebelt` (the library), `mavlink` (ArduPilot,
+  /// PX4), `msp` (Betaflight, INAV) or `tello`.
+  String proto;
+
+  /// Third-party serial module in between: a BLE profile (`hm10`, `bluno`,
+  /// `rn4870`) or `btserial` (Bluetooth Classic, HC-05/HC-06). These links
+  /// are slow, so sessions run at module rates.
+  String? module;
+
   bool get simulated => transport == TransportKind.sim;
 
   Map<String, dynamic> toJson() => {
@@ -93,6 +104,8 @@ class DeviceInfo {
     'via': via,
     'radio': ?radio,
     'baud': ?baud,
+    if (proto != 'koebelt') 'proto': proto,
+    'module': ?module,
   };
 
   factory DeviceInfo.fromJson(Map<String, dynamic> j) => DeviceInfo(
@@ -108,6 +121,8 @@ class DeviceInfo {
     via: j['via'] ?? '',
     radio: j['radio'] as String?,
     baud: j['baud'] as int?,
+    proto: j['proto'] as String? ?? 'koebelt',
+    module: j['module'] as String?,
     online: true, // reachability is only known when connecting
   );
 }
