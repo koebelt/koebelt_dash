@@ -49,6 +49,33 @@ dynamic _at(Map f, String k, int i) {
 String _csvField(String s) => s.contains(RegExp('[",\n]')) ? '"${s.replaceAll('"', '""')}"' : s;
 
 String toCsv(Recording r) {
+  final b = StringBuffer();
+  for (final _ in _csvRows(r, b)) {}
+  return b.toString();
+}
+
+/// Encodes in slices, yielding to the event loop between them so the UI
+/// keeps animating; [onProgress] gets the fraction of frames written.
+Future<String> exportRecordingAsync(Recording r, ExportFormat f, {void Function(double)? onProgress}) async {
+  if (f != ExportFormat.csv) {
+    final s = exportRecording(r, f);
+    onProgress?.call(1);
+    return s;
+  }
+  final b = StringBuffer(), n = math.max(1, r.frames.length);
+  var i = 0;
+  for (final _ in _csvRows(r, b)) {
+    if (++i % 500 == 0) {
+      onProgress?.call(i / n);
+      await Future<void>.delayed(Duration.zero);
+    }
+  }
+  onProgress?.call(1);
+  return b.toString();
+}
+
+/// Writes the CSV into [b], yielding once per frame row.
+Iterable<void> _csvRows(Recording r, StringBuffer b) sync* {
   final seen = <String>{for (final f in r.frames) ...List<String>.from(f['seen'] ?? const [])};
   // Custom channels and their widths.
   final custom = <String, int>{};
@@ -98,7 +125,7 @@ String toCsv(Recording r) {
     for (final e in custom.entries)
       for (var i = 0; i < e.value; i++) ('${e.key}_${i + 1}', (f) => _n(((f['custom'] as Map?)?[e.key] as List?)?.elementAtOrNull(i))),
   ];
-  final b = StringBuffer()
+  b
     ..writeln(
       '# koebelt/dash recording: ${r.name} · ${r.deviceName} (${r.kind.name}) · ${r.date}'
       '${r.startedAt != null ? ' · started ${r.startedAt!.toUtc().toIso8601String()}' : ''}'
@@ -108,8 +135,8 @@ String toCsv(Recording r) {
   for (var i = 0; i < r.frames.length; i++) {
     final f = r.frames[i];
     b.writeln([(i / 10).toStringAsFixed(1), for (final c in cols) _csvField(c.$2(f))].join(','));
+    yield null;
   }
-  return b.toString();
 }
 
 // ------------------------------------------------------------------ GPX

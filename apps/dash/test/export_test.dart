@@ -19,6 +19,16 @@ Recording rec(DeviceKind k, {double secs = 3, DateTime? at}) => Recording(
 );
 
 void main() {
+  test('sliced CSV export matches the one-shot one and reports progress', () async {
+    final r = rec(DeviceKind.drone, secs: 120);
+    final seen = <double>[];
+    final text = await exportRecordingAsync(r, ExportFormat.csv, onProgress: seen.add);
+    expect(text, toCsv(r));
+    expect(seen.length, greaterThan(2));
+    expect(seen, orderedEquals([...seen]..sort()));
+    expect(seen.last, 1);
+  });
+
   test('CSV has one row per frame and only the channels the device sent', () {
     final r = rec(DeviceKind.drone);
     final lines = toCsv(r).trim().split('\n');

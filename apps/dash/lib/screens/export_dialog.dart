@@ -7,6 +7,7 @@ import '../core/export.dart';
 import '../core/save_io.dart';
 import '../theme/tokens.dart';
 import '../ui/components.dart';
+import '../ui/mark.dart';
 
 void showExportDialog(BuildContext context, Recording r) {
   showKDialog(context, builder: (ctx) => _ExportDialog(r: r));
@@ -22,16 +23,24 @@ class _ExportDialog extends StatefulWidget {
 class _ExportDialogState extends State<_ExportDialog> {
   ExportFormat format = ExportFormat.csv;
   bool busy = false;
+  double progress = 0;
   String? done, error;
 
   Future<void> _export() async {
     setState(() {
       busy = true;
+      progress = 0;
       error = null;
       done = null;
     });
     try {
-      final text = exportRecording(widget.r, format);
+      final text = await exportRecordingAsync(
+        widget.r,
+        format,
+        onProgress: (p) {
+          if (mounted) setState(() => progress = p);
+        },
+      );
       final where = await saveBytes(exportFileName(widget.r, format), utf8.encode(text), format.mime);
       setState(() => done = where);
     } catch (e) {
@@ -100,6 +109,14 @@ class _ExportDialogState extends State<_ExportDialog> {
         ),
         if (cols != null) MonoLabel('$cols columns · only channels this device sent', height: 1.5),
         if (!formats.contains(ExportFormat.gpx)) const MonoLabel('No GPS in this recording, so no GPX track', height: 1.5),
+        if (busy)
+          Row(
+            children: [
+              MarkMotion(MarkLoop.progress, size: 44, progress: progress, gap: K.surfaceRaised),
+              const SizedBox(width: 12),
+              MonoLabel('Encoding ${format.label} · ${(progress * 100).round()}%'),
+            ],
+          ),
         if (done != null) KNotice(tone: Tone.positive, title: 'Exported', child: Text(done!)),
         if (error != null) KNotice(tone: Tone.negative, title: 'Export failed', child: Text(error!)),
       ],
