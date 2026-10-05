@@ -1,4 +1,4 @@
-// A virtual KoebeltLink device. It runs the same physics as the design
+// A virtual koebelt/link device. It runs the same physics as the design
 // prototype (sim.js) and talks to the app only through protocol messages,
 // exactly like firmware built on the libraries in libs/.
 import 'dart:async';

@@ -284,7 +284,7 @@ class _PairPanelState extends State<PairPanel> {
                     Text('${hit.name} found', style: KText.bodyMd),
                     const SizedBox(height: 6),
                     MonoLabel(
-                      '${hit.kind[0].toUpperCase()}${hit.kind.substring(1)} · ${hit.lib ?? 'KoebeltLink'} · ${hit.via} · ${hit.sensors.length} sensors',
+                      '${hit.kind[0].toUpperCase()}${hit.kind.substring(1)} · ${hit.lib ?? 'koebelt/link'} · ${hit.via} · ${hit.sensors.length} sensors',
                     ),
                   ],
                 ),
@@ -715,9 +715,9 @@ class _GuidesScreenState extends State<GuidesScreen> {
       ),
     );
     const flow = [
-      ['Your device', 'Sensors, motors and KoebeltLink on the board or companion computer.'],
+      ['Your device', 'Sensors, motors and koebelt/link on the board or companion computer.'],
       ['Link', 'Wi-Fi, BLE, USB serial or a radio, with a fallback link if one drops.'],
-      ['koebelt dash', 'Dashboards, control, tuning and recording, on phone, tablet or desktop.'],
+      ['koebelt/dash', 'Dashboards, control, tuning and recording, on phone, tablet or desktop.'],
     ];
     Widget flowCell(int i) => Padding(
       padding: const EdgeInsets.all(18),
@@ -737,7 +737,7 @@ class _GuidesScreenState extends State<GuidesScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const MonoLabel('KoebeltLink · library 1.5', color: K.textAccent),
+            const MonoLabel('koebelt/link · library 1.5', color: K.textAccent),
             const SizedBox(height: 12),
             Text('Connect your hardware', style: phone ? KText.headingMd : KText.headingLg),
             const SizedBox(height: 12),

@@ -1,5 +1,5 @@
 // Recognising boards: USB ids of popular flight controllers and
-// microcontroller boards, and a probe that tells KoebeltLink, MAVLink and MSP
+// microcontroller boards, and a probe that tells koebelt/link, MAVLink and MSP
 // apart by what the board answers.
 import 'dart:async';
 import 'dart:convert';
@@ -136,7 +136,7 @@ class ProtocolSniffer {
 
 /// Bytes that make each protocol answer: a ground-station heartbeat (PX4
 /// only starts MAVLink on USB once it hears one), MSP identity requests and
-/// a KoebeltLink discover.
+/// a koebelt/link discover.
 List<Uint8List> probeRequests() => [
   MavEncoder().encode(Mav.heartbeat, {'type': 6, 'autopilot': Mav.invalid, 'system_status': 4, 'mavlink_version': 3}),
   mspFrame(Msp.apiVersion),
@@ -166,7 +166,7 @@ Future<ProbeResult?> probeLink(ByteLink link, {Duration listen = const Duration(
         link.write(r);
       }
     });
-    // MAVLink and KoebeltLink answer with a complete identity; MSP boards
+    // MAVLink and koebelt/link answer with a complete identity; MSP boards
     // are reported when listening ends, with whatever name they gave.
     final r = await done.future.timeout(listen, onTimeout: () => sniff.mspResult);
     again.cancel();

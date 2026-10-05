@@ -22,7 +22,7 @@ class KoebeltDash extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'koebelt dash',
+      title: 'koebelt/dash',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.dark,

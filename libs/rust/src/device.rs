@@ -225,7 +225,7 @@ impl DeviceBuilder {
 type Cb<A> = Option<Box<dyn FnMut(A) + Send>>;
 type CmdCb = Option<Box<dyn FnMut(&str, &CommandArgs) + Send>>;
 
-/// A KoebeltLink device on a computer (Raspberry Pi, Jetson, laptop).
+/// A koebelt/link device on a computer (Raspberry Pi, Jetson, laptop).
 pub struct Device {
     pub link: Link<Box<dyn Transport + Send>>,
     start: Instant,

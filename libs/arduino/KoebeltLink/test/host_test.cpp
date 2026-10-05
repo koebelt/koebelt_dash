@@ -1,4 +1,4 @@
-// Host tests for the KoebeltLink core. Build and run:
+// Host tests for the koebelt/link core. Build and run:
 //   make -C test
 #include <Arduino.h>
 #include <ArduinoJson.h>

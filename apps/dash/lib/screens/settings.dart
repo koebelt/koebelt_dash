@@ -70,7 +70,7 @@ class SettingsScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            PageHead(phone: phone, eyebrow: 'koebelt dash · $appVersion', title: 'Settings'),
+            PageHead(phone: phone, eyebrow: 'koebelt/dash · $appVersion', title: 'Settings'),
             SizedBox(height: phone ? 20 : 32),
             section('Control', [
               SetRow(
@@ -172,7 +172,7 @@ class SettingsScreen extends StatelessWidget {
               SetRow(
                 phone: phone,
                 title: 'Integration guides',
-                desc: 'Add the KoebeltLink library to Arduino, Python, ROS 2 or Rust projects.',
+                desc: 'Add the koebelt/link library to Arduino, Python, ROS 2 or Rust projects.',
                 child: KButton(
                   'Open',
                   size: KSize.sm,

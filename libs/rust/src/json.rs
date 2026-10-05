@@ -1,4 +1,4 @@
-//! Minimal JSON for the KoebeltLink protocol: a streaming writer into a byte
+//! Minimal JSON for the koebelt/link protocol: a streaming writer into a byte
 //! buffer and a field extractor for the flat messages the app sends.
 //! No allocation, works in `no_std`.
 

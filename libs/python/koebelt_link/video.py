@@ -1,5 +1,5 @@
 """Serve a camera to the app as MJPEG over HTTP (what ESP32-CAM, mjpg-streamer
-and ustreamer serve too). Video does not go over the KoebeltLink protocol: the
+and ustreamer serve too). Video does not go over the koebelt/link protocol: the
 device only declares the stream in its `hello`, the app opens it directly.
 
     srv = MjpegServer(port=8081)

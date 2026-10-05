@@ -268,7 +268,7 @@ channels:
           'Run Test failsafe and check the action.',
         ],
         warn: true,
-        note: 'KoebeltLink is a convenience link, not a certified safety system.',
+        note: 'koebelt/link is a convenience link, not a certified safety system.',
       ),
     ],
   ),

@@ -1,4 +1,4 @@
-"""KoebeltLink: connect drones, robots and test rigs to the koebelt dash app."""
+"""koebelt/link: connect drones, robots and test rigs to the koebelt/dash app."""
 
 __version__ = "1.5.0"
 

@@ -1,4 +1,4 @@
-"""KoebeltLink v1 wire format. See protocol/PROTOCOL.md."""
+"""koebelt/link v1 wire format. See protocol/PROTOCOL.md."""
 from __future__ import annotations
 
 import base64

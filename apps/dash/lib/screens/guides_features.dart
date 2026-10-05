@@ -12,7 +12,7 @@ const featureGuides = [
     [
       Step.rich(
         'How video gets to the app',
-        'Video does not go through the KoebeltLink messages: it is far too heavy. The device serves MJPEG over HTTP, the format of ESP32-CAM, mjpg-streamer and most webcam servers, and only tells the app where to find it, in its hello. The app opens the stream itself and shows it:',
+        'Video does not go through the koebelt/link messages: it is far too heavy. The device serves MJPEG over HTTP, the format of ESP32-CAM, mjpg-streamer and most webcam servers, and only tells the app where to find it, in its hello. The app opens the stream itself and shows it:',
         bullets: [
           'as the CAM view behind the HUD on the Live screen,',
           'as the background of the drive screen (Control > CAM), for first-person driving and flying,',

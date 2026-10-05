@@ -1,7 +1,7 @@
-# KoebeltLink protocol · v1
+# koebelt/link protocol · v1
 
-The wire protocol between a device running a KoebeltLink library and the
-koebelt dash app. Every library in `libs/` and the app in `apps/dash`
+The wire protocol between a device running a koebelt/link library and the
+koebelt/dash app. Every library in `libs/` and the app in `apps/dash`
 implement this document; `protocol/vectors.json` holds messages that every
 implementation must encode and decode identically.
 
@@ -287,7 +287,7 @@ system and appear to the app as serial ports.
 
 ## Video
 
-Video does not travel over KoebeltLink. A device declares camera streams in
+Video does not travel over koebelt/link. A device declares camera streams in
 `hello`; the app opens them itself.
 
 | Field   | Meaning |

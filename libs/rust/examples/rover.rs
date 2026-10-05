@@ -1,5 +1,5 @@
 //! A rover on a Raspberry Pi: `cargo run --example rover`, then connect from
-//! koebelt dash (Devices > Pair device, or add by IP address).
+//! koebelt/dash (Devices > Pair device, or add by IP address).
 use std::time::Duration;
 
 use koebelt_link::{Device, Kind, Mode};

@@ -100,7 +100,7 @@ String toCsv(Recording r) {
   ];
   final b = StringBuffer()
     ..writeln(
-      '# koebelt dash recording: ${r.name} · ${r.deviceName} (${r.kind.name}) · ${r.date}'
+      '# koebelt/dash recording: ${r.name} · ${r.deviceName} (${r.kind.name}) · ${r.date}'
       '${r.startedAt != null ? ' · started ${r.startedAt!.toUtc().toIso8601String()}' : ''}'
       ' · 10 Hz · position in metres from home, east/north/up',
     )
@@ -118,7 +118,7 @@ String _xml(String s) => s.replaceAll('&', '&amp;').replaceAll('<', '&lt;').repl
 String toGpx(Recording r) {
   final b = StringBuffer()
     ..writeln('<?xml version="1.0" encoding="UTF-8"?>')
-    ..writeln('<gpx version="1.1" creator="koebelt dash" xmlns="http://www.topografix.com/GPX/1/1">')
+    ..writeln('<gpx version="1.1" creator="koebelt/dash" xmlns="http://www.topografix.com/GPX/1/1">')
     ..writeln(
       '  <metadata><name>${_xml(r.name)}</name><desc>${_xml('${r.deviceName} · ${r.date}')}</desc>'
       '${r.startedAt != null ? '<time>${r.startedAt!.toUtc().toIso8601String()}</time>' : ''}</metadata>',

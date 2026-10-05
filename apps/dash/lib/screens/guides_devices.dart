@@ -16,7 +16,7 @@ const deviceGuides = [
     [
       Step.rich(
         'What the app gives you',
-        'KoebeltLink does not replace your flight controller (Betaflight, ArduPilot, PX4, your own). It runs next to it and passes data both ways.',
+        'koebelt/link does not replace your flight controller (Betaflight, ArduPilot, PX4, your own). It runs next to it and passes data both ways.',
         bullets: [
           'Live: HUD over a 3D view with attitude, accelerometer, altitude and a GPS track; the drone model follows position, roll, pitch and yaw.',
           'Control: two sticks (throttle and yaw left, pitch and roll right), sliders or phone tilt; AUTO, MANUAL and HOLD, plus TAKEOFF, LAND and RTH.',

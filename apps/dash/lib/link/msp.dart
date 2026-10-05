@@ -1,5 +1,5 @@
 // Betaflight and INAV flight controllers over MSP (MultiWii Serial
-// Protocol v1), presented to the app as a KoebeltLink device. MSP is a
+// Protocol v1), presented to the app as a koebelt/link device. MSP is a
 // configuration protocol: the app reads telemetry, tunes the PID gains and
 // can disarm, but does not fly the craft (that stays with the RC link), so
 // the session is telemetry-only plus STOP.
@@ -83,7 +83,7 @@ class _R {
 
 const _pidNames = ['ROLL', 'PITCH', 'YAW'];
 
-/// A Betaflight / INAV flight controller seen as a KoebeltLink device.
+/// A Betaflight / INAV flight controller seen as a koebelt/link device.
 class MspTransport implements Transport {
   MspTransport(this.link, {this.poll = const Duration(milliseconds: 100)});
   final ByteLink link;

@@ -75,7 +75,7 @@ const connectionGuides = [
   Guide(
     'boards',
     'Supported boards',
-    'Flight controllers, drones and boards that connect as they are, and those that run the KoebeltLink library.',
+    'Flight controllers, drones and boards that connect as they are, and those that run the koebelt/link library.',
     10,
     section: 'connections',
     platforms: [],
@@ -103,7 +103,7 @@ const connectionGuides = [
       ),
       Step.rich(
         'Boards that run the library',
-        'Everything else talks KoebeltLink through the library on the board (or on the computer next to it):',
+        'Everything else talks koebelt/link through the library on the board (or on the computer next to it):',
         table: [
           ['Board', 'Links'],
           ['ESP32, ESP32-S3, ESP32-C3, ESP32-CAM, Arduino Nano ESP32', 'Wi-Fi, Bluetooth LE, USB serial, radios'],
@@ -115,7 +115,7 @@ const connectionGuides = [
           ['Teensy 4.x, STM32, any Arduino board', 'USB serial, radios'],
           ['Raspberry Pi, Jetson, any Linux or macOS computer', 'Python or Rust library, or the ROS 2 bridge'],
         ],
-        note: 'On USB, the app recognises these boards by their USB id and asks them what they run, so a KoebeltLink board shows up with its own name too.',
+        note: 'On USB, the app recognises these boards by their USB id and asks them what they run, so a koebelt/link board shows up with its own name too.',
       ),
       Step.rich(
         'ArduPilot and PX4 (MAVLink)',
@@ -259,7 +259,7 @@ fn main() -> std::io::Result<()> {
   Guide(
     'ble',
     'Bluetooth LE',
-    'The KoebeltLink service, packet sizes, permissions and range.',
+    'The koebelt/link service, packet sizes, permissions and range.',
     6,
     section: 'connections',
     platforms: ['arduino', 'python'],
@@ -346,7 +346,7 @@ KLink link("Thrust bench", KLink::BENCH);
 
 void setup() {
   Serial.begin(115200);
-  link.beginSerial(Serial);     // the USB port now belongs to KoebeltLink
+  link.beginSerial(Serial);     // the USB port now belongs to koebelt/link
 }
 
 void loop() {

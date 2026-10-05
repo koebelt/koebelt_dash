@@ -537,7 +537,7 @@ class _PairDialogState extends State<_PairDialog> {
   List<Widget> _nearby(BuildContext context, List<Found> found) {
     return [
       const Text(
-        'Plug in or power on the board. Flight controllers and drones appear on their own; boards running the KoebeltLink library also show up here while in pairing mode.',
+        'Plug in or power on the board. Flight controllers and drones appear on their own; boards running the koebelt/link library also show up here while in pairing mode.',
       ),
       Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -596,7 +596,7 @@ class _PairDialogState extends State<_PairDialog> {
           spacing: 6,
           runSpacing: 6,
           children: [
-            for (final (p, l) in const [('koebelt', 'KoebeltLink'), ('mavlink', 'MAVLink'), ('tello', 'Tello')])
+            for (final (p, l) in const [('koebelt', 'koebelt/link'), ('mavlink', 'MAVLink'), ('tello', 'Tello')])
               Pressable(
                 onTap: () => setState(() {
                   _proto = p;
@@ -640,7 +640,7 @@ class _PairDialogState extends State<_PairDialog> {
         TextSpan(
           children: [
             const TextSpan(
-              text: 'Device not showing up? Boards with ArduPilot, PX4, Betaflight or INAV connect as they are; anything else needs the KoebeltLink library. ',
+              text: 'Device not showing up? Boards with ArduPilot, PX4, Betaflight or INAV connect as they are; anything else needs the koebelt/link library. ',
             ),
             WidgetSpan(
               child: _Link('Open the quickstart', () {

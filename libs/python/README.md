@@ -1,6 +1,6 @@
 # koebelt-link (Python)
 
-Connect a Raspberry Pi, a Jetson or any computer-driven robot to koebelt dash.
+Connect a Raspberry Pi, a Jetson or any computer-driven robot to koebelt/dash.
 
 ```bash
 pip install koebelt-link                 # Wi-Fi (UDP) only, no dependencies

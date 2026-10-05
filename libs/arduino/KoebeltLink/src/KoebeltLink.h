@@ -1,4 +1,4 @@
-// KoebeltLink · connect a device to the koebelt dash app.
+// koebelt/link · connect a device to the koebelt/dash app.
 // Protocol: protocol/PROTOCOL.md in https://github.com/koebelt/koebelt_dash
 #pragma once
 
@@ -97,7 +97,7 @@ class KLink {
   bool begin(const char* ssid, const char* pass, uint16_t port = 47800);
   /// Use an already-connected network interface (Ethernet, Wi-Fi joined elsewhere).
   bool beginUdp(uint16_t port = 47800);
-  /// Advertise the KoebeltLink BLE service: ESP32 (NimBLE-Arduino if
+  /// Advertise the koebelt/link BLE service: ESP32 (NimBLE-Arduino if
   /// installed, else the core's Bluedroid), nRF52 (Adafruit Bluefruit), and
   /// ArduinoBLE boards (Nano 33 BLE / IoT, UNO R4 WiFi, Nano RP2040 Connect).
   bool beginBLE();

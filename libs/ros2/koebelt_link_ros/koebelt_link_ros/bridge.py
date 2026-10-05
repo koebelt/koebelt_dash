@@ -1,4 +1,4 @@
-"""ROS 2 node: bridges robot topics to koebelt dash.
+"""ROS 2 node: bridges robot topics to koebelt/dash.
 
     ros2 launch koebelt_link_ros bridge.launch.py config:=config/device.yaml pair:=4F7-K2Q
 """
@@ -43,7 +43,7 @@ class Bridge(Node):
         self._video(cfg.get("video") or {})
 
         self.create_timer(1 / 50, self.dev.tick)
-        self.get_logger().info(f"KoebeltLink bridge for {self.dev.name} ({self.dev.kind}) ready")
+        self.get_logger().info(f"koebelt/link bridge for {self.dev.name} ({self.dev.kind}) ready")
 
     # ------------------------------------------------------------ ROS -> app
     def _sensors(self, s: dict) -> None:
@@ -165,7 +165,7 @@ class Bridge(Node):
 
         @self.dev.on_stop
         def _() -> None:
-            self.get_logger().warn("Emergency stop from koebelt dash")
+            self.get_logger().warn("Emergency stop from koebelt/dash")
             if twist_pub is not None:
                 from geometry_msgs.msg import Twist
 

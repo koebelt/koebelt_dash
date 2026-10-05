@@ -215,7 +215,7 @@ class RadioTransport(SerialTransport):
 
 
 class BleTransport(Transport):
-    """BLE peripheral with the Nordic-UART-style KoebeltLink service. Needs `bless`.
+    """BLE peripheral with the Nordic-UART-style koebelt/link service. Needs `bless`.
 
     bless is asyncio-based, so it runs on a background event loop thread."""
 

@@ -228,7 +228,7 @@ void main() {
     expect(boardFor(0x1234, 0x5678), isNull);
   });
 
-  test('the sniffer tells KoebeltLink, MAVLink and MSP apart', () {
+  test('the sniffer tells koebelt/link, MAVLink and MSP apart', () {
     final hb = MavEncoder(sys: 1, comp: 1).encode(Mav.heartbeat, {'type': 2, 'autopilot': 12, 'base_mode': 81, 'system_status': 4, 'mavlink_version': 3});
     expect(ProtocolSniffer().add(hb)?.name, 'PX4 copter');
     final announce = utf8.encode('${encodeMsg({'t': 'announce', 'id': 'mule', 'name': 'Mule', 'kind': 'rover', 'pair': 'ABC-DEF'})}\n');
@@ -242,7 +242,7 @@ void main() {
   test('a probe over a byte link identifies a board that answers', () async {
     final (app, board) = MemoryByteLink.pair();
     board.bytes.listen((b) {
-      // A KoebeltLink board answers discover with announce.
+      // A koebelt/link board answers discover with announce.
       if (utf8.decode(b, allowMalformed: true).contains('"discover"')) {
         board.write(utf8.encode('${encodeMsg({'t': 'announce', 'id': 'kite', 'name': 'Kite', 'kind': 'drone'})}\n'));
       }

@@ -196,7 +196,7 @@ List<Found> serialPorts() => [
 ];
 
 /// Opens [path] for a few seconds and reports the device on the far side
-/// of a radio: a KoebeltLink announce, or a MAVLink vehicle (SiK radios
+/// of a radio: a koebelt/link announce, or a MAVLink vehicle (SiK radios
 /// usually carry MAVLink from a Pixhawk).
 Future<Found?> probePort(String path, RadioModule radio, {int? baud, Duration listen = const Duration(seconds: 4)}) async {
   final r = await probeLink(SerialByteLink(path, baud: baud ?? radio.baud), listen: listen);

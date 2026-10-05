@@ -1,4 +1,4 @@
-// Rover over USB serial: plug the board into a laptop running koebelt dash
+// Rover over USB serial: plug the board into a laptop running koebelt/dash
 // (desktop), or into a Raspberry Pi running the Python bridge.
 #include <KoebeltLink.h>
 

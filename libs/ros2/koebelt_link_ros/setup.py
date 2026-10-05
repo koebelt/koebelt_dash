@@ -18,7 +18,7 @@ setup(
     zip_safe=True,
     maintainer="Thomas Koebel",
     maintainer_email="contact@koebelt.com",
-    description="Bridge ROS 2 topics to the koebelt dash app over KoebeltLink.",
+    description="Bridge ROS 2 topics to the koebelt/dash app over koebelt/link.",
     license="MIT",
     tests_require=["pytest"],
     entry_points={"console_scripts": [f"bridge = {package}.bridge:main"]},

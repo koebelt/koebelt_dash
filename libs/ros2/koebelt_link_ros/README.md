@@ -1,6 +1,6 @@
 # koebelt_link_ros
 
-A ROS 2 (Humble, Jazzy) node that bridges existing topics to koebelt dash,
+A ROS 2 (Humble, Jazzy) node that bridges existing topics to koebelt/dash,
 built on the `koebelt-link` Python library.
 
 ```bash

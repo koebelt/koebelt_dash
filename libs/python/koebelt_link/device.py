@@ -121,7 +121,7 @@ _ALIASES = {"battery": "bat", "power": "bat", "attitude": "att", "position": "po
 
 
 class Device:
-    """A KoebeltLink device.
+    """A koebelt/link device.
 
     >>> dev = Device("Mule-2", kind="rover")
     >>> dev.connect(wifi=True)

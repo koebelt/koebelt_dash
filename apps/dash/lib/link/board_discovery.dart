@@ -1,4 +1,4 @@
-// Finding boards that do not run KoebeltLink: MAVLink vehicles on the
+// Finding boards that do not run koebelt/link: MAVLink vehicles on the
 // network, a Tello on its Wi-Fi, and flight controllers and boards on USB.
 import 'dart:async';
 import 'dart:convert';

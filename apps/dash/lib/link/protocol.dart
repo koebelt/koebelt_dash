@@ -1,4 +1,4 @@
-// KoebeltLink v1 codec. See protocol/PROTOCOL.md.
+// koebelt/link v1 codec. See protocol/PROTOCOL.md.
 import 'dart:convert';
 import 'dart:typed_data';
 

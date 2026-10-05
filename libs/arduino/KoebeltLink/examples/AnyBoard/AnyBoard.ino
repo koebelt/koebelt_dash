@@ -4,7 +4,7 @@
 #include <KoebeltLink.h>
 
 // Libraries that are not part of the board's core must be included by the
-// sketch for the IDE to link them; KoebeltLink then uses them.
+// sketch for the IDE to link them; koebelt/link then uses them.
 #if defined(ARDUINO_SAMD_NANO_33_IOT) || defined(ARDUINO_SAMD_MKRWIFI1010) || defined(ARDUINO_NANO_RP2040_CONNECT)
 #include <WiFiNINA.h>
 #endif
@@ -25,7 +25,7 @@ void setup() {
   } else if (link.beginBLE()) {
     Serial.println("KoebeltLink on Bluetooth LE");
   } else {
-    link.beginSerial(Serial);  // from here on, Serial belongs to KoebeltLink
+    link.beginSerial(Serial);  // from here on, Serial belongs to koebelt/link
   }
   link.onControl([](const KControl& c) { speed = c.ry; turn = c.lx; });
   link.onStop([] { speed = turn = 0; });

@@ -1,5 +1,5 @@
 // ESP32 Bluetooth LE with NimBLE-Arduino instead of the core's Bluedroid:
-// including its header is enough, KoebeltLink then uses it (and saves
+// including its header is enough, koebelt/link then uses it (and saves
 // about 100 KB of RAM).
 #include <NimBLEDevice.h>
 #include <KoebeltLink.h>

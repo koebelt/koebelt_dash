@@ -1,14 +1,14 @@
-# koebelt dash
+# koebelt/dash
 
 A cross-platform companion app for people who build drones, rovers, robot
-arms, rockets and test benches, plus **KoebeltLink**, the small library that
+arms, rockets and test benches, plus **koebelt/link**, the small library that
 connects your hardware to it.
 
 ```
-┌──────────────┐   Wi-Fi (UDP) · BLE · USB serial · radio  ┌──────────────────┐
-│ your device  │ ─────────────── KoebeltLink ─────────────▶ │  koebelt dash    │
-│ + KoebeltLink│ ◀──────── control · stop · params ──────── │ phone/tablet/desk│
-└──────────────┘                                            └──────────────────┘
+┌───────────────┐   Wi-Fi (UDP) · BLE · USB serial · radio  ┌──────────────────┐
+│ your device   │ ────────────── koebelt/link ─────────────▶ │  koebelt/dash    │
+│ + koebelt/link│ ◀──────── control · stop · params ──────── │ phone/tablet/desk│
+└───────────────┘                                            └──────────────────┘
 ```
 
 ## Repository
@@ -47,7 +47,7 @@ connects your hardware to it.
   over USB or Bluetooth, and RC transmitters in joystick mode. Mode 2 by
   default, every axis and button can be learned, with dead zone and expo.
 - **Third-party Bluetooth modules**: HM-10 and its clones, DFRobot Bluno and
-  Microchip RN4870 are found over Bluetooth LE like KoebeltLink devices; HC-05 /
+  Microchip RN4870 are found over Bluetooth LE like koebelt/link devices; HC-05 /
   HC-06 Classic modules paired with the computer show up under Bluetooth. The
   app paces itself to the module's slow UART and asks the board behind it for
   its name and pairing code.
@@ -139,6 +139,6 @@ cd libs/python && python3 -m venv .venv && .venv/bin/pip install -e .
 ## Design
 
 The UI follows the KOEBELT design system (Claude Design project
-`koebelt dash`): dark-only surfaces, lime `#DCFB47` as the single accent,
+`koebelt/dash`): dark-only surfaces, lime `#DCFB47` as the single accent,
 Archivo for text and JetBrains Mono for labels. Tokens are in
 `apps/dash/lib/theme/tokens.dart`.

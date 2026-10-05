@@ -22,7 +22,7 @@ void main() {
   test('CSV has one row per frame and only the channels the device sent', () {
     final r = rec(DeviceKind.drone);
     final lines = toCsv(r).trim().split('\n');
-    expect(lines.first, startsWith('# koebelt dash recording'));
+    expect(lines.first, startsWith('# koebelt/dash recording'));
     final head = lines[1].split(',');
     expect(head.first, 't_s');
     expect(head, containsAll(['x_m', 'z_m', 'roll_deg', 'ax_ms2', 'lat_deg', 'voltage_v', 'rssi_dbm']));

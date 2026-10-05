@@ -2,7 +2,7 @@
 name = "koebelt-link"
 version = "1.5.0"
 edition = "2024"
-description = "Connect drones, robots and test rigs to the koebelt dash app (KoebeltLink protocol)."
+description = "Connect drones, robots and test rigs to the koebelt/dash app (koebelt/link protocol)."
 authors = ["Thomas Koebel <contact@koebelt.com>"]
 license = "MIT"
 repository = "https://github.com/koebelt/koebelt_dash"

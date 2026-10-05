@@ -1,4 +1,4 @@
-# koebelt dash · app
+# koebelt/dash · app
 
 Flutter app for iOS, Android, macOS, Windows and Linux.
 

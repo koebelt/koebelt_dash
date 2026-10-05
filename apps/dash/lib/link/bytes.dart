@@ -3,7 +3,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 /// A raw byte pipe: what protocol adapters (MAVLink, MSP, Tello) run on.
-/// KoebeltLink devices use [Transport]s directly; boards with their own
+/// koebelt/link devices use [Transport]s directly; boards with their own
 /// firmware need the bytes.
 abstract class ByteLink {
   Stream<Uint8List> get bytes;

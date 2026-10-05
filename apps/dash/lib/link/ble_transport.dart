@@ -8,7 +8,7 @@ import 'discovery.dart';
 import 'protocol.dart';
 import 'transport.dart';
 
-/// A Bluetooth LE serial service: the KoebeltLink (Nordic UART) one, or a
+/// A Bluetooth LE serial service: the koebelt/link (Nordic UART) one, or a
 /// third-party module's that passes bytes to a microcontroller's UART.
 class BleProfile {
   const BleProfile(this.id, this.name, this.service, this.rx, this.tx, {this.module = false});
@@ -26,7 +26,7 @@ String _u16(String short) => '0000$short-0000-1000-8000-00805f9b34fb';
 
 final bleProfiles = [
   // Also Adafruit Bluefruit boards and UART Friend, and most "BLE UART" sketches.
-  const BleProfile('koebelt', 'KoebeltLink', bleService, bleRx, bleTx),
+  const BleProfile('koebelt', 'koebelt/link', bleService, bleRx, bleTx),
   BleProfile('hm10', 'HM-10 module', _u16('ffe0'), _u16('ffe1'), _u16('ffe1'), module: true), // HM-10/19, AT-09, BT05, JDY-08/23, HC-08, CC41
   BleProfile('bluno', 'DFRobot Bluno', _u16('dfb0'), _u16('dfb1'), _u16('dfb1'), module: true),
   const BleProfile(
@@ -41,7 +41,7 @@ final bleProfiles = [
 
 BleProfile bleProfile(String? id) => bleProfiles.firstWhere((p) => p.id == id, orElse: () => bleProfiles.first);
 
-/// The profile a scanned device advertises (KoebeltLink when unsure).
+/// The profile a scanned device advertises (koebelt/link when unsure).
 BleProfile profileForServices(Iterable<String> services) {
   final adv = services.map((s) => s.toLowerCase()).toSet();
   return bleProfiles.firstWhere((p) => adv.contains(p.service), orElse: () => bleProfiles.first);
@@ -49,7 +49,7 @@ BleProfile profileForServices(Iterable<String> services) {
 
 /// BLE transport over a serial-style service, newline-delimited JSON.
 class BleTransport implements Transport {
-  BleTransport(this.deviceId, {this.name, this.profile = const BleProfile('koebelt', 'KoebeltLink', bleService, bleRx, bleTx)});
+  BleTransport(this.deviceId, {this.name, this.profile = const BleProfile('koebelt', 'koebelt/link', bleService, bleRx, bleTx)});
   final String deviceId;
   final String? name;
   final BleProfile profile;
@@ -111,7 +111,7 @@ class BleTransport implements Transport {
   }
 }
 
-/// Scans for devices advertising the KoebeltLink service or a known module's.
+/// Scans for devices advertising the koebelt/link service or a known module's.
 class BleDiscovery {
   StreamSubscription<BleDevice>? _sub;
 

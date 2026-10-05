@@ -1,5 +1,5 @@
 // Rover over a SiK telemetry radio (or HC-12 / XBee): the radio sits on a
-// UART, its twin is plugged into the computer or phone running koebelt dash.
+// UART, its twin is plugged into the computer or phone running koebelt/dash.
 // Wiring (ESP32): radio TX -> GPIO16 (RX2), radio RX -> GPIO17 (TX2), GND, 5 V.
 // In the app: Pair device > Radio > SiK telemetry radio.
 #include <KoebeltLink.h>

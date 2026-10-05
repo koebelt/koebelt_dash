@@ -1,5 +1,5 @@
 // ArduPilot and PX4 vehicles, spoken to in MAVLink and presented to the
-// rest of the app as a KoebeltLink device: the adapter turns MAVLink into
+// rest of the app as a koebelt/link device: the adapter turns MAVLink into
 // hello / tlm / state / params / log messages, and the app's ctl, mode, arm,
 // stop, cmd and pset into MAVLink. Sessions, the Live and Control screens,
 // Tune and sequences then work unchanged.
@@ -139,7 +139,7 @@ const _guided = {Mav.ardupilot: 4.0};
   return (min, max, step);
 }
 
-/// A MAVLink vehicle seen as a KoebeltLink device.
+/// A MAVLink vehicle seen as a koebelt/link device.
 class MavlinkTransport implements Transport {
   MavlinkTransport(this.link, {this.ackTimeout = const Duration(seconds: 2)});
   final ByteLink link;

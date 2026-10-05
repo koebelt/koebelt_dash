@@ -1,4 +1,4 @@
-# KoebeltLink (Arduino)
+# koebelt/link (Arduino)
 
 For ESP32 (Wi-Fi, BLE, flash storage), RP2040 W and other Wi-Fi boards (UDP),
 and any board with a `Stream` (USB serial or UART radio). It depends on

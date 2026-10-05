@@ -1,4 +1,4 @@
-// Quickstart: an ESP32 streams IMU + battery to koebelt dash over Wi-Fi and
+// Quickstart: an ESP32 streams IMU + battery to koebelt/dash over Wi-Fi and
 // maps stick input to four motor outputs. Replace the fake sensor reads.
 #include <KoebeltLink.h>
 

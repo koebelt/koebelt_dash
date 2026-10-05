@@ -1,5 +1,5 @@
 // DJI / Ryze Tello and Tello EDU over the Tello SDK: text commands to UDP
-// 8889, state lines on UDP 8890, presented as a KoebeltLink drone. The phone
+// 8889, state lines on UDP 8890, presented as a koebelt/link drone. The phone
 // or computer joins the Tello's own Wi-Fi (TELLO-XXXXXX); the drone is then
 // always 192.168.10.1.
 import 'dart:async';

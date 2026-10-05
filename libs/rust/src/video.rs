@@ -1,5 +1,5 @@
 //! Serve a camera to the app as MJPEG over HTTP. Video does not go over the
-//! KoebeltLink protocol: the device declares the stream in `hello`
+//! koebelt/link protocol: the device declares the stream in `hello`
 //! ([`crate::Device::video`]) and the app opens it directly.
 
 use std::io::{self, BufRead, BufReader, Write};
