@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import '../core/dash.dart';
 import '../core/model.dart';
 import '../ui/components.dart' show f1;
+import '../ui/mark.dart' show paintOrientationGizmo;
 import 'viz.dart';
 
 class _Cam {
@@ -416,6 +417,20 @@ class _ScenePainter extends FramePainter {
             : 'ALT ${S.pos[2].toStringAsFixed(1)}M · ${S.speed.toStringAsFixed(1)}M/S';
         drawText(c, sub, Offset(p[0] + 14, p[1] + 2), VC.ink200);
       }
+    }
+
+    // Orientation gizmo: the mark's six axes as world ±x, ±y, ±z, seen from
+    // the camera. Screen right = x1, up = u, toward the viewer = -depth.
+    if (label && w > 160 && h > 120) {
+      final axes = <(Offset, double)>[];
+      for (final a in const [
+        [1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0], //
+        [-1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, -1.0],
+      ]) {
+        final x1 = cy * a[0] + sy * a[1], y1 = -sy * a[0] + cy * a[1];
+        axes.add((Offset(x1, -(y1 * sp + a[2] * cp)), -(y1 * cp - a[2] * sp)));
+      }
+      paintOrientationGizmo(c, Offset(w - 32, h - 32), 24, axes);
     }
   }
 

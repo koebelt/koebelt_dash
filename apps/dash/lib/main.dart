@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'app.dart';
 import 'core/dash.dart';
 import 'theme/tokens.dart';
+import 'ui/mark.dart';
 import 'viz/map_view.dart';
 
 Future<void> main() async {
@@ -41,7 +42,9 @@ class KoebeltDash extends StatelessWidget {
         splashFactory: NoSplash.splashFactory,
         highlightColor: Colors.transparent,
       ),
-      home: Scaffold(body: DashApp(dash: dash)),
+      home: Scaffold(
+        body: BootSplash(child: DashApp(dash: dash)),
+      ),
     );
   }
 }

@@ -316,10 +316,13 @@ class KSwitch extends StatelessWidget {
 }
 
 class KNotice extends StatelessWidget {
-  const KNotice({super.key, this.tone = Tone.info, this.title, required this.child, this.square = false});
+  const KNotice({super.key, this.tone = Tone.info, this.title, required this.child, this.square = false, this.leading});
   final Tone tone;
   final String? title;
   final Widget child;
+
+  /// Replaces the tone icon (18 px slot).
+  final Widget? leading;
 
   /// Full-bleed banner variant used under the top bar (radius 0, 3px left border).
   final bool square;
@@ -339,7 +342,7 @@ class KNotice extends StatelessWidget {
         children: [
           Padding(
             padding: const EdgeInsets.only(top: 1),
-            child: KIcon(icon, size: 18, color: c),
+            child: leading ?? KIcon(icon, size: 18, color: c),
           ),
           const SizedBox(width: K.s5),
           Expanded(
@@ -796,12 +799,6 @@ class _PulseDotState extends State<PulseDot> with SingleTickerProviderStateMixin
       ),
     ),
   );
-}
-
-class ScanDot extends StatelessWidget {
-  const ScanDot({super.key});
-  @override
-  Widget build(BuildContext context) => const PulseDot(color: K.accent, period: Duration(milliseconds: 800));
 }
 
 /// Eyebrow + page title, with an optional right-hand slot.

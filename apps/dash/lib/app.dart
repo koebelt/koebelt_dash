@@ -17,6 +17,7 @@ import 'screens/settings.dart';
 import 'theme/tokens.dart';
 import 'ui/components.dart';
 import 'ui/icons.dart';
+import 'ui/mark.dart';
 
 const nav = [
   ['live', 'Live', 'activity'],
@@ -430,41 +431,12 @@ class _ShellState extends State<Shell> {
           decoration: const BoxDecoration(
             border: Border(bottom: BorderSide(color: K.borderHairline)),
           ),
-          child: Text.rich(
-            TextSpan(
-              style: KText.archivo(18, FontWeight.w700, 1, tracking: .04),
-              children: const [
-                TextSpan(text: 'K'),
-                TextSpan(
-                  text: 'D',
-                  style: TextStyle(color: K.textAccent),
-                ),
-              ],
-            ),
-          ),
+          child: const Mark(size: 36),
         ),
         const SizedBox(height: 8),
         for (final n in nav) NavBtn(it: n, on: screen == n[0], go: go, variant: 'rail'),
       ],
     ),
-  );
-}
-
-class Brand extends StatelessWidget {
-  const Brand({super.key, this.small = false});
-  final bool small;
-  @override
-  Widget build(BuildContext context) => Row(
-    crossAxisAlignment: CrossAxisAlignment.baseline,
-    textBaseline: TextBaseline.alphabetic,
-    children: [
-      Text('KOEBELT', style: KText.archivo(small ? 15 : 18, FontWeight.w700, 1, tracking: .04)),
-      const SizedBox(width: 8),
-      Text(
-        'DASH',
-        style: KText.mono(small ? 10 : 11, color: K.textAccent, tracking: K.trLabel),
-      ),
-    ],
   );
 }
 
@@ -798,15 +770,19 @@ class Banners extends StatelessWidget {
       return KNotice(
         tone: Tone.negative,
         square: true,
+        leading: _mark(true),
         title: 'Link lost · ${lf.toStringAsFixed(1)} s',
         child: Text('${lf >= 1.8 ? 'Failsafe active: $fs.' : 'Reconnecting. Failsafe starts at 1.8 s.'} Controls are locked until the link is back.'),
       );
     }
     if (d.linkRestored > 0) {
-      return const KNotice(tone: Tone.positive, square: true, title: 'Link restored', child: Text('Manual control is available again.'));
+      return KNotice(tone: Tone.positive, square: true, leading: _mark(false), title: 'Link restored', child: const Text('Manual control is available again.'));
     }
     return const SizedBox();
   }
+
+  // Same element through lost → restored, so the mark lifts back up.
+  static Widget _mark(bool lost) => MarkMotion(MarkLoop.link, key: const ValueKey('link-mark'), size: 26, lost: lost, gap: K.surfaceSunken);
 }
 
 class NoDevice extends StatelessWidget {
@@ -871,7 +847,7 @@ class NoDevice extends StatelessWidget {
                             ),
                           ),
                           d.connecting == dev.id
-                              ? const Row(children: [ScanDot(), SizedBox(width: 10), MonoLabel('Connecting')])
+                              ? const Row(children: [MarkMotion(MarkLoop.loading, size: 28), SizedBox(width: 10), MonoLabel('Connecting')])
                               : KButton(
                                   'Connect',
                                   size: KSize.sm,

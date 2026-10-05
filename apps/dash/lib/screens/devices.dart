@@ -10,6 +10,7 @@ import '../link/serial_io.dart';
 import '../theme/tokens.dart';
 import '../ui/components.dart';
 import '../ui/icons.dart';
+import '../ui/mark.dart';
 
 class DevicesScreen extends StatelessWidget {
   const DevicesScreen(this.d, {super.key, required this.w, required this.go});
@@ -135,7 +136,7 @@ class DevicesScreen extends StatelessWidget {
           KButton('Disconnect', size: KSize.sm, variant: KButtonVariant.ghost, onPressed: d.disconnect),
           if (!phone) ...[const SizedBox(width: 8), KButton('Open', size: KSize.sm, variant: KButtonVariant.secondary, onPressed: () => go('live'))],
         ] else if (d.connecting == dev.id)
-          const Row(mainAxisSize: MainAxisSize.min, children: [ScanDot(), SizedBox(width: 10), MonoLabel('Connecting')])
+          const Row(mainAxisSize: MainAxisSize.min, children: [MarkMotion(MarkLoop.loading, size: 28), SizedBox(width: 10), MonoLabel('Connecting')])
         else
           KButton('Connect', size: KSize.sm, variant: KButtonVariant.secondary, onPressed: off || d.connecting != null ? null : () => d.connect(dev.id)),
         const SizedBox(width: 8),
@@ -197,7 +198,7 @@ class _PairDialog extends StatefulWidget {
 }
 
 class _PairDialogState extends State<_PairDialog> {
-  bool scanning = true, manual = false;
+  bool manual = false;
   String? error;
   final _name = TextEditingController(text: 'My robot'), _host = TextEditingController();
   DeviceKind _kind = DeviceKind.rover;
@@ -223,9 +224,6 @@ class _PairDialogState extends State<_PairDialog> {
     super.initState();
     widget.d.startScan();
     _refreshPorts();
-    Future.delayed(const Duration(milliseconds: 1400), () {
-      if (mounted) setState(() => scanning = false);
-    });
   }
 
   @override
@@ -524,7 +522,14 @@ class _PairDialogState extends State<_PairDialog> {
           if (_listening)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 8),
-              child: Row(mainAxisSize: MainAxisSize.min, children: [ScanDot(), SizedBox(width: 10), MonoLabel('Listening')]),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  MarkMotion(MarkLoop.searching, size: 36, gap: K.surfaceRaised),
+                  SizedBox(width: 10),
+                  MonoLabel('Listening'),
+                ],
+              ),
             )
           else
             KButton('Listen for device', size: KSize.sm, variant: KButtonVariant.secondary, onPressed: _port == null ? null : _listen),
@@ -543,50 +548,56 @@ class _PairDialogState extends State<_PairDialog> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           hairline,
-          if (scanning && found.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 20),
-              child: Row(children: [ScanDot(), SizedBox(width: 12), MonoLabel('Scanning Wi-Fi, Bluetooth and USB boards…')]),
-            )
-          else if (found.isEmpty)
-            const Padding(padding: EdgeInsets.symmetric(vertical: 20), child: MonoLabel('No new devices found'))
-          else
-            for (final (i, f) in found.indexed) ...[
-              if (i == 0 || _categoryOf(found[i - 1]) != _categoryOf(f))
-                Padding(
-                  padding: const EdgeInsets.only(top: 14),
-                  child: MonoLabel(_categoryOf(f), color: K.textSecondary),
-                ),
-              Container(
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                decoration: const BoxDecoration(
-                  border: Border(bottom: BorderSide(color: K.borderHairline)),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Flexible(
-                                child: Text(f.name, style: KText.bodyMd, maxLines: 1, overflow: TextOverflow.ellipsis),
-                              ),
-                              if (!f.native) ...[const SizedBox(width: 8), KTag(_protoLabel(f.proto), tone: TagTone.info, height: 20)],
-                            ],
-                          ),
-                          const SizedBox(height: 6),
-                          MonoLabel([DeviceKind.parse(f.kind).label, if (f.model.isNotEmpty) f.model, f.via].join(' · '), maxLines: 2, height: 1.4),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    KButton(f.native && f.pair != null ? 'Pair' : 'Connect', size: KSize.sm, onPressed: () => _pair(f)),
-                  ],
-                ),
+          for (final (i, f) in found.indexed) ...[
+            if (i == 0 || _categoryOf(found[i - 1]) != _categoryOf(f))
+              Padding(
+                padding: const EdgeInsets.only(top: 14),
+                child: MonoLabel(_categoryOf(f), color: K.textSecondary),
               ),
-            ],
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              decoration: const BoxDecoration(
+                border: Border(bottom: BorderSide(color: K.borderHairline)),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(f.name, style: KText.bodyMd, maxLines: 1, overflow: TextOverflow.ellipsis),
+                            ),
+                            if (!f.native) ...[const SizedBox(width: 8), KTag(_protoLabel(f.proto), tone: TagTone.info, height: 20)],
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        MonoLabel([DeviceKind.parse(f.kind).label, if (f.model.isNotEmpty) f.model, f.via].join(' · '), maxLines: 2, height: 1.4),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  KButton(f.native && f.pair != null ? 'Pair' : 'Connect', size: KSize.sm, onPressed: () => _pair(f)),
+                ],
+              ),
+            ),
+          ],
+          // Discovery runs for as long as the dialog is open.
+          Padding(
+            key: const ValueKey('scanning'),
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Row(
+              children: [
+                const MarkMotion(MarkLoop.searching, size: 36, gap: K.surfaceRaised),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: MonoLabel(found.isEmpty ? 'Scanning Wi-Fi, Bluetooth and USB boards…' : 'Still scanning for more devices…', maxLines: 2, height: 1.4),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
       if (error != null) KNotice(tone: Tone.negative, child: Text(error!)),

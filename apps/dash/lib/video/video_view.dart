@@ -4,6 +4,7 @@ import '../core/dash.dart';
 import '../core/model.dart';
 import '../theme/tokens.dart';
 import '../ui/components.dart';
+import '../ui/mark.dart';
 import 'video_hub.dart';
 
 /// Live picture from one of the device's cameras, with a small status line.
@@ -87,7 +88,7 @@ class _VideoViewState extends State<VideoView> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    if (msg == 'Connecting…') ...[const ScanDot(), const SizedBox(height: 10)],
+                    if (msg == 'Connecting…') ...[const MarkMotion(MarkLoop.loading, size: 48, gap: Color(0xFF050505)), const SizedBox(height: 10)],
                     Text(
                       msg,
                       textAlign: TextAlign.center,

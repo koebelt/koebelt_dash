@@ -6,6 +6,7 @@ import '../core/model.dart';
 import '../theme/tokens.dart';
 import '../ui/components.dart';
 import '../ui/icons.dart';
+import '../ui/mark.dart';
 import 'devices.dart';
 
 /// The device name at the top left. Opens a popover to see the active
@@ -339,7 +340,14 @@ class DeviceMenu extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               if (connecting)
-                const Row(mainAxisSize: MainAxisSize.min, children: [ScanDot(), SizedBox(width: 8), MonoLabel('Connecting')])
+                const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    MarkMotion(MarkLoop.loading, size: 28, gap: K.surfaceRaised),
+                    SizedBox(width: 8),
+                    MonoLabel('Connecting'),
+                  ],
+                )
               else if (!disabled)
                 MonoLabel('Connect', color: h ? K.textAccent : K.textMuted),
             ],

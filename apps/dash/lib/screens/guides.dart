@@ -10,6 +10,7 @@ import '../link/discovery.dart';
 import '../theme/tokens.dart';
 import '../ui/components.dart';
 import '../ui/icons.dart';
+import '../ui/mark.dart';
 import 'guides_data.dart';
 
 final _kw = {
@@ -261,7 +262,7 @@ class _PairPanelState extends State<PairPanel> {
             const SizedBox(height: 14),
             const Row(
               children: [
-                ScanDot(),
+                MarkMotion(MarkLoop.searching, size: 36),
                 SizedBox(width: 10),
                 Expanded(child: MonoLabel('Listening on Wi-Fi and BLE · power on your device')),
               ],
