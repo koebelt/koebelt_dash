@@ -68,14 +68,14 @@ Rockets use flight phases: `PAD`, `COUNT`, `BOOST`, `COAST`, `DROGUE`,
 
 ### `announce`
 ```json
-{"t":"announce","v":1,"id":"kite-03","name":"Kite-03","kind":"drone","lib":"arduino/1.5.0","pair":"4F7-K2Q"}
+{"t":"announce","v":1,"id":"kite-03","name":"Kite-03","kind":"drone","lib":"arduino/1.6.0","pair":"4F7-K2Q"}
 ```
 `pair` is present only while the device is in pairing mode.
 
 ### `hello` (reply to the app's `hello`)
 ```json
 {"t":"hello","v":1,"id":"kite-03","name":"Kite-03","kind":"drone","model":"Quadcopter · 1.4 kg",
- "fw":"2.4.1","lib":"arduino/1.5.0","sensors":["GPS","IMU","BARO","LIDAR"],"ok":true}
+ "fw":"2.4.1","lib":"arduino/1.6.0","sensors":["GPS","IMU","BARO","LIDAR"],"ok":true}
 ```
 `ok:false` with `err:"key"` when the pairing key does not match.
 
@@ -325,13 +325,68 @@ have it (XBee, RFD900x: AES) for confidentiality.
 
 ## Sequences
 
-These are command names inside the existing `cmd` message, not changes to
-the wire format: a device that does not implement one simply ignores it.
+The app's Program screen runs sequences in one of two ways.
 
-The app's Program screen runs sequences step by step using the commands
-above plus `mode`, `arm` and `speed`. It checks each step's completion
-against telemetry (position within 1 m / 0.6 m, joints within 0.03 rad, mode
-and armed state) and stops the sequence on STOP, manual stick input or
-disconnect, and pauses it on link loss. The device needs no sequence
-support of its own beyond handling these commands; its failsafe keeps
-running as usual.
+**From the app** (any device). The app runs the steps itself using the
+commands above plus `mode`, `arm` and `speed`. It checks each step's
+completion against telemetry (position within 1 m / 0.6 m, joints within
+0.03 rad, mode and armed state) and stops the sequence on STOP, manual
+stick input or disconnect, and pauses it on link loss. The device needs no
+sequence support of its own; its failsafe keeps running as usual.
+
+**On the device** (devices whose `hello` carries `"seq":N`, the most steps
+they store). The app uploads the whole sequence; the device runs it and
+keeps going when the link drops. The app only follows and steers it.
+
+| Direction | Message | Example |
+|-----------|---------|---------|
+| app → device | `seq` | `{"t":"seq","id":"q1","steps":[["takeoff",{"alt":10}],["goto",{"x":15,"y":0,"z":10}],["wait",{"s":2}],["land",{}]]}` |
+| device → app | `seqack` | `{"t":"seqack","id":"q1","ok":true}` or `{"ok":false,"err":"Step \"pose\" is not supported on this device"}` |
+| app → device | `seqrun` | `{"t":"seqrun","id":"q1"}` starts the stored sequence |
+| app → device | `seqctl` | `{"t":"seqctl","c":"pause"}`, `"resume"`, `"stop"` |
+| device → app | `state.ext.run` | `{"id":"q1","i":1,"n":4,"st":"run","msg":"3.2 m to go","p":0.4}` |
+
+`i` is the step running (`n` when done), `st` one of `run`, `pause`,
+`done`, `fail`, `msg` a short status, `p` the progress of a timed step
+(0–1). The device keeps sending `run` after it ends, so an app that
+connects later sees the result. When `seqack` is not ok, the app runs the
+sequence itself instead.
+
+Steps are `[type, args]` in protocol units. The device runs each step with
+the same handler the app's message would reach, then waits for it to
+complete:
+
+| Step | Args | Runs as | Complete when (times out after) |
+|------|------|---------|---------------------------------|
+| `takeoff` | `{"alt":10}` | `cmd takeoff` | 0.3 s passed, mode is not `TAKEOFF`, `z > alt − 0.6` (60 s) |
+| `goto` | `{"x":15,"y":0,"z":10}` | `cmd goto` | within 1 m (drones, 3D) or 0.6 m (rovers, 2D) (300 s) |
+| `land` / `rth` | `{}` | `mode LAND` / `RTH` | 0.5 s passed and disarmed, or `z < 0.1` with the mode changed (300 s) |
+| `pose` | `{"j":[…6 rad]}` | `cmd pose` | every joint within 0.03 rad (60 s) |
+| `home` | `{}` | `cmd home` | 0.6 s passed and the joints still for 0.4 s (60 s) |
+| `gripper` | `{"v":0.9}` | `cmd gripper` | after 0.8 s |
+| `throttle` | `{"v":0.5,"s":3}` | `cmd throttle` | after `s` |
+| `ramp` | `{"from":0.4,"to":0.8,"s":8}` | `cmd throttle` every 0.1 s | after `s` |
+| `wait` | `{"s":2}` | – | after `s` |
+| `mode` | `{"m":"HOLD"}` | `mode` | the mode is `m` (3 s) |
+| `arm` | `{"v":true}` | `arm` | the armed state matches (3 s) |
+| `speed` | `{"v":0.5}` | `speed` | at once |
+| `cmd` | `{"c":"beep","a":{"v":1}}` | `cmd c a` | at once |
+
+A step that times out fails the sequence; STOP fails it too. While a stored
+sequence runs, the link-loss failsafe does not interrupt it (STOP still
+does), and `bye` does not switch a flying drone to hold. On pause the
+device holds where it is and stops a bench motor; resume restarts the
+current step. Stopping switches a moving drone or rover to `HOLD` and a
+bench to throttle 0.
+
+`vectors.json` has a shared scenario under `sequence` that every library
+runs in its tests.
+
+**MAVLink vehicles** (ArduPilot, PX4) take sequences as missions: the app's
+MAVLink adapter turns `takeoff`, `goto`, `wait`, `land` and `rth` into
+`NAV_TAKEOFF`, `NAV_WAYPOINT`, `NAV_LOITER_TIME`, `NAV_LAND` and
+`NAV_RETURN_TO_LAUNCH` items (relative altitude, positions from home),
+uploads them with the mission protocol, and starts them in AUTO with
+`MISSION_START`. Leading `arm` and `mode AUTO` steps are done before the
+start. Other steps cannot be part of a mission, so those sequences run from
+the app.

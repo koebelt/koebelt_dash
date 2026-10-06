@@ -109,6 +109,62 @@
       }
     }
   ],
+  "_sequence_comment": "Sequences on the device (PROTOCOL.md, 'Sequences'): a drone stores 'upload', runs it on 'run', and must call its handlers in the order of 'calls' (each [message, name, args]) and report st 'done' with i == steps.",
+  "sequence": {
+    "upload": "{\"t\":\"seq\",\"id\":\"q1\",\"steps\":[[\"arm\",{\"v\":true}],[\"takeoff\",{\"alt\":3}],[\"goto\",{\"x\":4,\"y\":0,\"z\":3}],[\"wait\",{\"s\":0.2}],[\"mode\",{\"m\":\"AUTO\"}],[\"speed\",{\"v\":0.5}],[\"cmd\",{\"c\":\"beep\",\"a\":{\"v\":2}}],[\"land\",{}]]}",
+    "run": "{\"t\":\"seqrun\",\"id\":\"q1\"}",
+    "steps": 8,
+    "calls": [
+      [
+        "arm",
+        "",
+        {
+          "v": true
+        }
+      ],
+      [
+        "cmd",
+        "takeoff",
+        {
+          "alt": 3
+        }
+      ],
+      [
+        "cmd",
+        "goto",
+        {
+          "x": 4,
+          "y": 0,
+          "z": 3
+        }
+      ],
+      [
+        "mode",
+        "AUTO",
+        {}
+      ],
+      [
+        "speed",
+        "",
+        {
+          "v": 0.5
+        }
+      ],
+      [
+        "cmd",
+        "beep",
+        {
+          "v": 2
+        }
+      ],
+      [
+        "mode",
+        "LAND",
+        {}
+      ]
+    ],
+    "reject": "{\"t\":\"seq\",\"id\":\"q2\",\"steps\":[[\"fly_upside_down\",{}]]}"
+  },
   "radio": [
     {
       "id": "sik",
