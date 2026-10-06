@@ -213,6 +213,12 @@ class Dash extends ChangeNotifier implements SequenceHost, PadTarget {
   List<double> jog = List.filled(6, 0);
   double speed = .5;
 
+  /// Arms: what the controller sticks move ('Joint' or 'Cartesian', the
+  /// tabs of the arm panel), and whether the right stick is on the wrist.
+  String armFrame = 'Joint';
+  bool armWrist = false;
+  List<double> _padCart = const [0, 0, 0];
+
   // link health
   double linkTest = 0, linkRestored = 0;
   bool _wasLost = false;
@@ -402,13 +408,17 @@ class Dash extends ChangeNotifier implements SequenceHost, PadTarget {
         !linkLost &&
         s.armed &&
         !s.estop &&
-        (kind == DeviceKind.drone || kind == DeviceKind.rover || kind == DeviceKind.generic);
+        (kind == DeviceKind.drone || kind == DeviceKind.rover || kind == DeviceKind.arm || kind == DeviceKind.generic);
   }
 
   @override
   void padAxes(List<double> v) {
     if (!padCanDrive) {
       input.fillRange(0, 4, 0);
+      return;
+    }
+    if (kind == DeviceKind.arm) {
+      _padArm(v);
       return;
     }
     final drone = kind != DeviceKind.rover;
@@ -446,6 +456,57 @@ class Dash extends ChangeNotifier implements SequenceHost, PadTarget {
         setSpeed(math.max(.1, ((speed - .1) * 10).roundToDouble() / 10));
       case PadAction.faster:
         setSpeed(math.min(1, ((speed + .1) * 10).roundToDouble() / 10));
+      case PadAction.armFrame:
+        if (kind == DeviceKind.arm) setArmFrame(armFrame == 'Joint' ? 'Cartesian' : 'Joint');
+      case PadAction.armWrist:
+        if (kind == DeviceKind.arm) {
+          _stopArmJog();
+          armWrist = !armWrist;
+          notifyListeners();
+        }
+      case PadAction.gripper:
+        if (kind == DeviceKind.arm && s.armed && !s.estop && canControl) cmd('gripper', {'v': s.gripper > .5 ? .1 : .9});
+    }
+  }
+
+  /// Arm jog from the sticks (lx, ly, rx, ry; up and right positive).
+  /// Joint: left stick J1 (base) and J2 (shoulder), right stick J3 and J4,
+  /// or J5 and J6 with the wrist toggle. Cartesian: left stick moves the
+  /// tool forward / back and left / right, right stick up / down.
+  void _padArm(List<double> v) {
+    if (v.any((x) => x != 0)) goManual();
+    if (armFrame == 'Cartesian') {
+      final c = [v[1], -v[0], v[3]];
+      if (!listEquals(c, _padCart)) {
+        _padCart = c;
+        setCart(c);
+      }
+      return;
+    }
+    final j = [v[0], v[1], 0.0, 0.0, 0.0, 0.0];
+    j[armWrist ? 4 : 2] = v[3];
+    j[armWrist ? 5 : 3] = v[2];
+    if (listEquals(j, jog)) return;
+    jog = j;
+    _send({'t': 'jog', 'j': jog});
+  }
+
+  /// Switches the arm jog frame (panel tab and controller), stopping any jog.
+  void setArmFrame(String f) {
+    if (f == armFrame) return;
+    _stopArmJog();
+    armFrame = f;
+    notifyListeners();
+  }
+
+  void _stopArmJog() {
+    if (jog.any((x) => x != 0)) {
+      jog = List.filled(6, 0);
+      _send({'t': 'jog', 'j': jog});
+    }
+    if (_padCart.any((x) => x != 0)) {
+      _padCart = const [0, 0, 0];
+      setCart(_padCart);
     }
   }
 

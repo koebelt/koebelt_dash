@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 
 import '../core/dash.dart';
+import '../core/gamepad.dart';
 import '../core/model.dart';
 import '../theme/tokens.dart';
 import '../ui/components.dart';
@@ -712,10 +713,18 @@ class ArmControl extends StatefulWidget {
 }
 
 class _ArmControlState extends State<ArmControl> {
-  String tab = 'Joint';
   @override
   Widget build(BuildContext context) {
-    final d = widget.d, s = d.liveTel, live = s.armed && !s.estop && !d.linkLost, wide = widget.w >= 900;
+    final d = widget.d, s = d.liveTel, live = s.armed && !s.estop && !d.linkLost, wide = widget.w >= 900, tab = d.armFrame;
+    // Which stick moves each row, shown while a controller is connected.
+    final pad = d.gamepads.pads.isNotEmpty && d.pad.enabled;
+    final jointStick = d.armWrist ? const {0: 'LX', 1: 'LY', 4: 'RY', 5: 'RX'} : const {0: 'LX', 1: 'LY', 2: 'RY', 3: 'RX'};
+    const cartStick = {0: 'LY', 1: 'LX', 2: 'RY'};
+    Widget stick(String? l) => SizedBox(
+      width: pad ? 36 : 0,
+      child: l == null || !pad ? null : MonoLabel(l, color: K.textAccent, size: 10),
+    );
+    String btn(PadAction a) => padSourceLabel(d.pad.buttons[a]);
     void jog(int i, double v) {
       d.goManual();
       d.setJog(i, v);
@@ -753,7 +762,7 @@ class _ArmControlState extends State<ArmControl> {
           const SizedBox(height: 20),
           Align(
             alignment: Alignment.centerLeft,
-            child: KTabs(items: const ['Joint', 'Cartesian'], value: tab, onChanged: (v) => setState(() => tab = v)),
+            child: KTabs(items: const ['Joint', 'Cartesian'], value: tab, onChanged: d.setArmFrame),
           ),
           const SizedBox(height: 20),
           if (tab == 'Joint')
@@ -763,6 +772,7 @@ class _ArmControlState extends State<ArmControl> {
                 child: Row(
                   children: [
                     SizedBox(width: 32, child: MonoLabel('J${i + 1}', color: K.textSecondary)),
+                    stick(jointStick[i]),
                     const SizedBox(width: 10),
                     HoldBtn(disabled: !live, onDown: () => jog(i, -1), onUp: () => d.setJog(i, 0), child: const Text('−')),
                     const SizedBox(width: 10),
@@ -809,6 +819,7 @@ class _ArmControlState extends State<ArmControl> {
                 child: Row(
                   children: [
                     SizedBox(width: 32, child: MonoLabel(c[0] as String, color: K.textSecondary)),
+                    stick(cartStick[c[1]]),
                     const SizedBox(width: 10),
                     HoldBtn(
                       disabled: !live,
@@ -847,6 +858,15 @@ class _ArmControlState extends State<ArmControl> {
               ),
             const Padding(padding: EdgeInsets.only(top: 4), child: MonoLabel('Tool frame · base-relative', height: 1.5)),
           ],
+          if (pad)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: MonoLabel(
+                'Controller · ${btn(PadAction.armFrame)}: joint / cartesian · ${btn(PadAction.armWrist)}: ${d.armWrist ? 'J3 J4' : 'wrist'} · ${btn(PadAction.gripper)}: gripper',
+                height: 1.5,
+                maxLines: 3,
+              ),
+            ),
           const SizedBox(height: 20),
           SpeedSlider(d),
           const SizedBox(height: 20),

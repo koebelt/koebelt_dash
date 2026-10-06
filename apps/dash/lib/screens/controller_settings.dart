@@ -56,7 +56,7 @@ class _ControllerSectionState extends State<ControllerSection> {
         _row(
           title: 'Use a game controller',
           desc:
-              '$status Sticks drive drones and ground robots once they are armed; buttons work on any device. On-screen controls keep working while the controller is idle.',
+              '$status Sticks drive drones and ground robots, and jog robot arms, once they are armed; buttons work on any device. On-screen controls keep working while the controller is idle.',
           child: KSwitch(
             checked: cfg.enabled,
             onChanged: (v) {

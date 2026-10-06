@@ -193,6 +193,54 @@ void main() {
       expect(t.axes.last[3], 0);
     });
 
+    test('jogs an armed simulated arm: joints, wrist bank, cartesian, gripper', () async {
+      SharedPreferences.setMockInitialValues({});
+      final d = Dash();
+      await d.init();
+      final dev = d.addSimulated(simTemplates().firstWhere((t) => t.kind == DeviceKind.arm));
+      await d.connect(dev.id);
+      await wait(300);
+      if (!d.liveTel.armed) d.setArmed(true);
+      await wait(200);
+      expect(d.padCanDrive, isTrue, reason: 'armed ${d.liveTel.armed} estop ${d.liveTel.estop} lost ${d.linkLost}');
+
+      final j1 = d.liveTel.joints[0];
+      d.padMapper.input('n:leftStickX', 1);
+      expect(d.jog, [1, 0, 0, 0, 0, 0]);
+      expect(d.liveTel.mode, 'MANUAL');
+      d.padMapper.input('n:rightStickY', 1);
+      expect(d.jog, [1, 0, 1, 0, 0, 0], reason: 'right stick on J3 / J4');
+      await wait(400);
+      expect(d.liveTel.joints[0], greaterThan(j1 + .05), reason: 'the base turned');
+      d.padMapper.input('n:leftStickX', 0);
+      d.padMapper.input('n:rightStickY', 0);
+      expect(d.jog, everyElement(0), reason: 'let go: stop');
+
+      d.padMapper.input('n:dpadRight', 1, button: true);
+      d.padMapper.input('n:dpadRight', 0, button: true);
+      expect(d.armWrist, isTrue);
+      d.padMapper.input('n:rightStickX', -1);
+      expect(d.jog, [0, 0, 0, 0, 0, -1], reason: 'wrist: right stick on J5 / J6');
+      d.padMapper.input('n:rightStickX', 0);
+
+      d.padMapper.input('n:dpadLeft', 1, button: true);
+      d.padMapper.input('n:dpadLeft', 0, button: true);
+      expect(d.armFrame, 'Cartesian');
+      final z = d.liveTel.tip[2];
+      d.padMapper.input('n:rightStickY', 1);
+      await wait(400);
+      expect(d.liveTel.tip[2], greaterThan(z + .01), reason: 'right stick up raises the tool');
+      d.padMapper.input('n:rightStickY', 0);
+
+      final g = d.liveTel.gripper;
+      d.padMapper.input('n:rightStick', 1, button: true);
+      d.padMapper.input('n:rightStick', 0, button: true);
+      await wait(600);
+      expect((d.liveTel.gripper - g).abs(), greaterThan(.2), reason: 'gripper toggled');
+      await d.disconnect();
+      d.dispose();
+    });
+
     test('drives an armed simulated drone; STOP stops it', () async {
       SharedPreferences.setMockInitialValues({});
       final d = Dash();

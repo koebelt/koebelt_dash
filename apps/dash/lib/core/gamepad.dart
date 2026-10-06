@@ -24,7 +24,10 @@ enum PadAction {
   land('Land', 'Switch to LAND (drones)'),
   record('Record', 'Start or stop a recording'),
   slower('Speed down', 'Lower the speed limit 10 %'),
-  faster('Speed up', 'Raise the speed limit 10 %');
+  faster('Speed up', 'Raise the speed limit 10 %'),
+  armFrame('Joint / Cartesian', 'Arms: what the sticks move'),
+  armWrist('Wrist', 'Arms: right stick moves J5 and J6 instead of J3 and J4'),
+  gripper('Gripper', 'Arms: open or close');
 
   const PadAction(this.label, this.hint);
   final String label, hint;
@@ -74,6 +77,9 @@ class PadConfig {
     PadAction.record: 'n:back',
     PadAction.slower: 'n:leftBumper',
     PadAction.faster: 'n:rightBumper',
+    PadAction.armFrame: 'n:dpadLeft',
+    PadAction.armWrist: 'n:dpadRight',
+    PadAction.gripper: 'n:rightStick',
   };
 
   void reset() {
