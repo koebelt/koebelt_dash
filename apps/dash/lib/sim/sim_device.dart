@@ -5,6 +5,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import '../core/model.dart';
+import '../core/sequence.dart';
 import '../core/telemetry.dart';
 import '../link/protocol.dart';
 import '../link/transport.dart';
@@ -185,8 +186,9 @@ class SimDevice {
           'kind': kind.name,
           'model': info.model,
           'fw': '2.4.1',
-          'lib': 'sim/1.5.0',
+          'lib': 'sim/1.6.0',
           'sensors': info.sensors,
+          'seq': 64,
           if (camera?.running ?? false)
             'video': [
               {'id': 'cam', 'url': camera!.url, 'fmt': 'mjpeg', 'label': kind == DeviceKind.rocket ? 'Down cam' : 'FPV'},
@@ -198,7 +200,8 @@ class SimDevice {
         _sendCloud();
       case 'bye':
         _session = false;
-        if (kind == DeviceKind.drone && armed && pos[2] > .2) mode = 'HOLD';
+        // A stored sequence carries on; otherwise a flying drone holds.
+        if (kind == DeviceKind.drone && armed && pos[2] > .2 && !_seqRunning) mode = 'HOLD';
         input = [0, 0, 0, 0];
       case 'ctl':
         _sinceCtl = 0;
@@ -252,7 +255,86 @@ class SimDevice {
         Timer(const Duration(milliseconds: 700), () => _send({'t': 'pack', 'ok': true, 'keys': keys}));
       case 'cmd':
         _cmd('${m['c']}', (m['a'] as Map?)?.cast<String, dynamic>() ?? const {});
+      case 'seq':
+        _seqStore(m);
+      case 'seqrun':
+        final q = _seqStored;
+        if (q == null || q.id != m['id'] || estop) break;
+        _seq = SequenceRunner(q, _SimSeqHost(this));
+        _sendState();
+      case 'seqctl':
+        final r = _seq;
+        if (r == null) break;
+        switch (m['c']) {
+          case 'pause':
+            r.pause();
+          case 'resume':
+            r.resume();
+          case 'stop':
+            r.stop('Stopped from the app');
+        }
+        _sendState();
     }
+  }
+
+  // ---------------------------------------------------------------- stored sequences
+  // The device side of protocol/PROTOCOL.md "Sequences on the device": the
+  // same runner the app uses, with this simulator as its host.
+  Sequence? _seqStored;
+  SequenceRunner? _seq;
+  (RunState, int)? _seqLast;
+
+  bool get _seqRunning => _seq?.state == RunState.running || _seq?.state == RunState.paused;
+
+  void _seqStore(Msg m) {
+    final steps = m['steps'];
+    String? err;
+    final parsed = <SeqStep>[];
+    if (steps is! List || steps.isEmpty) {
+      err = 'No steps';
+    } else if (steps.length > 64) {
+      err = 'Too many steps: this device stores 64';
+    } else {
+      for (final w in steps) {
+        final st = w is List && w.isNotEmpty ? SeqStep.fromWire(w) : null;
+        if (st == null || stepDef(kind, st.type) == null) {
+          err = 'Step "${st?.type ?? w}" is not supported on this device';
+          break;
+        }
+        parsed.add(st);
+      }
+    }
+    if (err == null) _seqStored = Sequence(id: '${m['id']}', name: '', kind: kind, steps: parsed);
+    _send({'t': 'seqack', 'id': m['id'], 'ok': err == null, 'err': ?err});
+  }
+
+  void _seqTick(double dt) {
+    final r = _seq;
+    if (r == null) return;
+    r.tick(dt);
+    final now = (r.state, r.index);
+    if (now != _seqLast) {
+      _seqLast = now;
+      _sendState();
+    }
+  }
+
+  Map<String, dynamic>? get _seqExt {
+    final r = _seq;
+    if (r == null) return null;
+    return {
+      'id': r.seq.id,
+      'i': r.index,
+      'n': r.seq.steps.length,
+      'st': switch (r.state) {
+        RunState.running => 'run',
+        RunState.paused => 'pause',
+        RunState.done => 'done',
+        RunState.failed => 'fail',
+      },
+      if (r.message.isNotEmpty) 'msg': r.message,
+      if (r.stepProgress != null) 'p': (r.stepProgress! * 100).round() / 100,
+    };
   }
 
   void _cmd(String c, Map<String, dynamic> a) {
@@ -349,6 +431,7 @@ class SimDevice {
   }
 
   void _stop() {
+    _seq?.stop('Stopped: emergency stop');
     _gotoActive = false;
     estop = true;
     armed = false;
@@ -408,6 +491,7 @@ class SimDevice {
       if (kind == DeviceKind.rocket) 'pyro': pyro,
       if (cutoff != null) 'cutoff': cutoff,
       if (seqKind != null) 'seq': {'kind': seqKind, 't': seqT},
+      'run': ?_seqExt,
     },
   };
 
@@ -500,7 +584,9 @@ class SimDevice {
   void step(double dt) {
     t += dt;
     if (_session) _sinceCtl += dt;
-    if (_session && !fsActive && _sinceCtl > fsTimeout && kind != DeviceKind.rocket) {
+    _seqTick(dt);
+    // While a stored sequence runs, a lost link does not interrupt it.
+    if (_session && !fsActive && _sinceCtl > fsTimeout && kind != DeviceKind.rocket && !_seqRunning) {
       fsActive = true;
       input = [0, 0, 0, 0];
       jog = List.filled(6, 0);
@@ -869,4 +955,30 @@ class SimDevice {
     }
     return out;
   }
+}
+
+/// The simulator as the host of its own stored-sequence runner.
+class _SimSeqHost implements SequenceHost {
+  _SimSeqHost(this.d);
+  final SimDevice d;
+  @override
+  List<double> get seqPos => [d.pos[0] - d.homeXY[0], d.pos[1] - d.homeXY[1], d.pos[2]];
+  @override
+  List<double> get seqJoints => d.joints;
+  @override
+  String get seqMode => d.mode;
+  @override
+  bool get seqArmed => d.armed;
+  @override
+  bool get seqStopped => d.estop;
+  @override
+  bool get seqLinkLost => false; // it runs on the device
+  @override
+  void seqSetMode(String m) => d._onMsg({'t': 'mode', 'm': m});
+  @override
+  void seqSetArmed(bool v) => d._onMsg({'t': 'arm', 'v': v});
+  @override
+  void seqSetSpeed(double v) => d._onMsg({'t': 'speed', 'v': v});
+  @override
+  void seqCmd(String c, Map<String, dynamic> a) => d._cmd(c, a);
 }

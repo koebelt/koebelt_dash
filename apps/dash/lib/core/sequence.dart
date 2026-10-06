@@ -138,6 +138,52 @@ class SeqStep {
     };
   }
 
+  /// The step as sent to a device that runs sequences itself
+  /// (protocol/PROTOCOL.md, "Sequences on the device"): `[type, args]` in
+  /// protocol units (metres, radians, 0–1).
+  List<Object> toWire(DeviceKind kind) => [
+    type,
+    switch (type) {
+      'takeoff' => {'alt': n('alt', 6)},
+      'goto' => {'x': n('x'), 'y': n('y'), if (kind == DeviceKind.drone) 'z': n('z', 8)},
+      'pose' => {
+        'j': [for (var i = 1; i <= 6; i++) n('j$i') / 57.2958],
+      },
+      'gripper' => {'v': n('open', 90) / 100},
+      'throttle' => {'v': n('pct') / 100, 's': n('s')},
+      'ramp' => {'from': n('from') / 100, 'to': n('to') / 100, 's': n('s')},
+      'wait' => {'s': n('s')},
+      'mode' => {'m': s('m')},
+      'arm' => {'v': s('v') == 'ARM'},
+      'speed' => {'v': n('pct', 50) / 100},
+      'cmd' => {
+        'c': s('name'),
+        'a': {'v': n('v')},
+      },
+      _ => <String, Object>{},
+    },
+  ];
+
+  /// Inverse of [toWire].
+  factory SeqStep.fromWire(List w) {
+    final type = '${w[0]}', a = w.length > 1 && w[1] is Map ? (w[1] as Map).cast<String, dynamic>() : const <String, dynamic>{};
+    double g(String k, [double d = 0]) => (a[k] as num?)?.toDouble() ?? d;
+    return SeqStep(type, switch (type) {
+      'takeoff' => {'alt': g('alt', 6)},
+      'goto' => {'x': g('x'), 'y': g('y'), if (a.containsKey('z')) 'z': g('z')},
+      'pose' => {for (var i = 1; i <= 6; i++) 'j$i': ((a['j'] as List?)?.elementAtOrNull(i - 1) as num? ?? 0) * 57.2958},
+      'gripper' => {'open': g('v', .9) * 100},
+      'throttle' => {'pct': g('v') * 100, 's': g('s')},
+      'ramp' => {'from': g('from') * 100, 'to': g('to') * 100, 's': g('s')},
+      'wait' => {'s': g('s')},
+      'mode' => {'m': '${a['m'] ?? ''}'},
+      'arm' => {'v': a['v'] == true ? 'ARM' : 'DISARM'},
+      'speed' => {'pct': g('v', .5) * 100},
+      'cmd' => {'name': '${a['c'] ?? ''}', 'v': ((a['a'] as Map?)?['v'] as num?)?.toDouble() ?? 0},
+      _ => <String, dynamic>{},
+    });
+  }
+
   /// Nominal duration for time-based steps (preview); null when it depends on the device.
   double? get duration => switch (type) {
     'wait' || 'throttle' || 'ramp' => n('s'),
@@ -237,7 +283,9 @@ abstract class SequenceHost {
   void seqCmd(String c, Map<String, dynamic> a);
 }
 
-/// Executes a [Sequence] step by step.
+/// Executes a [Sequence] step by step. Runs in the app (checking each
+/// step against telemetry), and also inside the simulator as the device-side
+/// runner.
 class SequenceRunner {
   SequenceRunner(this.seq, this.host);
   final Sequence seq;
@@ -252,6 +300,9 @@ class SequenceRunner {
   List<double> _lastJoints = const [];
 
   SeqStep? get step => index < seq.steps.length ? seq.steps[index] : null;
+
+  /// True when the device runs the sequence itself (see [DeviceSequenceRunner]).
+  bool get onDevice => false;
 
   /// 0…1 for time-based steps, or null.
   double? get stepProgress {
@@ -398,5 +449,89 @@ class SequenceRunner {
       default:
         return true;
     }
+  }
+}
+
+/// A sequence the connected device runs itself: uploaded with `seq`, started
+/// with `seqrun`, followed through `state.ext.run`. It keeps going when the
+/// link drops; this object only mirrors and steers it.
+class DeviceSequenceRunner extends SequenceRunner {
+  DeviceSequenceRunner(super.seq, super.host, this.send) {
+    message = 'Uploading to the device';
+  }
+
+  /// Sends an app → device message.
+  final void Function(Map<String, Object?> m) send;
+
+  /// Waiting for `seqack`.
+  bool uploading = true;
+  double? _progress;
+  double _sinceUpload = 0;
+
+  @override
+  bool get onDevice => true;
+
+  @override
+  double? get stepProgress => _progress;
+
+  Map<String, Object?> uploadMsg() => {
+    't': 'seq',
+    'id': seq.id,
+    'steps': [for (final s in seq.steps) s.toWire(seq.kind)],
+  };
+
+  /// `seqack` arrived and was accepted: start it.
+  void accepted() {
+    uploading = false;
+    message = 'Starting';
+    send({'t': 'seqrun', 'id': seq.id});
+  }
+
+  /// Applies the device's `state.ext.run`.
+  void apply(Map run) {
+    if (run['id'] != seq.id) return;
+    index = (run['i'] as num?)?.toInt() ?? index;
+    _progress = (run['p'] as num?)?.toDouble();
+    final msg = run['msg'];
+    message = msg is String ? msg : '';
+    state = switch (run['st']) {
+      'pause' => RunState.paused,
+      'done' => RunState.done,
+      'fail' => RunState.failed,
+      _ => RunState.running,
+    };
+    if (state == RunState.done && message.isEmpty) message = 'Completed on the device';
+  }
+
+  @override
+  void tick(double dt) {
+    if (uploading) {
+      _sinceUpload += dt;
+      if (_sinceUpload > 15) {
+        uploading = false;
+        state = RunState.failed;
+        message = 'The device did not accept the sequence';
+      }
+    } else if (host.seqLinkLost && state == RunState.running) {
+      message = 'Link lost · the device carries on';
+    }
+  }
+
+  @override
+  void pause([String why = 'Paused']) {
+    if (state == RunState.running) send({'t': 'seqctl', 'c': 'pause'});
+  }
+
+  @override
+  void resume() {
+    if (state == RunState.paused) send({'t': 'seqctl', 'c': 'resume'});
+  }
+
+  @override
+  void stop(String why) {
+    if (state == RunState.done || state == RunState.failed) return;
+    send({'t': 'seqctl', 'c': 'stop'});
+    state = RunState.failed;
+    message = why;
   }
 }

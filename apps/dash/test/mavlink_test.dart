@@ -5,11 +5,13 @@ library;
 
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:koebelt_dash/core/dash.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:koebelt_dash/core/model.dart';
+import 'package:koebelt_dash/core/sequence.dart';
 import 'package:koebelt_dash/core/telemetry.dart';
 import 'package:koebelt_dash/link/bytes.dart';
 import 'package:koebelt_dash/link/mavlink.dart';
@@ -135,7 +137,7 @@ void main() {
       expect(tel.pos[0], closeTo(20, .5));
       expect(tel.pos[1], closeTo(10, .5));
       s.send({'t': 'stop'});
-      await wait(500);
+      await wait(1100); // the vehicle reports arming in its 2 Hz heartbeat
       expect(tel.armed, isFalse);
       expect(tel.estop, isTrue);
 
@@ -184,6 +186,83 @@ void main() {
       expect(d.liveTel.armed, isFalse);
       await d.disconnect();
       d.dispose();
+    },
+    skip: hasPymavlink ? false : 'needs pymavlink in libs/python/.venv',
+    timeout: const Timeout(Duration(seconds: 40)),
+  );
+
+  test(
+    'through the app: a sequence becomes a mission the vehicle flies',
+    () async {
+      const vport = 14573;
+      final proc = await Process.start(py.path, ['test/fixtures/mav_vehicle.py', '$vport', '14550', '10']);
+      addTearDown(proc.kill);
+      final out = proc.stdout.transform(utf8.decoder).join();
+      TestWidgetsFlutterBinding.ensureInitialized();
+      SharedPreferences.setMockInitialValues({});
+      final d = Dash();
+      await d.init();
+      final dev = d.addManual('Copter', '127.0.0.1:$vport', DeviceKind.drone, proto: 'mavlink');
+      await d.connect(dev.id);
+      expect(d.seqCap, greaterThan(0), reason: 'ArduPilot takes missions');
+      await wait(1200); // home from the first position fix
+
+      Future<void> until(bool Function() ok, int ms) async {
+        final sw = Stopwatch()..start();
+        while (!ok() && sw.elapsedMilliseconds < ms) {
+          await wait(20);
+          d.tick(.02);
+        }
+      }
+
+      // A step a mission cannot hold: the app runs it instead.
+      d.runSequence(
+        Sequence(
+          id: 'spd',
+          name: 'Speed',
+          kind: DeviceKind.drone,
+          steps: [
+            SeqStep('speed', {'pct': 50.0}),
+            SeqStep('wait', {'s': .1}),
+          ],
+        ),
+      );
+      await until(() => d.runner?.onDevice == false, 3000);
+      expect(d.runner?.message, contains('Speed limit'));
+      d.runner!.stop('x');
+
+      final q = Sequence(
+        id: 'm1',
+        name: 'Mission',
+        kind: DeviceKind.drone,
+        steps: [
+          SeqStep('arm', {'v': 'ARM'}),
+          SeqStep('takeoff', {'alt': 10.0}),
+          SeqStep('goto', {'x': 20.0, 'y': 10.0, 'z': 15.0}),
+          SeqStep('wait', {'s': 1.0}),
+          SeqStep('land', {}),
+        ],
+      );
+      d.runSequence(q);
+      final r = d.runner!;
+      expect(r.onDevice, isTrue);
+      await until(() => r.state == RunState.done || r.state == RunState.failed, 8000);
+      expect(r.state, RunState.done, reason: r.message);
+      await d.disconnect();
+      d.dispose();
+
+      final summary = jsonDecode((await out).trim().split('\n').last) as Map;
+      final items = summary['mission'] as List;
+      // Home, take off, waypoint, loiter, land.
+      expect([for (final i in items) i[0]], [16, 22, 16, 19, 21]);
+      expect(items[1][3], 10.0);
+      expect(items[2][1], closeTo(47.3769 + 10 / 111111, 2e-7));
+      expect(items[2][2], closeTo(8.5417 + 20 / (111111 * math.cos(47.3769 * math.pi / 180)), 2e-7));
+      expect(items[2][3], 15.0);
+      expect(items[3][4], 1.0, reason: 'loiter time');
+      expect(items[2][5], Mav.frameGlobalRelativeAltInt);
+      expect(summary['arm'], contains(true));
+      expect(summary['reached'], [1, 2, 3, 4]);
     },
     skip: hasPymavlink ? false : 'needs pymavlink in libs/python/.venv',
     timeout: const Timeout(Duration(seconds: 40)),

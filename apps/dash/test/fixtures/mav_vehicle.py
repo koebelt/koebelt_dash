@@ -4,7 +4,8 @@ the app's encoder and decoder are checked against an independent one.
     python mav_vehicle.py VEHICLE_PORT GCS_PORT SECONDS
 
 Streams heartbeat, attitude, position, battery and GPS to 127.0.0.1:GCS_PORT,
-answers parameters, commands and time sync, then prints a JSON summary of
+answers parameters, commands and time sync, takes mission uploads and flies
+them in AUTO like ArduCopter (item 0 is home), then prints a JSON summary of
 what the ground station did.
 """
 import json
@@ -32,7 +33,8 @@ LAT0, LON0, ALT0 = 47.3769, 8.5417, 400.0
 state = {"armed": False, "mode": 0, "alt": 0.0, "north": 0.0, "east": 0.0}
 params = {"ATC_RAT_RLL_P": (0.135, m.MAV_PARAM_TYPE_REAL32), "WPNAV_SPEED": (500.0, m.MAV_PARAM_TYPE_REAL32), "FS_GCS_ENABLE": (1.0, m.MAV_PARAM_TYPE_INT8)}
 log = {"arm": [], "modes": [], "manual": 0, "last_manual": None, "param_sets": {}, "reposition": None, "takeoff": None, "force_disarm": False,
-       "gcs_heartbeats": 0, "timesync": 0, "intervals": 0}
+       "gcs_heartbeats": 0, "timesync": 0, "intervals": 0, "mission": [], "mission_start": 0, "reached": []}
+mission = {"items": [], "expect": 0, "gcs": (255, 0), "cur": -1, "since": 0.0}
 
 
 def send_params():
@@ -64,6 +66,8 @@ def handle(msg):
         elif c == m.MAV_CMD_DO_SET_MODE:
             state["mode"] = int(msg.param2)
             log["modes"].append(int(msg.param2))
+            if state["mode"] == 3 and mission["cur"] < 1:
+                start_mission()
         elif c == m.MAV_CMD_GET_HOME_POSITION:
             mav.home_position_send(int(LAT0 * 1e7), int(LON0 * 1e7), int(ALT0 * 1000), 0, 0, 0, [1, 0, 0, 0], 0, 0, 0)
         elif c == m.MAV_CMD_NAV_TAKEOFF:
@@ -71,6 +75,9 @@ def handle(msg):
             state["alt"] = msg.param7
         elif c == m.MAV_CMD_SET_MESSAGE_INTERVAL:
             log["intervals"] += 1
+        elif c == m.MAV_CMD_MISSION_START:
+            log["mission_start"] += 1
+            start_mission()
         mav.command_ack_send(c, 0)
     elif t == "COMMAND_INT" and msg.command == m.MAV_CMD_DO_REPOSITION:
         lat, lon = msg.x / 1e7, msg.y / 1e7
@@ -82,9 +89,67 @@ def handle(msg):
     elif t == "MANUAL_CONTROL":
         log["manual"] += 1
         log["last_manual"] = [msg.x, msg.y, msg.z, msg.r]
+    elif t == "MISSION_COUNT":
+        mission["items"] = [None] * msg.count
+        mission["gcs"] = (msg.get_srcSystem(), msg.get_srcComponent())
+        mission["cur"] = -1
+        mav.mission_request_int_send(*mission["gcs"], 0, 0)
+    elif t == "MISSION_ITEM_INT":
+        items = mission["items"]
+        if msg.seq < len(items):
+            items[msg.seq] = msg
+            nxt = next((i for i, x in enumerate(items) if x is None), None)
+            if nxt is None:
+                log["mission"] = [[x.command, x.x / 1e7, x.y / 1e7, x.z, x.param1, x.frame] for x in items]
+                mav.mission_ack_send(*mission["gcs"], 0, 0)
+            else:
+                mav.mission_request_int_send(*mission["gcs"], nxt, 0)
     elif t == "TIMESYNC" and msg.tc1 == 0:
         log["timesync"] += 1
         mav.timesync_send(time.monotonic_ns(), msg.ts1)
+
+
+def start_mission():
+    if state["armed"] and len(mission["items"]) > 1 and all(mission["items"]):
+        state["mode"] = 3  # AUTO
+        mission["cur"] = 1
+        mission["since"] = 0.0
+
+
+def fly_mission(dt):
+    """Very fast ArduCopter: 20 m/s, items done as soon as they are reached."""
+    items, i = mission["items"], mission["cur"]
+    if state["mode"] != 3 or i < 1 or i >= len(items):
+        return
+    it = items[i]
+    mav.mission_current_send(i, len(items), 0, 0)
+    done = False
+    if it.command == m.MAV_CMD_NAV_TAKEOFF:
+        state["alt"] = min(it.z, state["alt"] + 20 * dt)
+        done = state["alt"] >= it.z - 0.05
+    elif it.command == m.MAV_CMD_NAV_WAYPOINT:
+        tn = (it.x / 1e7 - LAT0) * 111111
+        te = (it.y / 1e7 - LON0) * 111111 * math.cos(math.radians(LAT0))
+        dn, de, dz = tn - state["north"], te - state["east"], it.z - state["alt"]
+        d = math.sqrt(dn * dn + de * de + dz * dz)
+        k = min(1.0, 20 * dt / d) if d > 0 else 1.0
+        state["north"] += dn * k
+        state["east"] += de * k
+        state["alt"] += dz * k
+        done = d < 0.5
+    elif it.command == m.MAV_CMD_NAV_LOITER_TIME:
+        mission["since"] += dt
+        done = mission["since"] >= it.param1
+    elif it.command == m.MAV_CMD_NAV_LAND:
+        state["alt"] = max(0.0, state["alt"] - 20 * dt)
+        if state["alt"] <= 0:
+            state["armed"] = False
+            done = True
+    if done:
+        log["reached"].append(i)
+        mav.mission_item_reached_send(i)
+        mission["cur"] += 1
+        mission["since"] = 0.0
 
 
 t0 = time.monotonic()
@@ -93,6 +158,7 @@ said = False
 while time.monotonic() - t0 < secs:
     now = time.monotonic()
     ms = int((now - t0) * 1000)
+    fly_mission(0.05)
     if now - last_hb >= 0.5:
         last_hb = now
         base = m.MAV_MODE_FLAG_CUSTOM_MODE_ENABLED | (m.MAV_MODE_FLAG_SAFETY_ARMED if state["armed"] else 0)

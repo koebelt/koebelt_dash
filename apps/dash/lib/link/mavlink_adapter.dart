@@ -159,6 +159,7 @@ class MavlinkTransport implements Transport {
 
   // position
   (double, double, double)? _home; // lat, lon, alt MSL (m)
+  (double, double, double)? _here; // lat, lon, alt above home (m)
   int _sats = 0, _fix = 0;
   bool _haveLocal = false;
   List<double> _gyro = [0, 0, 0];
@@ -254,6 +255,7 @@ class MavlinkTransport implements Transport {
         final lat = m.n('lat') / 1e7, lon = m.n('lon') / 1e7, alt = m.n('alt') / 1000;
         if (lat == 0 && lon == 0) return;
         _home ??= (lat, lon, alt - m.n('relative_alt') / 1000);
+        _here = (lat, lon, m.n('relative_alt') / 1000);
         final d = <String, dynamic>{
           'gps': [lat, lon, alt, _sats],
           'vel': [m.n('vy') / 100, m.n('vx') / 100, -m.n('vz') / 100],
@@ -312,6 +314,14 @@ class MavlinkTransport implements Transport {
         }
       case Mav.paramValue:
         _onParam(m);
+      case Mav.missionRequestInt || Mav.missionRequest:
+        if (m.n('mission_type') == 0) _sendItem(m.n('seq').toInt());
+      case Mav.missionAck:
+        if (m.n('mission_type') == 0) _onMissionAck(m.n('type').toInt());
+      case Mav.missionCurrent:
+        _onMissionCurrent(m.n('seq').toInt());
+      case Mav.missionItemReached:
+        _onItemReached(m.n('seq').toInt());
       case Mav.timesync:
         final ts1 = m.n('ts1').toInt();
         final ping = _syncs.remove(ts1);
@@ -322,13 +332,14 @@ class MavlinkTransport implements Transport {
   void _tlm(Map<String, dynamic> d, num? ts) => _emit({'t': 'tlm', 'ts': ?ts, 'd': d});
 
   void _state() {
+    _followRun();
     final s = {
       't': 'state',
       'mode': appMode(nativeMode),
       'armed': armed,
       'estop': _estop,
       'fs': status >= 5, // MAV_STATE_CRITICAL / EMERGENCY
-      'ext': {'fc_mode': nativeMode},
+      'ext': {'fc_mode': nativeMode, 'run': ?(_run == null ? null : Map.of(_run!))},
     };
     final key = '$s';
     if (key == _lastState) return;
@@ -353,6 +364,8 @@ class MavlinkTransport implements Transport {
               : 'MAVLink'} · system $sys',
       'lib': 'mavlink/2',
       'sensors': ['IMU', 'BARO', 'COMPASS', 'GPS'],
+      // Sequences become missions the autopilot flies on its own.
+      if (autopilot == Mav.ardupilot || autopilot == Mav.px4) 'seq': 200,
       'ok': true,
     });
     _requestStreams(10);
@@ -525,7 +538,243 @@ class MavlinkTransport implements Transport {
         _emit({'t': 'log', 'lvl': 'info', 'msg': 'The flight controller stores parameters as soon as they are written.'});
       case 'rate':
         if (t != null) _requestStreams((m['hz'] as num?) ?? 10);
+      case 'seq':
+        _missionUpload(m);
+      case 'seqrun':
+        if (m['id'] == _mId && _mItems != null && !_estop) _missionStart();
+      case 'seqctl':
+        _missionCtl('${m['c']}');
     }
+  }
+
+  // ------------------------------------------------------------ sequences as missions
+  // protocol/PROTOCOL.md, "Sequences on the device": the steps become a
+  // mission (take off, waypoints, loiter time, land, return home) that the
+  // autopilot flies on its own, link or no link.
+  String? _mId;
+  List<Map<String, dynamic>>? _mItems;
+  List<int> _mStep = const []; // mission seq -> sequence step
+  bool _mArm = false;
+  Timer? _mTimer;
+  int _mTries = 0, _mLastReq = -1, _mNSteps = 0;
+  Map<String, Object?>? _run;
+  bool _mPausing = false, _mSeenAuto = false;
+
+  void _missionUpload(Msg m) {
+    final id = '${m['id']}', steps = m['steps'];
+    void fail(String err) => _emit({'t': 'seqack', 'id': id, 'ok': false, 'err': err});
+    if (sys == null) return fail('No vehicle');
+    if (steps is! List || steps.isEmpty) return fail('No steps');
+    final items = <Map<String, dynamic>>[], map = <int>[];
+    var arm = false, started = false;
+    // ArduPilot keeps home in item 0 and overwrites it; PX4 starts at 0.
+    final h = _home, ap = autopilot == Mav.ardupilot;
+    if (ap) {
+      items.add(_item(Mav.cmdNavWaypoint, h?.$1 ?? 0, h?.$2 ?? 0, 0));
+      map.add(0);
+    }
+    var last = _here ?? (h == null ? null : (h.$1, h.$2, 0.0));
+    final rover = _isRover(type);
+    for (var i = 0; i < steps.length; i++) {
+      final w = steps[i] as List, kind = '${w[0]}';
+      final a = w.length > 1 && w[1] is Map ? (w[1] as Map).cast<String, dynamic>() : const <String, dynamic>{};
+      double n(String k, [double d = 0]) => (a[k] as num?)?.toDouble() ?? d;
+      void add(Map<String, dynamic> it) {
+        items.add(it);
+        map.add(i);
+        started = true;
+      }
+
+      switch (kind) {
+        case 'arm' when !started && a['v'] == true:
+          arm = true;
+        case 'mode' when !started && a['m'] == 'AUTO':
+          break; // the mission runs in AUTO anyway
+        case 'takeoff':
+          if (rover) return fail('Ground vehicles cannot take off');
+          add(_item(Mav.cmdNavTakeoff, last?.$1 ?? 0, last?.$2 ?? 0, n('alt', 5)));
+          if (last != null) last = (last.$1, last.$2, n('alt', 5));
+        case 'goto':
+          if (h == null) return fail('Waypoints need a home position: wait for a GPS fix');
+          final lat = h.$1 + n('y') / 111111, lon = h.$2 + n('x') / (111111 * math.cos(h.$1 * math.pi / 180));
+          final z = rover ? 0.0 : n('z', last?.$3 ?? 5);
+          add(_item(Mav.cmdNavWaypoint, lat, lon, z));
+          last = (lat, lon, z);
+        case 'wait':
+          add(_item(Mav.cmdNavLoiterTime, last?.$1 ?? 0, last?.$2 ?? 0, last?.$3 ?? 0, p1: n('s')));
+        case 'land':
+          if (rover) return fail('Ground vehicles cannot land');
+          add(_item(Mav.cmdNavLand, last?.$1 ?? 0, last?.$2 ?? 0, 0));
+        case 'rth':
+          add(_item(Mav.cmdNavReturnToLaunch, 0, 0, 0));
+        default:
+          const names = {'arm': 'Arm / disarm', 'mode': 'Set mode', 'speed': 'Speed limit', 'cmd': 'Custom command'};
+          return fail('A mission cannot hold "${names[kind] ?? kind}" steps${kind == 'arm' || kind == 'mode' ? ' after the first move' : ''}');
+      }
+    }
+    if (!started) return fail('Nothing to fly: add a take off, fly to or wait step');
+    for (var k = 0; k < items.length; k++) {
+      items[k]['seq'] = k;
+    }
+    _mId = id;
+    _mItems = items;
+    _mStep = map;
+    _mArm = arm;
+    _mNSteps = steps.length;
+    _mTries = 0;
+    _mLastReq = -1;
+    _run = null;
+    _sendCount();
+  }
+
+  Map<String, dynamic> _item(int cmd, double lat, double lon, double z, {double p1 = 0}) => {
+    'param1': p1,
+    'param2': 0.0,
+    'param3': 0.0,
+    'param4': cmd == Mav.cmdNavWaypoint || cmd == Mav.cmdNavTakeoff || cmd == Mav.cmdNavLand ? double.nan : 0.0,
+    'x': (lat * 1e7).round(),
+    'y': (lon * 1e7).round(),
+    'z': z,
+    'command': cmd,
+    'target_system': sys,
+    'target_component': comp,
+    'frame': Mav.frameGlobalRelativeAltInt,
+    'current': 0,
+    'autocontinue': 1,
+    'mission_type': 0,
+  };
+
+  void _sendCount() {
+    final items = _mItems;
+    if (items == null) return;
+    _mav(Mav.missionCount, {'count': items.length, 'target_system': sys, 'target_component': comp, 'mission_type': 0});
+    _retry();
+  }
+
+  /// Re-sends the last step of the handshake when the vehicle goes quiet.
+  void _retry() {
+    _mTimer?.cancel();
+    _mTimer = Timer(const Duration(milliseconds: 1500), () {
+      if (++_mTries > 4) {
+        _emit({'t': 'seqack', 'id': _mId, 'ok': false, 'err': 'The vehicle did not take the mission'});
+        _mItems = null;
+        return;
+      }
+      _mLastReq < 0 ? _sendCount() : _sendItem(_mLastReq);
+    });
+  }
+
+  void _sendItem(int seq) {
+    final items = _mItems;
+    if (items == null || seq < 0 || seq >= items.length) return;
+    _mLastReq = seq;
+    _mav(Mav.missionItemInt, items[seq]);
+    _retry();
+  }
+
+  void _onMissionAck(int result) {
+    if (_mItems == null || _mId == null || _run != null) return;
+    _mTimer?.cancel();
+    if (result == 0) {
+      _emit({'t': 'seqack', 'id': _mId, 'ok': true});
+    } else {
+      const why = {1: 'error', 2: 'unsupported frame', 3: 'unsupported command', 4: 'no space', 5: 'invalid', 13: 'denied'};
+      _emit({'t': 'seqack', 'id': _mId, 'ok': false, 'err': 'The vehicle rejected the mission: ${why[result] ?? 'code $result'}'});
+      _mItems = null;
+    }
+  }
+
+  void _missionStart() {
+    _run = {'id': _mId, 'i': 0, 'n': _mNSteps, 'st': 'run', 'msg': 'Starting the mission'};
+    _mPausing = false;
+    _mSeenAuto = false;
+    void go() {
+      final mm = mavModeFor('AUTO', autopilot, type);
+      if (mm != null) _command(Mav.cmdDoSetMode, [Mav.flagCustomModeEnabled.toDouble(), mm.$1, mm.$2]);
+      _command(Mav.cmdMissionStart, [0, 0]);
+    }
+
+    if (_mArm && !armed) {
+      _command(Mav.cmdArmDisarm, [1]);
+      Timer(const Duration(milliseconds: 1500), go);
+    } else {
+      go();
+    }
+    _state();
+  }
+
+  void _missionCtl(String c) {
+    final r = _run;
+    if (r == null || r['st'] == 'done' || r['st'] == 'fail') return;
+    final hold = mavModeFor('HOLD', autopilot, type), auto = mavModeFor('AUTO', autopilot, type);
+    switch (c) {
+      case 'pause':
+        _mPausing = true;
+        if (hold != null) _command(Mav.cmdDoSetMode, [1, hold.$1, hold.$2]);
+        r['st'] = 'pause';
+        r['msg'] = 'Paused';
+      case 'resume':
+        _mPausing = false;
+        if (auto != null) _command(Mav.cmdDoSetMode, [1, auto.$1, auto.$2]);
+        r['st'] = 'run';
+        r['msg'] = '';
+      case 'stop':
+        if (hold != null && armed) _command(Mav.cmdDoSetMode, [1, hold.$1, hold.$2]);
+        r['st'] = 'fail';
+        r['msg'] = 'Stopped from the app';
+    }
+    _state();
+  }
+
+  void _onMissionCurrent(int seq) {
+    final r = _run;
+    if (r == null || r['st'] != 'run' || seq >= _mStep.length) return;
+    final i = _mStep[seq];
+    if (r['i'] != i) {
+      r['i'] = i;
+      _state();
+    }
+  }
+
+  void _onItemReached(int seq) {
+    final r = _run;
+    if (r == null || r['st'] != 'run') return;
+    if (seq >= (_mItems?.length ?? 0) - 1) {
+      r['st'] = 'done';
+      r['i'] = _mNSteps;
+      r['msg'] = 'Mission complete';
+      _state();
+    }
+  }
+
+  /// Keeps the run state in step with the vehicle's mode and arming.
+  void _followRun() {
+    final r = _run;
+    if (r == null) return;
+    final app = appMode(nativeMode), st = r['st'];
+    if (_estop && st != 'fail' && st != 'done') {
+      r['st'] = 'fail';
+      r['msg'] = 'Stopped: emergency stop';
+      return;
+    }
+    if (st != 'run') return;
+    if (!_mSeenAuto) {
+      if (app != 'AUTO') return; // not started yet
+      _mSeenAuto = true;
+      r['msg'] = '';
+    }
+    // Landed at the end of the mission: done.
+    final lastIsLand = (_mItems?.last['command'] as int?) == Mav.cmdNavLand || (_mItems?.last['command'] as int?) == Mav.cmdNavReturnToLaunch;
+    if (!armed && lastIsLand && (r['i'] as int) >= _mNSteps - 1) {
+      r['st'] = 'done';
+      r['i'] = _mNSteps;
+      r['msg'] = 'Mission complete';
+      return;
+    }
+    if (app == 'AUTO' || app == 'TAKEOFF' || (app == 'LAND' && lastIsLand) || (app == 'RTH' && lastIsLand)) return;
+    // Left the mission: the pilot, a failsafe or the app took over.
+    r['st'] = app == 'HOLD' && _mPausing ? 'pause' : 'fail';
+    r['msg'] = app == 'HOLD' && _mPausing ? 'Paused' : 'Mission interrupted: $nativeMode';
   }
 
   void _takeoff(double alt) {

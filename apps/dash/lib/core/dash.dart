@@ -342,6 +342,10 @@ class Dash extends ChangeNotifier implements SequenceHost, PadTarget {
   final Map<String, List<Sequence>> sequences = {};
   SequenceRunner? runner;
 
+  /// Steps the connected device can store and run itself (its `hello`
+  /// `seq`); 0 when the app runs sequences step by step.
+  int seqCap = 0;
+
   // clock
   double t = 0;
   double _sampleAcc = 0, _notifyAcc = 0;
@@ -678,6 +682,7 @@ class Dash extends ChangeNotifier implements SequenceHost, PadTarget {
       if (h['model'] is String && (h['model'] as String).isNotEmpty) d.model = h['model'];
       if (h['sensors'] is List && (h['sensors'] as List).isNotEmpty) d.sensors = List<String>.from(h['sensors']);
       fwVersion = h['fw'] as String?;
+      seqCap = (h['seq'] as num?)?.toInt() ?? 0;
       video = [
         for (final v in (h['video'] as List? ?? const []))
           if (v is Map) VideoStream.fromJson(v),
@@ -701,7 +706,13 @@ class Dash extends ChangeNotifier implements SequenceHost, PadTarget {
 
   Future<void> disconnect({bool notify = true}) async {
     if (recording) stopRec();
-    runner?.stop('Stopped: disconnected');
+    // A sequence running on the device carries on without the app.
+    if (runner?.onDevice ?? false) {
+      runner = null;
+    } else {
+      runner?.stop('Stopped: disconnected');
+    }
+    seqCap = 0;
     final s = session, id = deviceId;
     session = null;
     deviceId = null;
@@ -718,7 +729,12 @@ class Dash extends ChangeNotifier implements SequenceHost, PadTarget {
     if (id != null) {
       // simulated devices keep running their physics off-line only while attached
       final sim = _sims[id];
-      if (sim != null) Timer(const Duration(milliseconds: 100), sim.detach);
+      // (unless it was connected again in the meantime)
+      if (sim != null) {
+        Timer(const Duration(milliseconds: 100), () {
+          if (deviceId != id && connecting != id) sim.detach();
+        });
+      }
     }
   }
 
@@ -734,6 +750,8 @@ class Dash extends ChangeNotifier implements SequenceHost, PadTarget {
       case 'state':
         final wasStop = liveTel.estop;
         liveTel.applyState(m);
+        final run = (m['ext'] as Map?)?['run'];
+        if (run is Map) _onRunState(run);
         if (liveTel.estop && !wasStop) estopAck = false;
         if (liveTel.mode == 'IDLE' || liveTel.mode == 'CUTOFF' || liveTel.estop) benchThrottle = 0;
         notifyListeners();
@@ -778,6 +796,8 @@ class Dash extends ChangeNotifier implements SequenceHost, PadTarget {
             ChannelDef('${c['id']}', List<String>.from(c['axes'] ?? const ['value']), '${c['unit'] ?? ''}', numOr(c['hz'], 10)),
         ];
         notifyListeners();
+      case 'seqack':
+        _onSeqAck(m);
       case 'log':
         logs.add(m);
         if (logs.length > 200) logs.removeAt(0);
@@ -1155,10 +1175,47 @@ class Dash extends ChangeNotifier implements SequenceHost, PadTarget {
     notifyListeners();
   }
 
+  /// Runs [q]: on the device when it can store sequences (it then keeps
+  /// going if the link drops), otherwise from the app, step by step.
   void runSequence(Sequence q) {
     if (!hasDevice || replay != null || liveTel.estop) return;
-    runner = SequenceRunner(q, this);
+    if (seqCap >= q.steps.length && q.steps.isNotEmpty && canControl) {
+      final r = DeviceSequenceRunner(q, this, (m) => _send(m.cast<String, dynamic>()));
+      runner = r;
+      _send(r.uploadMsg().cast<String, dynamic>());
+    } else {
+      runner = SequenceRunner(q, this);
+    }
     notifyListeners();
+  }
+
+  void _onSeqAck(Msg m) {
+    final r = runner;
+    if (r is! DeviceSequenceRunner || m['id'] != r.seq.id || !r.uploading) return;
+    if (m['ok'] == true) {
+      r.accepted();
+    } else {
+      // The device cannot hold this one (a step it does not support, too
+      // long): run it from the app instead.
+      runner = SequenceRunner(r.seq, this)..message = 'Running from the app: ${m['err'] ?? 'the device declined it'}';
+    }
+    notifyListeners();
+  }
+
+  /// `state.ext.run`: progress of a sequence running on the device. Picks a
+  /// run up again after a reconnect.
+  void _onRunState(Map run) {
+    var r = runner;
+    if (r is! DeviceSequenceRunner || r.seq.id != run['id']) {
+      final st = run['st'];
+      if (st != 'run' && st != 'pause') return;
+      final q = sequencesFor(deviceId ?? connecting ?? '').where((x) => x.id == run['id']).firstOrNull;
+      if (q == null) return;
+      r = DeviceSequenceRunner(q, this, (m) => _send(m.cast<String, dynamic>()))..uploading = false;
+      runner = r;
+    }
+    if (r.uploading) return;
+    r.apply(run);
   }
 
   void clearRunner() {

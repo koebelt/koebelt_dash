@@ -207,11 +207,19 @@ class _ProgramScreenState extends State<ProgramScreen> {
       children: [
         if (runningThis)
           KBadge(
-            run!.state == RunState.paused ? 'Paused · step ${run.index + 1} of ${q.steps.length}' : 'Running · step ${run.index + 1} of ${q.steps.length}',
+            [
+              if (run!.onDevice) 'On device',
+              if (run is DeviceSequenceRunner && run.uploading)
+                'Uploading'
+              else
+                '${run.state == RunState.paused ? 'Paused' : 'Running'} · step ${run.index + 1} of ${q.steps.length}',
+            ].join(' · '),
             tone: run.state == RunState.paused ? Tone.warning : Tone.accent,
           )
         else if (why != null)
-          MonoLabel(why),
+          MonoLabel(why)
+        else if (d.seqCap >= q.steps.length)
+          const MonoLabel('Runs on the device: it carries on if the link drops', maxLines: 2),
         if (runningThis) ...[
           if (run!.state == RunState.running)
             KButton(
@@ -219,10 +227,12 @@ class _ProgramScreenState extends State<ProgramScreen> {
               size: KSize.sm,
               variant: KButtonVariant.secondary,
               iconLeft: const KIcon('pause', size: 14),
-              onPressed: () {
-                run.pause();
-                d.emit();
-              },
+              onPressed: run.onDevice && d.linkLost
+                  ? null
+                  : () {
+                      run.pause();
+                      d.emit();
+                    },
             )
           else
             KButton(

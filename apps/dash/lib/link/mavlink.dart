@@ -143,6 +143,28 @@ const mavDefs = <int, MavDef>{
     MavField('vz', _i16),
     MavField('hdg', _u16),
   ]),
+  40: MavDef(40, 'MISSION_REQUEST', 230, [
+    MavField('seq', _u16),
+    MavField('target_system', _u8),
+    MavField('target_component', _u8),
+    MavField('mission_type', _u8),
+  ]),
+  42: MavDef(42, 'MISSION_CURRENT', 28, [MavField('seq', _u16), MavField('total', _u16), MavField('mission_state', _u8), MavField('mission_mode', _u8)]),
+  44: MavDef(44, 'MISSION_COUNT', 221, [
+    MavField('count', _u16),
+    MavField('target_system', _u8),
+    MavField('target_component', _u8),
+    MavField('mission_type', _u8),
+  ]),
+  45: MavDef(45, 'MISSION_CLEAR_ALL', 232, [MavField('target_system', _u8), MavField('target_component', _u8), MavField('mission_type', _u8)]),
+  46: MavDef(46, 'MISSION_ITEM_REACHED', 11, [MavField('seq', _u16)]),
+  47: MavDef(47, 'MISSION_ACK', 153, [MavField('target_system', _u8), MavField('target_component', _u8), MavField('type', _u8), MavField('mission_type', _u8)]),
+  51: MavDef(51, 'MISSION_REQUEST_INT', 196, [
+    MavField('seq', _u16),
+    MavField('target_system', _u8),
+    MavField('target_component', _u8),
+    MavField('mission_type', _u8),
+  ]),
   66: MavDef(66, 'REQUEST_DATA_STREAM', 148, [
     MavField('req_message_rate', _u16),
     MavField('target_system', _u8),
@@ -162,6 +184,23 @@ const mavDefs = <int, MavDef>{
     MavField('aux4', _i16),
     MavField('aux5', _i16),
     MavField('aux6', _i16),
+  ]),
+  73: MavDef(73, 'MISSION_ITEM_INT', 38, [
+    MavField('param1', _f),
+    MavField('param2', _f),
+    MavField('param3', _f),
+    MavField('param4', _f),
+    MavField('x', _i32),
+    MavField('y', _i32),
+    MavField('z', _f),
+    MavField('seq', _u16),
+    MavField('command', _u16),
+    MavField('target_system', _u8),
+    MavField('target_component', _u8),
+    MavField('frame', _u8),
+    MavField('current', _u8),
+    MavField('autocontinue', _u8),
+    MavField('mission_type', _u8),
   ]),
   74: MavDef(74, 'VFR_HUD', 20, [
     MavField('airspeed', _f),
@@ -383,11 +422,15 @@ class MavParser {
 abstract final class Mav {
   static const heartbeat = 0, sysStatus = 1, setMode = 11, paramRequestList = 21, paramValue = 22, paramSet = 23, gpsRawInt = 24, rawImu = 27;
   static const attitude = 30, localPositionNed = 32, globalPositionInt = 33, requestDataStream = 66, manualControl = 69, vfrHud = 74;
+  static const missionRequest = 40, missionCurrent = 42, missionCount = 44, missionClearAll = 45, missionItemReached = 46, missionAck = 47;
+  static const missionRequestInt = 51, missionItemInt = 73;
   static const commandInt = 75, commandLong = 76, commandAck = 77, radioStatus = 109, timesync = 111, homePosition = 242, statustext = 253;
 
   // MAV_CMD
   static const cmdNavTakeoff = 22, cmdDoSetMode = 176, cmdDoSetHome = 179, cmdDoReposition = 192, cmdArmDisarm = 400, cmdGetHomePosition = 410;
   static const cmdSetMessageInterval = 511;
+  static const cmdNavWaypoint = 16, cmdNavLoiterTime = 19, cmdNavReturnToLaunch = 20, cmdNavLand = 21, cmdMissionStart = 300;
+  static const frameGlobalRelativeAltInt = 6;
 
   /// MAV_AUTOPILOT
   static const ardupilot = 3, px4 = 12, invalid = 8;

@@ -180,8 +180,8 @@ channels:
   ),
   Guide(
     'sequences',
-    'Run sequences from the app',
-    'Handle waypoints, poses, take-off and home so the Program tab can drive your device.',
+    'Run sequences',
+    'Handle waypoints, poses, take-off and home so the Program tab can drive your device, with or without a link.',
     6,
     platforms: ['arduino', 'python', 'rust'],
     [
@@ -215,7 +215,25 @@ channels:
           ['Home pose', 'the joints stop moving', '60 s'],
           ['Throttle, ramp, wait', 'the time has passed', '–'],
         ],
-        note: 'A sequence stops on STOP, stick input or disconnect, and pauses when the link drops. Your failsafe keeps running underneath.',
+        note: 'The device runs these same checks itself when the sequence is stored on it (next step).',
+      ),
+      Step.rich(
+        'Stored on the device',
+        'Devices running the koebelt/link library 1.6 or later store the sequence: Run uploads it, and the device runs the steps through your own handlers above, checking its own telemetry. It keeps going when the link drops, and the app picks it up again when it reconnects. Nothing to add to your code.',
+        table: [
+          ['', 'Stored on the device', 'Run from the app'],
+          ['When', 'koebelt/link 1.6+, ArduPilot and PX4 (as a mission)', 'Older libraries, steps a mission cannot hold'],
+          ['Link drops', 'Carries on; the link-loss failsafe waits until it ends', 'Pauses; the failsafe takes over'],
+          ['Stops on', 'STOP, Stop sequence, stick input in the app', 'STOP, stick input, disconnect'],
+          ['Steps', 'Arduino: up to 32 (8 on AVR). Python: 64. Rust: 32', 'Any number'],
+        ],
+        bullets: [
+          'Check link.sequenceRunning() (Arduino), dev.sequence_running (Python) or link.sequence_running() (Rust) to know whether your code is driving or a stored sequence is.',
+          'Custom command steps reach onCommand with their value as "v".',
+          'ArduPilot and PX4: take off, fly to, wait, land and return home become a mission flown in AUTO; leading arm steps happen before it starts. A sequence with other steps runs from the app.',
+        ],
+        note: 'A stored sequence keeps flying without a link: test it in the simulator or tethered first, and keep a hand on STOP or your RC transmitter.',
+        warn: true,
       ),
     ],
   ),
