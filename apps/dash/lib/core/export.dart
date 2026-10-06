@@ -1,5 +1,5 @@
 // Recording export: CSV (one row per frame), JSON (full recording) and GPX
-// (GPS track). Pure functions, no I/O.
+// (GPS track). Pure functions, no I/O. Video: see video/video_rec.dart.
 import 'dart:convert';
 import 'dart:math' as math;
 
@@ -7,8 +7,9 @@ import 'dash.dart';
 
 enum ExportFormat {
   csv('CSV', 'csv', 'text/csv', 'One row per frame at the recorded rate, one column per channel. Opens in spreadsheets, pandas, MATLAB.'),
-  json('JSON', 'json', 'application/json', 'The full recording including the point cloud. Lossless.'),
-  gpx('GPX', 'gpx', 'application/gpx+xml', 'GPS track for maps and flight-log tools.');
+  json('JSON', 'json', 'application/json', 'The full recording including the point cloud, without the video. Lossless.'),
+  gpx('GPX', 'gpx', 'application/gpx+xml', 'GPS track for maps and flight-log tools.'),
+  video('Video', 'avi', 'video/x-msvideo', 'The camera recorded with the session, as MJPEG AVI. Plays in VLC and most video editors.');
 
   const ExportFormat(this.label, this.ext, this.mime, this.desc);
   final String label, ext, mime, desc;
@@ -16,7 +17,7 @@ enum ExportFormat {
 
 bool hasGps(Recording r) => r.frames.any((f) => (f['seen'] as List?)?.contains('gps') ?? false);
 
-List<ExportFormat> formatsFor(Recording r) => [ExportFormat.csv, ExportFormat.json, if (hasGps(r)) ExportFormat.gpx];
+List<ExportFormat> formatsFor(Recording r) => [ExportFormat.csv, ExportFormat.json, if (hasGps(r)) ExportFormat.gpx, if (r.hasVideo) ExportFormat.video];
 
 String exportFileName(Recording r, ExportFormat f) {
   final safe = '${r.deviceName} ${r.name}'.replaceAll(RegExp(r'[^A-Za-z0-9._-]+'), '_').replaceAll(RegExp(r'_+'), '_');
@@ -29,6 +30,7 @@ String exportRecording(Recording r, ExportFormat f) => switch (f) {
     '  ',
   ).convert({'format': 'koebelt-dash-recording', 'version': 1, 'rateHz': (r.rateHz * 10).round() / 10, ...r.toJson()}),
   ExportFormat.gpx => toGpx(r),
+  ExportFormat.video => throw UnsupportedError('Video is exported as bytes: see mjpegAvi'),
 };
 
 // ------------------------------------------------------------------ CSV

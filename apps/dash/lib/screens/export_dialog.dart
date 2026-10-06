@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
@@ -8,6 +9,7 @@ import '../core/save_io.dart';
 import '../theme/tokens.dart';
 import '../ui/components.dart';
 import '../ui/mark.dart';
+import '../video/video_rec.dart';
 
 void showExportDialog(BuildContext context, Recording r) {
   showKDialog(context, builder: (ctx) => _ExportDialog(r: r));
@@ -34,14 +36,23 @@ class _ExportDialogState extends State<_ExportDialog> {
       done = null;
     });
     try {
-      final text = await exportRecordingAsync(
-        widget.r,
-        format,
-        onProgress: (p) {
-          if (mounted) setState(() => progress = p);
-        },
-      );
-      final where = await saveBytes(exportFileName(widget.r, format), utf8.encode(text), format.mime);
+      void onProgress(double p) {
+        if (mounted) setState(() => progress = p);
+      }
+
+      final Uint8List bytes;
+      if (format == ExportFormat.video) {
+        final t = await VideoTrack.open(widget.r.videoPath!);
+        if (t == null) throw StateError('The video file is missing');
+        try {
+          bytes = await mjpegAvi(t, onProgress: onProgress);
+        } finally {
+          await t.close();
+        }
+      } else {
+        bytes = utf8.encode(await exportRecordingAsync(widget.r, format, onProgress: onProgress));
+      }
+      final where = await saveBytes(exportFileName(widget.r, format), bytes, format.mime);
       setState(() => done = where);
     } catch (e) {
       setState(() => error = '$e');

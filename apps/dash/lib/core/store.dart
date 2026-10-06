@@ -9,6 +9,10 @@ import 'io_files.dart' as files;
 /// Small persistence layer: preferences for settings/devices/layouts,
 /// JSON files for recordings (preferences if the files directory is unavailable).
 class Store {
+  Store({this.recordingsRoot});
+
+  /// Folder for recordings instead of the app's support directory (tests).
+  final String? recordingsRoot;
   SharedPreferences? _p;
 
   Future<void> init() async {
@@ -37,7 +41,12 @@ class Store {
     }
   }
 
+  /// Where recordings (and their video) live; null when the platform has
+  /// no files directory.
+  Future<String?> recordingsDir() => _dir();
+
   Future<String?> _dir() async {
+    if (recordingsRoot != null) return recordingsRoot;
     try {
       return '${(await getApplicationSupportDirectory()).path}/recordings';
     } catch (_) {
@@ -72,5 +81,6 @@ class Store {
       return;
     }
     await files.delete(d, '$id.json');
+    await files.delete(d, '$id.kdv'); // its video, if any
   }
 }

@@ -70,9 +70,15 @@ class VideoFeed extends ChangeNotifier {
     status = 'Idle';
   }
 
+  /// Called with every JPEG as it arrives, before decoding (recording).
+  final Set<void Function(Uint8List jpeg)> taps = {};
+
   /// Decodes at most one frame at a time and drops the backlog, so a slow
   /// device never builds up latency.
   void _frame(Uint8List bytes) {
+    for (final t in taps) {
+      t(bytes);
+    }
     if (_decoding) {
       _pending = bytes;
       return;

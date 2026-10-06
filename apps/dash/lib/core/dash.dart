@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:isolate';
 import 'dart:math' as math;
 
@@ -21,6 +22,7 @@ import '../link/udp_io.dart';
 import '../sim/environment.dart';
 import '../sim/sim_device.dart';
 import '../video/video_hub.dart';
+import '../video/video_rec.dart';
 import 'alerts.dart';
 import 'gamepad.dart';
 import 'log_import.dart';
@@ -45,6 +47,10 @@ class Settings {
   /// Credit line the custom tile provider requires.
   String mapAttribution = '';
 
+  /// Keep the device's camera with recordings, at most this many frames a second.
+  bool recordVideo = true;
+  int videoFps = 10;
+
   Map<String, dynamic> toJson() => {
     'control': control,
     'invertY': invertY,
@@ -54,6 +60,8 @@ class Settings {
     'mapTiles': mapTiles,
     'mapUrl': mapUrl,
     'mapAttribution': mapAttribution,
+    'recordVideo': recordVideo,
+    'videoFps': videoFps,
   };
   void load(Map? j) {
     if (j == null) return;
@@ -65,6 +73,8 @@ class Settings {
     mapTiles = j['mapTiles'] ?? mapTiles;
     mapUrl = j['mapUrl'] ?? mapUrl;
     mapAttribution = j['mapAttribution'] ?? mapAttribution;
+    recordVideo = j['recordVideo'] ?? recordVideo;
+    videoFps = j['videoFps'] ?? videoFps;
   }
 }
 
@@ -81,6 +91,7 @@ class Recording {
     this.fresh = false,
     this.demo = false,
     this.startedAt,
+    this.video,
   });
   final String id, name, deviceId, deviceName, date;
 
@@ -88,6 +99,14 @@ class Recording {
   final DateTime? startedAt;
   final DeviceKind kind;
   final List<Map<String, dynamic>> frames;
+
+  /// The camera recorded with the session: `file` (next to the recording),
+  /// `frames`, `label`. Null without video.
+  Map<String, dynamic>? video;
+
+  /// Where the video file is on this device (set when loaded or recorded).
+  String? videoPath;
+  bool get hasVideo => video != null && videoPath != null;
   final List<List<double>> cloud;
   bool fresh;
   final bool demo;
@@ -127,6 +146,7 @@ class Recording {
     'frames': frames,
     'cloud': encodePoints(cloud),
     if (startedAt != null) 'startedAt': startedAt!.toUtc().toIso8601String(),
+    'video': ?video,
   };
   factory Recording.fromJson(Map<String, dynamic> j) => Recording(
     id: j['id'],
@@ -138,6 +158,7 @@ class Recording {
     frames: (j['frames'] as List).cast<Map<String, dynamic>>(),
     cloud: j['cloud'] is String ? decodePoints(j['cloud']) : const [],
     startedAt: j['startedAt'] is String ? DateTime.tryParse(j['startedAt']) : null,
+    video: (j['video'] as Map?)?.cast<String, dynamic>(),
   );
 }
 
@@ -380,9 +401,12 @@ class Dash extends ChangeNotifier implements SequenceHost, PadTarget {
         if (!devices.any((x) => x.id == d.id)) devices.add(d);
       }
     }
+    final dir = await store.recordingsDir();
     for (final r in await store.loadRecordings()) {
       try {
-        sessions.add(Recording.fromJson(r));
+        final rec = Recording.fromJson(r);
+        if (rec.video != null && dir != null) rec.videoPath = '$dir/${rec.video!['file']}';
+        sessions.add(rec);
       } catch (_) {}
     }
     sessions.sort((a, b) => b.id.compareTo(a.id));
@@ -973,12 +997,57 @@ class Dash extends ChangeNotifier implements SequenceHost, PadTarget {
     recording = true;
     recStart = t;
     _recFrames = [];
+    _recId = 's${DateTime.now().millisecondsSinceEpoch}';
     _recClock
       ..reset()
       ..start();
     _recLast = -1;
     _recFrame();
+    if (settings.recordVideo && video.isNotEmpty) unawaited(_startVideo(_recId!, video.first));
     notifyListeners();
+  }
+
+  String? _recId;
+  ({VideoRecorder rec, VideoFeed feed, VideoStream stream, void Function(Uint8List) tap})? _vid;
+
+  /// Keeps the camera open while recording, even when no screen shows it,
+  /// and writes its frames next to the recording.
+  Future<void> _startVideo(String id, VideoStream s) async {
+    final dir = await store.recordingsDir();
+    if (dir == null || _recId != id) return;
+    await Directory(dir).create(recursive: true);
+    final rec = VideoRecorder('$dir/$id.kdv', clock: () => _recClock.elapsedMicroseconds / 1e6, maxFps: settings.videoFps.toDouble());
+    try {
+      await rec.open();
+    } catch (e) {
+      debugPrint('video recording unavailable: $e');
+      return;
+    }
+    if (_recId != id || !recording) {
+      await rec.close();
+      return;
+    }
+    final f = videoFeed(s)..acquire();
+    void tap(Uint8List b) => rec.add(b);
+    f.taps.add(tap);
+    _vid = (rec: rec, feed: f, stream: s, tap: tap);
+  }
+
+  /// Stops the camera recording; the video description, or null without one.
+  Future<Map<String, dynamic>?> _stopVideo(String id, {required bool keep}) async {
+    final v = _vid;
+    _vid = null;
+    if (v == null) return null;
+    v.feed.taps.remove(v.tap);
+    v.feed.release();
+    final rec = v.rec, n = await rec.close();
+    if (!keep || n == 0) {
+      try {
+        await File(rec.path).delete();
+      } catch (_) {}
+      return null;
+    }
+    return {'file': '$id.kdv', 'frames': n, 'label': v.stream.label.isEmpty ? 'Camera' : v.stream.label};
   }
 
   /// One frame per telemetry message, up to the telemetry rate set in
@@ -996,13 +1065,17 @@ class Dash extends ChangeNotifier implements SequenceHost, PadTarget {
   void stopRec() {
     if (!recording) return;
     final fr = _recFrames!;
+    final id = _recId ?? 's${DateTime.now().millisecondsSinceEpoch}';
     recording = false;
     _recFrames = null;
+    _recId = null;
     _recClock.stop();
-    if (fr.length > 5) {
+    final keep = fr.length > 5;
+    final videoDone = _stopVideo(id, keep: keep);
+    if (keep) {
       final d = device!;
       final r = Recording(
-        id: 's${DateTime.now().millisecondsSinceEpoch}',
+        id: id,
         name: 'Session ${sessions.length + 1}',
         deviceId: d.id,
         kind: d.kind,
@@ -1015,7 +1088,18 @@ class Dash extends ChangeNotifier implements SequenceHost, PadTarget {
       );
       sessions.insert(0, r);
       lastSaved = r;
-      store.saveRecording(r.toJson());
+      // Saved once the video file is complete.
+      unawaited(
+        videoDone.then((v) async {
+          if (v != null) {
+            r.video = v;
+            final dir = await store.recordingsDir();
+            if (dir != null) r.videoPath = '$dir/${v['file']}';
+            notifyListeners();
+          }
+          await store.saveRecording(r.toJson());
+        }),
+      );
     }
     notifyListeners();
   }
@@ -1058,8 +1142,31 @@ class Dash extends ChangeNotifier implements SequenceHost, PadTarget {
     notifyListeners();
   }
 
+  /// What the Replay screen shows: '3d' or 'video'.
+  String replayView = '3d';
+
+  /// The open replay's video, opened on first use.
+  Future<VideoTrack?>? _track;
+  String? _trackId;
+  Future<VideoTrack?> replayVideo(Recording r) {
+    if (_trackId != r.id || _track == null) {
+      _closeTrack();
+      _trackId = r.id;
+      _track = r.hasVideo ? VideoTrack.open(r.videoPath!) : Future.value(null);
+    }
+    return _track!;
+  }
+
+  void _closeTrack() {
+    final t = _track;
+    _track = null;
+    _trackId = null;
+    t?.then((v) => v?.close());
+  }
+
   void closeReplay() {
     if (replay == null) return;
+    _closeTrack();
     replay = null;
     hist.clear();
     notifyListeners();

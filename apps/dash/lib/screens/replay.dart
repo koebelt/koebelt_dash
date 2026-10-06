@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../core/dash.dart';
 import '../core/model.dart';
 import '../ui/icons.dart';
+import '../video/recorded_video.dart';
 import 'export_dialog.dart';
 import 'import_dialog.dart';
 import '../theme/tokens.dart';
@@ -84,6 +85,14 @@ class ReplayScreen extends StatelessWidget {
                                     child: Padding(
                                       padding: EdgeInsets.only(left: 8),
                                       child: KTag('New', tone: TagTone.accent, height: 20),
+                                    ),
+                                  ),
+                                if (s.hasVideo)
+                                  const WidgetSpan(
+                                    alignment: PlaceholderAlignment.middle,
+                                    child: Padding(
+                                      padding: EdgeInsets.only(left: 8),
+                                      child: KTag('Video', tone: TagTone.info, height: 20),
                                     ),
                                   ),
                                 if (s.demo)
@@ -170,7 +179,7 @@ class ReplayScreen extends StatelessWidget {
               color: K.surfaceDeep,
               child: Stack(
                 children: [
-                  Positioned.fill(child: Scene3D(d, view: 'orbit')),
+                  Positioned.fill(child: R.session.hasVideo && d.replayView == 'video' ? RecordedVideo(d) : Scene3D(d, view: 'orbit')),
                   Positioned(
                     top: 12,
                     left: 12,
@@ -178,6 +187,21 @@ class ReplayScreen extends StatelessWidget {
                     child: Row(
                       children: [
                         Expanded(child: KBadge('Replay · ${R.session.name}', tone: Tone.info)),
+                        if (R.session.hasVideo) ...[
+                          Container(
+                            color: K.inkA60,
+                            child: Seg(
+                              items: const ['3D', 'VIDEO'],
+                              value: d.replayView == 'video' ? 'VIDEO' : '3D',
+                              small: true,
+                              onChanged: (v) {
+                                d.replayView = v == 'VIDEO' ? 'video' : '3d';
+                                d.emit();
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                        ],
                         Container(
                           color: K.inkA60,
                           child: KButton(

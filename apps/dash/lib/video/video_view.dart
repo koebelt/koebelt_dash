@@ -5,6 +5,7 @@ import '../core/model.dart';
 import '../theme/tokens.dart';
 import '../ui/components.dart';
 import '../ui/mark.dart';
+import 'recorded_video.dart';
 import 'video_hub.dart';
 
 /// Live picture from one of the device's cameras, with a small status line.
@@ -64,9 +65,10 @@ class _VideoViewState extends State<VideoView> {
   Widget build(BuildContext context) {
     final d = widget.d, f = _feed, s = _stream;
     final img = f?.image;
+    if (d.replay?.session.hasVideo ?? false) return RecordedVideo(d, fit: widget.fit, compact: widget.compact);
     String? msg;
     if (d.replay != null) {
-      msg = 'Video is not recorded. Replays show telemetry only.';
+      msg = 'This recording has no video.';
     } else if (s == null) {
       msg = d.hasDevice ? 'No camera. Devices declare cameras with video() in the library.' : 'Not connected';
     } else if (f!.url == null) {

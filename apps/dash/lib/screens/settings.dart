@@ -131,6 +131,26 @@ class SettingsScreen extends StatelessWidget {
               ),
             ]),
             SizedBox(height: phone ? 20 : 32),
+            section('Recording', [
+              SetRow(
+                phone: phone,
+                title: 'Record video',
+                desc: 'Keep the device\'s camera with each recording. The camera stays connected while recording, even when no screen shows it.',
+                child: KSwitch(checked: st.recordVideo, onChanged: (v) => d.updateSettings((s) => s.recordVideo = v)),
+              ),
+              if (st.recordVideo)
+                SetRow(
+                  phone: phone,
+                  title: 'Video frame rate',
+                  desc: 'Most frames a second kept. An ESP32-CAM at 640×480 takes about 10 MB a minute at 10 fps.',
+                  child: Seg(
+                    items: const ['5', '10', '15', '30'],
+                    value: '${st.videoFps}',
+                    onChanged: (v) => d.updateSettings((s) => s.videoFps = int.parse(v)),
+                  ),
+                ),
+            ]),
+            SizedBox(height: phone ? 20 : 32),
             section('Alerts', [
               SetRow(
                 phone: phone,

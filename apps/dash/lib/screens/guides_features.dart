@@ -139,7 +139,7 @@ if (startCamera()) {                        // esp_camera_init + httpd on port 8
           'Lower the resolution or the JPEG quality before the frame rate: 320×240 at 15 fps is plenty to drive by.',
           'Put the device on the phone\'s hotspot instead of a busy router.',
           'Serve the newest frame, never a queue. The libraries\' MJPEG servers and the ESP32 example already do.',
-          'Video is not recorded with sessions: replays show telemetry only.',
+          'Recordings keep the camera too (Settings > Recording): replays show it under VIDEO and in camera tiles, and export writes it as an MJPEG AVI.',
         ],
       ),
     ],
@@ -265,11 +265,15 @@ if (startCamera()) {                        // esp_camera_init + httpd on port 8
       Step.rich(
         'Recording',
         'Record (on the Replay screen, the drive screens or a controller button) keeps every telemetry message at the rate set in Settings > Telemetry rate, up to 60 Hz, each with its own time. A device that goes quiet still gets two frames a second, so mode changes and gaps stay on the timeline.',
-        note: 'Video is not recorded with sessions: replays show telemetry only.',
+        bullets: [
+          'Only the channels the device sends are kept, rounded to what sensors resolve, and files are compressed: about 1 MB for 10 minutes of a drone at 30 Hz.',
+          'The camera is recorded with the session when Settings > Recording > Record video is on, at most at the frame rate set there. The camera stays connected while recording, even when no screen shows it. Replays show it under VIDEO, and in the camera tiles and views.',
+          'Export: CSV, JSON and GPX for the telemetry, and Video as an MJPEG AVI (VLC, ffmpeg and most editors). The JSON export leaves the video out.',
+        ],
       ),
       Step.rich(
         'Import',
-        'Import on the Replay screen opens a file and plays it like any session: the 3D views, the map, the charts and export all work on it.',
+        'Import on the Replay screen opens a file and plays it like any session: the 3D views, the map, the charts and export all work on it. The same menu loads, or removes, three sample recordings.',
         table: [
           ['File', 'From', 'What comes in'],
           ['.json', 'Export from koebelt/dash', 'Everything, as recorded'],
