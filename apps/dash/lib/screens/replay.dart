@@ -31,7 +31,7 @@ class ReplayScreen extends StatelessWidget {
               size: KSize.sm,
               variant: KButtonVariant.ghost,
               iconLeft: const KIcon('upload', size: 14),
-              onPressed: d.recording ? null : () => importRecording(context, d),
+              onPressed: () => showImportDialog(context, d),
             ),
             const SizedBox(width: 8),
             d.recording
@@ -53,6 +53,14 @@ class ReplayScreen extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         hairline,
+        if (d.sessions.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 20),
+            child: Text(
+              'No recordings yet. Record a connected device, or use Import for a file or the sample recordings.',
+              style: KText.bodySm.copyWith(color: K.textMuted),
+            ),
+          ),
         for (final s in d.sessions)
           Pressable(
             onTap: () => d.openReplay(s.id),
@@ -131,16 +139,6 @@ class ReplayScreen extends StatelessWidget {
               );
             },
           ),
-        const SizedBox(height: 12),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: KButton(
-            d.hasSamples ? 'Remove sample recordings' : 'Load sample recordings',
-            size: KSize.sm,
-            variant: KButtonVariant.ghost,
-            onPressed: d.hasSamples ? d.removeSamples : d.loadSamples,
-          ),
-        ),
       ],
     );
   }
