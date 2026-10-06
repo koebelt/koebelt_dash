@@ -9,11 +9,18 @@ repository = "https://github.com/koebelt/koebelt_dash"
 keywords = ["robotics", "drone", "telemetry", "embedded", "no-std"]
 categories = ["embedded", "no-std", "network-programming"]
 
-# No dependencies: the protocol core is no_std and allocation-free.
+# The protocol core is no_std, allocation-free and has no dependencies.
+# Only the opt-in `ble` feature pulls any in.
 [dependencies]
+ble-peripheral-rust = { version = "0.2", optional = true }
+tokio = { version = "1", optional = true, default-features = false, features = ["rt-multi-thread", "macros", "sync", "time"] }
+uuid = { version = "1", optional = true }
 
 [features]
 default = ["std"]
 std = []
 # no_std build for embassy / embedded-hal targets: implement `Transport` for your stack.
 embassy = []
+# Bluetooth LE peripheral on a computer (Linux/BlueZ, macOS, Windows).
+# Linux needs the D-Bus headers to build: apt install libdbus-1-dev pkg-config
+ble = ["std", "dep:ble-peripheral-rust", "dep:tokio", "dep:uuid"]

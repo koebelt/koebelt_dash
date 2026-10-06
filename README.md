@@ -100,7 +100,7 @@ platform can do:
 |---|---|---|---|---|
 | Wi-Fi (UDP) | ESP32, ESP8266, Pico W, UNO R4 WiFi, Nano 33 IoT, MKR WiFi 1010 / 1000, Nano RP2040 Connect, Portenta, GIGA | yes | yes, `std` | yes |
 | Any networking library (`beginUdp(udp)`): W5500/ENC28J60 Ethernet, QNEthernet, WiFiEspAT, WiFi101 | yes | – | any `Transport` | – |
-| BLE peripheral | ESP32 (Bluedroid or NimBLE), nRF52 (Bluefruit), Nano 33 BLE / IoT, UNO R4 WiFi (ArduinoBLE) | yes (`bless`) | `no_std`: your stack implements `Transport` | yes |
+| BLE peripheral | ESP32 (Bluedroid or NimBLE), nRF52 (Bluefruit), Nano 33 BLE / IoT, UNO R4 WiFi (ArduinoBLE) | yes (`bless`) | `.ble()` with feature `ble` (Linux, macOS, Windows); `no_std`: your stack implements `Transport` | yes |
 | Bluetooth serial modules (HM-10 family, HC-05/06, RN4870, Bluno) | `beginModule()` | `module=` | `.module()` | – |
 | USB serial | any `Stream` | yes (`pyserial`) | yes (`stty`, no deps) | yes |
 | Radio: SiK, XBee, HC-12, LoRa UART | `beginRadio()` | `radio=` | `.radio()` | `radio:` |
@@ -130,11 +130,11 @@ cd libs/python && python3 -m venv .venv && .venv/bin/pip install -e .
 
 | Component | Command | Covers |
 |-----------|---------|--------|
-| App | `cd apps/dash && flutter test` | MAVLink against a pymavlink vehicle over UDP (needs `pip install pymavlink` in the venv), MSP against a simulated Betaflight board, Tello against a fake drone, board recognition, protocol vectors, codec, full sessions against the simulator (stop, failsafe, params), Python interop over UDP, MJPEG parsing and the simulated camera end to end, radio profiles and heartbeat rates, controller mapping and driving a simulated drone |
+| App | `cd apps/dash && flutter test` | MAVLink against a pymavlink vehicle over UDP (needs `pip install pymavlink` in the venv), missions flown by that vehicle, sequences stored on the simulator through a lost link, MSP against a simulated Betaflight board, Tello against a fake drone, board recognition, protocol vectors, codec, full sessions against the simulator (stop, failsafe, params), Python interop over UDP, MJPEG parsing and the simulated camera end to end, radio profiles and heartbeat rates, controller mapping and driving a simulated drone |
 | App screenshots | `CAPTURE_DIR=/tmp/shots flutter test test/capture_test.dart` (and `capture_features_test.dart`) | renders the screens at phone, tablet and desktop sizes |
-| Python | `cd libs/python && .venv/bin/python -m pytest` | vectors, handshake, control, stop, failsafe, params, pairing, point cloud over real UDP; radio rates and telemetry-only rules; MJPEG server |
-| Arduino core | `make -C libs/arduino/KoebeltLink/test` | same behaviours on the host with a fake transport, radio profiles, video declaration, plus a compile check of every guide snippet |
-| Rust | `cd libs/rust && cargo test` | JSON codec, UDP device end to end, radio links over a stream, fallback on failsafe, saved parameters, MJPEG server, `no_std` build (`--no-default-features --features embassy`) |
+| Python | `cd libs/python && .venv/bin/python -m pytest` | vectors, handshake, control, stop, failsafe, params, pairing, point cloud over real UDP; radio rates and telemetry-only rules; MJPEG server; the shared stored-sequence scenario |
+| Arduino core | `make -C libs/arduino/KoebeltLink/test` | same behaviours on the host with a fake transport, radio profiles, video declaration, the shared stored-sequence scenario, plus a compile check of every guide snippet |
+| Rust | `cd libs/rust && cargo test` | JSON codec, UDP device end to end, radio links over a stream, fallback on failsafe, saved parameters, MJPEG server, the shared stored-sequence scenario, BLE framing (`--features ble`), `no_std` build (`--no-default-features --features embassy`) |
 | ROS 2 | `pytest libs/ros2/koebelt_link_ros/test` | conversion helpers (the node itself needs a ROS install) |
 
 ## Design

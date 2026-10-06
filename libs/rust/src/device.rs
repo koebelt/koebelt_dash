@@ -103,6 +103,8 @@ enum Spec {
     Serial(String, u32),
     Radio(String, Radio),
     Module(String, u32),
+    #[cfg(feature = "ble")]
+    Ble,
     Custom(Box<dyn Transport + Send>),
 }
 
@@ -136,6 +138,13 @@ impl DeviceBuilder {
     /// A Bluetooth serial module (HM-10, HC-05…) on a UART: `.module("/dev/serial0", 9600)`.
     pub fn module(mut self, path: &str, baud: u32) -> Self {
         self.links.push(Spec::Module(path.into(), baud));
+        self
+    }
+    /// Bluetooth LE: advertises the koebelt/link service under the device's
+    /// name, so the app finds it under Pair device > Nearby. Feature `ble`.
+    #[cfg(feature = "ble")]
+    pub fn ble(mut self) -> Self {
+        self.links.push(Spec::Ble);
         self
     }
     /// Any other transport (a TCP serial bridge, a custom radio…).
@@ -175,6 +184,8 @@ impl DeviceBuilder {
                 Spec::Serial(p, b) => Box::new(SerialTransport::open(&p, b)?),
                 Spec::Radio(p, r) => Box::new(SerialTransport::radio(&p, r)?),
                 Spec::Module(p, b) => Box::new(SerialTransport::module(&p, b)?),
+                #[cfg(feature = "ble")]
+                Spec::Ble => Box::new(crate::BleTransport::advertise(self.name)?),
                 Spec::Custom(t) => t,
             });
         }

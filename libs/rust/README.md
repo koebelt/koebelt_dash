@@ -34,6 +34,22 @@ let mut dev = Device::new("Mule", Kind::Rover)
 // Bluetooth serial module, or .transport(any_transport)
 ```
 
+### Bluetooth LE
+
+```toml
+koebelt-link = { version = "1.6", features = ["ble"] }
+```
+
+```rust
+let mut dev = Device::new("Cell arm", Kind::Arm).ble().start()?;
+```
+
+Advertises the koebelt/link service under the device's name; the app finds
+it under Pair device > Nearby. Linux (BlueZ, e.g. Raspberry Pi, Jetson),
+macOS and Windows, through `ble-peripheral-rust`. On Linux, building needs
+`sudo apt install libdbus-1-dev pkg-config`. The feature is opt-in: without it
+the crate has no dependencies.
+
 Serial ports are configured with `stty` (Linux, macOS) or `mode` (Windows).
 Radio profiles (`Radio::Sik.profile()`) set the baud rate and the telemetry
 and control rates; on a telemetry-only radio (LoRa) only STOP gets through.

@@ -78,7 +78,7 @@ edition = "2024"
 publish = false
 
 [dependencies]
-koebelt-link = { path = "$root/libs/rust" }
+koebelt-link = { path = "$root/libs/rust", features = ["ble"] }
 ''');
     Directory('${crate.path}/src').createSync();
     File('${crate.path}/src/lib.rs').writeAsStringSync('');

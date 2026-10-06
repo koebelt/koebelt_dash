@@ -36,6 +36,10 @@ pub use device::{Device, DeviceBuilder, UdpTransport};
 mod stream;
 #[cfg(feature = "std")]
 pub use stream::{SerialTransport, StreamTransport};
+#[cfg(feature = "ble")]
+mod ble;
+#[cfg(feature = "ble")]
+pub use ble::{BLE_RX, BLE_SERVICE, BLE_TX, BleTransport};
 #[cfg(feature = "std")]
 mod video;
 #[cfg(feature = "std")]

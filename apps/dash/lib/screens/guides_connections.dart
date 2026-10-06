@@ -267,7 +267,7 @@ fn main() -> std::io::Result<()> {
     'The koebelt/link service, packet sizes, permissions and range.',
     6,
     section: 'connections',
-    platforms: ['arduino', 'python'],
+    platforms: ['arduino', 'python', 'rust'],
     [
       Step.rich(
         'Advertise the service',
@@ -305,6 +305,20 @@ def loop():
 
 
 dev.run(hz=30, loop=loop)''',
+          ],
+          'rust': [
+            'rust',
+            r'''// Cargo.toml: koebelt-link = { version = "1.6", features = ["ble"] }
+// Linux (BlueZ): sudo apt install libdbus-1-dev pkg-config. macOS and Windows as they are.
+use koebelt_link::{Device, Kind};
+
+fn main() -> std::io::Result<()> {
+    let mut dev = Device::new("Cell arm", Kind::Arm).ble().start()?;
+    loop {
+        dev.link.joints(&[0.0, -0.5, 1.1, 0.0, 0.6, 0.0]);
+        dev.tick_blocking(30.0);
+    }
+}''',
           ],
         },
       ),
