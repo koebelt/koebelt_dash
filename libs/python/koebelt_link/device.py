@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple, Union
 
 from . import __version__
+from . import sequence as seqmod
 from .protocol import COMPACT_FIELDS, KINDS, VERSION, Msg, encode_points
 from .transports import RadioTransport, SerialTransport, Transport, UdpTransport
 
@@ -158,6 +159,11 @@ class Device:
         self.params: Dict[str, Param] = {}
         self.channels: Dict[str, Channel] = {}
         self._tlm: Dict[str, List[float]] = {}
+        #: Latest value of every channel sent, for stored sequences.
+        self.latest: Dict[str, List[float]] = {}
+        self._seq_stored: Optional[Tuple[str, list]] = None
+        self._seq: Optional[seqmod.Runner] = None
+        self._seq_report: Optional[dict] = None
         self._cloud: Optional[List[Sequence[float]]] = None
         self._tracks: Optional[list] = None
 
@@ -401,10 +407,11 @@ class Device:
         for v in values:
             flat.extend(float(x) for x in v) if isinstance(v, (list, tuple, Vec3)) else flat.append(float(v))
         self._tlm[ch] = flat
+        self.latest[ch] = flat
 
     # Shortcuts, same names as the Arduino and Rust libraries
     def _set(self, k: str, *v: Any) -> None:
-        self._tlm[k] = [float(x) for x in v]
+        self._tlm[k] = self.latest[k] = [float(x) for x in v]
 
     def imu(self, ax, ay, az, gx, gy, gz) -> None:
         self._set("imu", ax, ay, az, gx, gy, gz)
@@ -479,6 +486,7 @@ class Device:
         for t in self.transports:
             for m in t.poll():
                 self._handle(t, m, now)
+        self._run_seq(now)
         self._check_failsafe(now)
         self._outgoing(now)
         if hz:
@@ -507,7 +515,7 @@ class Device:
 
     def _hello(self) -> Msg:
         m = {"t": "hello", "v": VERSION, "id": self.id, "name": self.name, "kind": self.kind, "model": self.model, "fw": self.fw,
-             "lib": f"python/{__version__}", "sensors": self.sensors, "ok": True}
+             "lib": f"python/{__version__}", "sensors": self.sensors, "seq": seqmod.MAX_STEPS, "ok": True}
         if self.video_streams:
             m["video"] = self.video_streams
         return m
@@ -526,7 +534,42 @@ class Device:
         return {"t": "chan", "ch": [{"id": c.id, "axes": c.axes, "unit": c.unit, "hz": c.hz} for c in self.channels.values()]}
 
     def _state_msg(self) -> Msg:
-        return {"t": "state", "mode": self.mode, "armed": self.armed, "estop": self.estop, "fs": self.failsafe_active, "ext": self.ext}
+        ext = dict(self.ext)
+        if self._seq is not None:
+            ext["run"] = self._seq.report()
+        return {"t": "state", "mode": self.mode, "armed": self.armed, "estop": self.estop, "fs": self.failsafe_active, "ext": ext}
+
+    # ------------------------------------------------------------ stored sequences
+    # Steps run through the same handlers as the app's messages.
+    def _run_cmd(self, c: str, a: Dict[str, Any]) -> None:
+        if not self.estop:
+            self._emit("cmd", c, a)
+
+    def _run_mode(self, m: str) -> None:
+        if not self.estop:
+            self._set_mode(m)
+
+    def _run_arm(self, v: bool) -> None:
+        if not self.estop and v != self.armed:
+            self.armed = v
+            self._state_dirty = True
+            self._emit("arm", v)
+
+    def _run_seq(self, now: float) -> None:
+        r = self._seq
+        if r is None:
+            return
+        r.tick(max(0.0, now - getattr(self, "_seq_t", now)))
+        self._seq_t = now
+        rep = (r.state, r.index)
+        if rep != self._seq_report:
+            self._seq_report = rep
+            self._state_dirty = True
+
+    @property
+    def sequence_running(self) -> bool:
+        """True while a stored sequence runs (or is paused)."""
+        return self._seq is not None and self._seq.active
 
     def _set_mode(self, m: str) -> None:
         if m != self.mode:
@@ -579,7 +622,30 @@ class Device:
                 self._emit("control", self.control)
         elif typ == "ping":
             t.send({"t": "pong", "ts": m.get("ts")})
+        elif typ == "seq":
+            err = seqmod.validate(self.kind, m.get("steps"))
+            if err is None:
+                self._seq_stored = (str(m.get("id")), m["steps"])
+            t.send({"t": "seqack", "id": m.get("id"), "ok": err is None, **({"err": err} if err else {})})
+        elif typ == "seqrun":
+            if self._seq_stored and self._seq_stored[0] == m.get("id") and not self.estop:
+                self._seq = seqmod.Runner(self, *self._seq_stored)
+                self._seq_t = now
+                self._seq_report = None
+        elif typ == "seqctl":
+            r = self._seq
+            if r is not None:
+                c = m.get("c")
+                if c == "pause":
+                    r.pause()
+                elif c == "resume":
+                    r.resume()
+                elif c == "stop":
+                    r.stop("Stopped from the app")
+                self._state_dirty = True
         elif typ == "stop":
+            if self._seq is not None:
+                self._seq.stop("Stopped: emergency stop")
             if not self.estop:
                 self.estop = True
                 self.armed = False
@@ -635,13 +701,15 @@ class Device:
         elif typ == "bye":
             self._session = False
             self.control = Control()
-            if self.kind == "drone" and self.armed:
+            # A stored sequence carries on; otherwise a flying drone holds.
+            if self.kind == "drone" and self.armed and not self.sequence_running:
                 self._set_mode("HOLD")
             if isinstance(t, UdpTransport):
                 t.drop_peer()
 
     def _check_failsafe(self, now: float) -> None:
-        if not self._session or self.failsafe_active or self.kind == "rocket":
+        # A stored sequence is meant to survive a lost link.
+        if not self._session or self.failsafe_active or self.kind == "rocket" or self.sequence_running:
             return
         if now - self._last_ctl <= self._fs_timeout:
             return

@@ -195,6 +195,40 @@ impl<'a> Iterator for Fields<'a> {
     }
 }
 
+/// Iterates the raw values of a JSON array.
+pub struct Items<'a> {
+    s: &'a [u8],
+    i: usize,
+}
+
+impl<'a> Items<'a> {
+    pub fn new(s: &'a [u8]) -> Self {
+        let i = skip_ws(s, 0);
+        Self { s, i: if s.get(i) == Some(&b'[') { i + 1 } else { s.len() } }
+    }
+}
+
+impl<'a> Iterator for Items<'a> {
+    type Item = &'a [u8];
+    fn next(&mut self) -> Option<Self::Item> {
+        let s = self.s;
+        let mut i = skip_ws(s, self.i);
+        if i < s.len() && s[i] == b',' {
+            i = skip_ws(s, i + 1);
+        }
+        if i >= s.len() || s[i] == b']' {
+            return None;
+        }
+        let e = value_end(s, i)?;
+        self.i = e;
+        let mut end = e;
+        while end > i && matches!(s[end - 1], b' ' | b'\t' | b'\n' | b'\r') {
+            end -= 1;
+        }
+        Some(&s[i..end])
+    }
+}
+
 pub fn get<'a>(obj: &'a [u8], key: &str) -> Option<&'a [u8]> {
     Fields::new(obj).find(|(k, _)| *k == key).map(|(_, v)| v)
 }
@@ -274,6 +308,10 @@ mod tests {
         assert_eq!(as_f32s(b"[0, 0,1,0,0,-1]", &mut j), 6);
         assert_eq!(j[5], -1.0);
         assert!(get(m, "zz").is_none());
+        let a = br#"[["goto",{"x":1}], ["land",{}] ,3]"#;
+        let items: [&[u8]; 3] = [br#"["goto",{"x":1}]"#, br#"["land",{}]"#, b"3"];
+        assert!(Items::new(a).eq(items.iter().copied()));
+        assert_eq!(Items::new(b"[]").count(), 0);
     }
 
     #[test]

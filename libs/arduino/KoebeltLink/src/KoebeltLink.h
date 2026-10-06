@@ -10,7 +10,7 @@
 #include "KTransport.h"
 #include "KUdp.h"
 
-#define KOEBELT_LINK_VERSION "1.5.0"
+#define KOEBELT_LINK_VERSION "1.6.0"
 
 class Stream;
 
@@ -22,6 +22,15 @@ class Stream;
 #endif
 #ifndef KLINK_MAX_TRACKS
 #define KLINK_MAX_TRACKS 16
+#endif
+/// Steps of a sequence the device stores and runs itself (PROTOCOL.md,
+/// "Sequences"). About 48 bytes each.
+#ifndef KLINK_MAX_STEPS
+#if defined(__AVR__)
+#define KLINK_MAX_STEPS 8
+#else
+#define KLINK_MAX_STEPS 32
+#endif
 #endif
 #ifndef KLINK_MSG_SIZE
 #define KLINK_MSG_SIZE 2048
@@ -175,6 +184,11 @@ class KLink {
   bool connected() const;
   const KControl& control() const { return _ctl; }
   float speedLimit() const { return _speed; }
+  /// True while a sequence uploaded from the app runs on this device (or is
+  /// paused). It keeps going when the link drops; the link-loss failsafe
+  /// waits until it ends. Steps reach the same callbacks as the app's
+  /// commands (onCommand, onMode, onArm).
+  bool sequenceRunning() const { return _run == R_RUN || _run == R_PAUSE; }
 
   // ---- callbacks
   void onControl(void (*cb)(const KControl&)) { _cbControl = cb; }
@@ -247,6 +261,35 @@ class KLink {
   void checkFailsafe(uint32_t now);
   void loadStore();
   bool storeKey();
+
+  // stored sequences
+  enum StepType : uint8_t { S_TAKEOFF, S_GOTO, S_LAND, S_RTH, S_POSE, S_HOME, S_GRIPPER, S_THROTTLE, S_RAMP, S_WAIT, S_MODE, S_ARM, S_SPEED, S_CMD };
+  enum RunSt : uint8_t { R_NONE, R_RUN, R_PAUSE, R_DONE, R_FAIL };
+  struct Step {
+    uint8_t type;
+    float v[6];
+    char name[16];  // custom command name
+  };
+  void seqStore(KTransport* t, JsonDocument& m);
+  void seqCtl(const char* c);
+  void seqTick(uint32_t now);
+  void seqStep(float dt);
+  void seqEnter(const Step& s);
+  void seqPause();
+  void seqStop(const char* why);
+  void seqCmd(const char* name, JsonDocument& args);
+  void seqMode(KMode m);
+  void seqArm(bool v);
+  float seqProgress() const;
+  Step _steps[KLINK_MAX_STEPS];
+  uint8_t _nSteps = 0;
+  char _seqId[24] = {};
+  RunSt _run = R_NONE;
+  uint8_t _runI = 0, _repSt = 255, _repI = 255;
+  bool _entered = false;
+  float _stepT = 0, _totalT = 0, _lastThr = -1, _sendAcc = 0, _still = 0, _lastJ[6] = {};
+  char _runMsg[40] = {};
+  uint32_t _tSeq = 0;
 
   const char* _name;
   char _id[32];

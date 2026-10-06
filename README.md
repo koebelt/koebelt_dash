@@ -111,6 +111,7 @@ platform can do:
 | Saved parameters (`psave`) | ESP32 flash | file | file | file |
 | Pairing key storage | ESP32 flash | file | file | file |
 | Video | `video()` + ESP32-CAM example | `MjpegServer`, `camera()` | `MjpegServer` | `video:` topic |
+| Sequences stored on the device | 32 steps (8 on AVR) | 64 steps | 32 steps | yes, via Python |
 | `no_std` / embedded | — | — | yes | — |
 
 ## Quick start

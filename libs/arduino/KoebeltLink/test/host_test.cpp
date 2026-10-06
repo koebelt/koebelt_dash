@@ -426,6 +426,123 @@ void test_bluetooth_module_rates() {
   CHECK(fast.count("tlm") >= 8 && fast.count("tlm") <= 12);
 }
 
+// ---- stored sequences: the shared scenario in protocol/vectors.json
+static JsonDocument g_vec;
+static std::vector<std::string> g_calls;
+static float g_pos[3];
+static KLink* g_seq = nullptr;
+
+static void seqOnArm(bool v) { g_calls.push_back(std::string("arm||{\"v\":") + (v ? "true" : "false") + "}"); }
+static void seqOnMode(KMode m) {
+  g_calls.push_back(std::string("mode|") + kModeName(m) + "|{}");
+  if (m == KMode::LAND) {
+    g_pos[2] = 0;
+    g_seq->setArmed(false);
+  }
+}
+static void seqOnCmd(const char* c, JsonObjectConst a) {
+  std::string args;
+  serializeJson(a, args);
+  g_calls.push_back(std::string("cmd|") + c + "|" + args);
+  if (!strcmp(c, "takeoff")) {
+    g_pos[2] = a["alt"];
+    g_seq->setMode(KMode::HOLD);
+  } else if (!strcmp(c, "goto")) {
+    g_pos[0] = a["x"];
+    g_pos[1] = a["y"];
+    g_pos[2] = a["z"] | g_pos[2];
+  }
+}
+
+static void runSeq(KLink& l, FakeTransport& t, uint32_t ms, bool ctl) {
+  for (uint32_t i = 0; i < ms; i += 10) {
+    l.position(g_pos[0], g_pos[1], g_pos[2]);
+    run(l, t, 10, ctl);
+  }
+}
+
+static JsonDocument lastRun(FakeTransport& t) {
+  JsonDocument r;
+  for (auto& s : t.of("state"))
+    if (!s["ext"]["run"].isNull()) r = s["ext"]["run"];
+  return r;
+}
+
+void test_stored_sequences() {
+  FILE* f = fopen("../../../../protocol/vectors.json", "rb");
+  CHECK(f != nullptr);
+  if (!f) return;
+  std::string txt;
+  char b[4096];
+  for (size_t n; (n = fread(b, 1, sizeof(b), f)) > 0;) txt.append(b, n);
+  fclose(f);
+  CHECK(!deserializeJson(g_vec, txt));
+  JsonObjectConst sq = g_vec["sequence"];
+
+  KLink l("Seq-1", KLink::DRONE);
+  g_seq = &l;
+  FakeTransport t;
+  l.addTransport(&t);
+  l.onArm(seqOnArm);
+  l.onMode(seqOnMode);
+  l.onCommand(seqOnCmd);
+  t.in.push_back("{\"t\":\"hello\",\"v\":1}");
+  runSeq(l, t, 50, true);
+  CHECK(t.of("hello")[0]["seq"] == KLINK_MAX_STEPS);
+
+  t.in.push_back(sq["upload"].as<const char*>());
+  runSeq(l, t, 20, true);
+  CHECK(t.of("seqack").back()["ok"] == true);
+  t.in.push_back(sq["run"].as<const char*>());
+  // No control heartbeat: the failsafe would switch to HOLD after 1.8 s.
+  // The stored sequence must not be interrupted.
+  runSeq(l, t, 3000, false);
+  JsonDocument r = lastRun(t);
+  CHECK(strcmp(r["st"] | "", "done") == 0);
+  CHECK(r["i"] == sq["steps"]);
+  CHECK(fabsf(l.speedLimit() - 0.5f) < 1e-6f);
+  size_t k = 0;
+  for (JsonArrayConst c : sq["calls"].as<JsonArrayConst>()) {
+    if (!strcmp(c[0], "speed")) continue;
+    CHECK(k < g_calls.size());
+    if (k >= g_calls.size()) break;
+    const std::string& got = g_calls[k++];
+    std::string kind = got.substr(0, got.find('|'));
+    std::string rest = got.substr(got.find('|') + 1);
+    std::string name = rest.substr(0, rest.find('|'));
+    JsonDocument args;
+    deserializeJson(args, rest.substr(rest.find('|') + 1));
+    CHECK(kind == c[0].as<const char*>());
+    CHECK(name == c[1].as<const char*>());
+    for (JsonPairConst kv : c[2].as<JsonObjectConst>()) CHECK(args[kv.key()] == kv.value());
+  }
+
+  // Refused steps
+  t.in.push_back(sq["reject"].as<const char*>());
+  runSeq(l, t, 20, true);
+  CHECK(t.of("seqack").back()["ok"] == false);
+  CHECK(strstr(t.of("seqack").back()["err"] | "", "fly_upside_down") != nullptr);
+
+  // Pause, resume, STOP
+  t.in.push_back("{\"t\":\"seq\",\"id\":\"w\",\"steps\":[[\"wait\",{\"s\":30}]]}");
+  t.in.push_back("{\"t\":\"seqrun\",\"id\":\"w\"}");
+  runSeq(l, t, 700, true);
+  r = lastRun(t);
+  CHECK(strcmp(r["st"] | "", "run") == 0);
+  CHECK((r["p"] | 0.0f) > 0 && (r["p"] | 0.0f) < 1);
+  t.in.push_back("{\"t\":\"seqctl\",\"c\":\"pause\"}");
+  runSeq(l, t, 50, true);
+  CHECK(strcmp(lastRun(t)["st"] | "", "pause") == 0);
+  t.in.push_back("{\"t\":\"seqctl\",\"c\":\"resume\"}");
+  runSeq(l, t, 50, true);
+  CHECK(strcmp(lastRun(t)["st"] | "", "run") == 0);
+  t.in.push_back("{\"t\":\"stop\"}");
+  runSeq(l, t, 50, true);
+  r = lastRun(t);
+  CHECK(strcmp(r["st"] | "", "fail") == 0);
+  CHECK(strstr(r["msg"] | "", "emergency") != nullptr);
+}
+
 int main() {
   test_handshake();
   test_control_stop_failsafe();
@@ -438,6 +555,7 @@ int main() {
   test_discover();
   test_third_party_udp();
   test_bluetooth_module_rates();
+  test_stored_sequences();
   printf("%d checks, %d failures\n", checks, failures);
   return failures ? 1 : 0;
 }

@@ -152,6 +152,28 @@ class Bridge(Node):
                 m.velocities = [float(v) * self.dev.speed * 2 for v in j[: len(names)]]
                 jog_pub.publish(m)
 
+        if "goal" in c:
+            # Fly to / drive to (from the app, or a sequence stored on this
+            # device) as a navigation goal, e.g. Nav2's /goal_pose.
+            from geometry_msgs.msg import PoseStamped
+
+            goal_pub = self.create_publisher(PoseStamped, c["goal"], 10)
+            frame = c.get("goal_frame", "map")
+
+            @self.dev.on_command
+            def _(name, a) -> None:
+                if name != "goto" or not self.dev.armed:
+                    return
+                g = PoseStamped()
+                g.header.stamp = self.get_clock().now().to_msg()
+                g.header.frame_id = frame
+                g.pose.position.x = float(a.get("x", 0))
+                g.pose.position.y = float(a.get("y", 0))
+                g.pose.position.z = float(a.get("z", 0))
+                g.pose.orientation.w = 1.0
+                goal_pub.publish(g)
+                self.dev.set_mode("AUTO")
+
         mode_pub = self.create_publisher(String, c.get("mode", "/koebelt/mode"), 10)
         armed_pub = self.create_publisher(Bool, "/koebelt/armed", 10)
         self.dev.on_mode(lambda m: mode_pub.publish(String(data=m)))

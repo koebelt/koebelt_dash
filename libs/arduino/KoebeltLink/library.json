@@ -1,6 +1,6 @@
 {
   "name": "KoebeltLink",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "description": "Stream sensors to the koebelt dash app and receive control input.",
   "keywords": "drone, robot, telemetry, rover, esp32",
   "repository": { "type": "git", "url": "https://github.com/koebelt/koebelt_dash" },

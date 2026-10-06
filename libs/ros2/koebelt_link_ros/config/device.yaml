@@ -17,6 +17,8 @@ sensors:
 controls:
   twist: /cmd_vel                         # rovers, geometry_msgs/Twist
   jog:   /servo_node/delta_joint_cmds      # arms, MoveIt Servo (control_msgs/JointJog)
+  # goal: /goal_pose                      # Fly to / Drive to as geometry_msgs/PoseStamped (Nav2)
+  # goal_frame: map                       # frame of the goal; odom positions (x east, y north) must match it
   mode:  /koebelt/mode                    # std_msgs/String
   max_linear: 1.0                         # m/s at full stick
   max_angular: 1.5                        # rad/s at full stick

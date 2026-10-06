@@ -16,7 +16,11 @@ See `config/device.yaml`. It maps:
   `NavSatFix` and `nav_msgs/Odometry` to app channels.
 - **Controls**: sticks to `geometry_msgs/Twist` (only in MANUAL while armed),
   arm jog to `control_msgs/JointJog` (MoveIt Servo), mode to `std_msgs/String`,
-  and armed state to `/koebelt/armed`.
+  armed state to `/koebelt/armed`, and with `goal:` the app's Drive to /
+  Fly to as a `geometry_msgs/PoseStamped` navigation goal (Nav2's `/goal_pose`).
+- **Sequences**: the app uploads sequences to the node, which runs them on the
+  robot and carries on if the link drops (the koebelt/link library's stored
+  sequences). Drive to steps need `goal:` and `odom:`.
 - **Safety**: STOP publishes a zero Twist and calls your `std_srvs/Trigger`
   service. The failsafe timeout and action come from the config.
 - **Params**: entries under `params:` appear on the Tune screen and are published

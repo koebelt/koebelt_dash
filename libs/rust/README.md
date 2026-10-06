@@ -50,7 +50,7 @@ cam.push(&jpeg_bytes);                           // whenever you have a frame
 ## Embedded (embassy, embedded-hal)
 
 ```toml
-koebelt-link = { version = "1.5", default-features = false, features = ["embassy"] }
+koebelt-link = { version = "1.6", default-features = false, features = ["embassy"] }
 ```
 
 Implement `Transport` (`recv`, `send`, and optionally `reply`, `announce`,
@@ -74,7 +74,8 @@ loop {
 }
 ```
 
-`Link` holds two 2 KB message buffers. Give its task about 10 KB of stack.
+`Link` holds two 2 KB message buffers and room for a 32-step stored
+sequence (about 1 KB). Give its task about 12 KB of stack.
 
 ```bash
 cargo test

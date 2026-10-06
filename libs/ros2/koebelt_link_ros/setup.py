@@ -6,7 +6,7 @@ package = "koebelt_link_ros"
 
 setup(
     name=package,
-    version="1.5.0",
+    version="1.6.0",
     packages=[package],
     data_files=[
         ("share/ament_index/resource_index/packages", [f"resource/{package}"]),
@@ -14,7 +14,7 @@ setup(
         (f"share/{package}/launch", glob("launch/*.py")),
         (f"share/{package}/config", glob("config/*.yaml")),
     ],
-    install_requires=["setuptools", "koebelt-link>=1.5"],
+    install_requires=["setuptools", "koebelt-link>=1.6"],
     zip_safe=True,
     maintainer="Thomas Koebel",
     maintainer_email="contact@koebelt.com",

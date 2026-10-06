@@ -112,14 +112,14 @@ impl<A: Transport, B: Transport> Transport for Fallback<A, B> {
 
 /// Reassembles newline-delimited messages from a byte stream (UART, radio).
 pub struct LineReader {
-    line: [u8; 1024],
+    line: [u8; 2048],
     n: usize,
     overflow: bool,
 }
 
 impl Default for LineReader {
     fn default() -> Self {
-        Self { line: [0; 1024], n: 0, overflow: false }
+        Self { line: [0; 2048], n: 0, overflow: false }
     }
 }
 
@@ -217,6 +217,10 @@ impl core::fmt::Debug for CommandName {
         f.write_str(self.as_str())
     }
 }
+
+#[path = "seq.rs"]
+mod seq;
+pub use seq::MAX_STEPS;
 
 #[derive(Clone, Copy)]
 struct Param {
@@ -317,6 +321,14 @@ pub struct Link<T: Transport> {
     ev_head: usize,
     ev_len: usize,
 
+    // stored sequences, and the latest position and joints they check
+    stored: Option<seq::Stored>,
+    run: Option<seq::Run>,
+    t_seq: u32,
+    last_pos: [f32; 3],
+    last_joints: [f32; 6],
+    last_nj: u8,
+
     rx: [u8; 2048],
     tx: [u8; 2048],
 }
@@ -381,6 +393,12 @@ impl<T: Transport> Link<T> {
             events: [None; MAX_EVENTS],
             ev_head: 0,
             ev_len: 0,
+            stored: None,
+            run: None,
+            t_seq: 0,
+            last_pos: [0.0; 3],
+            last_joints: [0.0; 6],
+            last_nj: 0,
             rx: [0; 2048],
             tx: [0; 2048],
         }
@@ -545,6 +563,7 @@ impl<T: Transport> Link<T> {
     }
     pub fn position(&mut self, p: [f32; 3]) {
         self.tlm.pos = Some(p);
+        self.last_pos = p;
     }
     pub fn velocity(&mut self, v: [f32; 3]) {
         self.tlm.vel = Some(v);
@@ -567,6 +586,8 @@ impl<T: Transport> Link<T> {
         let n = j.len().min(6);
         a[..n].copy_from_slice(&j[..n]);
         self.tlm.joints = Some((a, n as u8));
+        self.last_joints = a;
+        self.last_nj = n as u8;
     }
     pub fn force_torque(&mut self, f: [f32; 3]) {
         self.tlm.ft = Some(f);
@@ -673,6 +694,7 @@ impl<T: Transport> Link<T> {
             self.rx[..n].copy_from_slice(&rx[..n]);
             self.handle(n, now_ms);
         }
+        self.seq_tick(now_ms);
         self.check_failsafe(now_ms);
         if !self.session {
             if now_ms.wrapping_sub(self.t_announce) >= 1000 {
@@ -700,7 +722,8 @@ impl<T: Transport> Link<T> {
     }
 
     fn check_failsafe(&mut self, now: u32) {
-        if !self.session || self.fs_active || self.kind == Kind::Rocket {
+        // A stored sequence is meant to survive a lost link.
+        if !self.session || self.fs_active || self.kind == Kind::Rocket || self.sequence_running() {
             return;
         }
         if now.wrapping_sub(self.last_ctl) <= self.fs_timeout_ms {
@@ -821,7 +844,11 @@ impl<T: Transport> Link<T> {
                 w.raw("}");
                 self.flush();
             }
+            "seq" => self.seq_store(m),
+            "seqrun" => self.seq_run(m),
+            "seqctl" => self.seq_ctl(m),
             "stop" => {
+                self.seq_stop("Stopped: emergency stop");
                 if !self.estop {
                     self.estop = true;
                     self.armed = false;
@@ -939,7 +966,8 @@ impl<T: Transport> Link<T> {
             "bye" => {
                 self.session = false;
                 self.control = Control::default();
-                if self.kind == Kind::Drone && self.armed && self.mode != Mode::Hold {
+                // A stored sequence carries on; otherwise a flying drone holds.
+                if self.kind == Kind::Drone && self.armed && self.mode != Mode::Hold && !self.sequence_running() {
                     self.mode = Mode::Hold;
                     self.push(Event::Mode(Mode::Hold));
                 }
@@ -1047,6 +1075,8 @@ impl<T: Transport> Link<T> {
             }
             w.raw("]");
         }
+        w.raw(r#","seq":"#);
+        w.num(MAX_STEPS as f64);
         w.raw(r#","ok":true}"#);
     }
 
@@ -1108,10 +1138,10 @@ impl<T: Transport> Link<T> {
     }
 
     fn write_state(&mut self) {
-        self.tx.fill(0);
+        let mut tx = [0u8; 2048];
         let (mode, armed, estop, fs) = (self.mode, self.armed, self.estop, self.fs_active);
         let (pyro, cutoff, ext) = (self.pyro, self.cutoff, self.ext);
-        let mut w = Buf::new(&mut self.tx);
+        let mut w = Buf::new(&mut tx);
         w.raw(r#"{"t":"state","mode":"#);
         w.string(mode.as_str());
         w.raw(if armed { r#","armed":true"# } else { r#","armed":false"# });
@@ -1137,7 +1167,9 @@ impl<T: Transport> Link<T> {
             w.key(&mut f, k);
             w.string(v);
         }
+        self.write_run(&mut w, &mut f);
         w.raw("}}");
+        self.tx = tx;
     }
 
     fn write_tlm(&mut self, now: u32) -> bool {

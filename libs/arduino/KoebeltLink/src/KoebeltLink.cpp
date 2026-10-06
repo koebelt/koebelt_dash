@@ -286,6 +286,7 @@ void KLink::update() {
       handle(t, _buf, n);
     }
   }
+  seqTick(now);
   checkFailsafe(now);
   if (!_session) {
     if (now - _tAnnounce >= 1000) {
@@ -326,7 +327,8 @@ void KLink::update() {
 }
 
 void KLink::checkFailsafe(uint32_t now) {
-  if (!_session || _fsActive || _kind == ROCKET) return;
+  // A stored sequence is meant to survive a lost link.
+  if (!_session || _fsActive || _kind == ROCKET || sequenceRunning()) return;
   if (now - _lastCtl <= _fsTimeout) return;
   _fsActive = true;
   _ctl = KControl();
@@ -436,7 +438,23 @@ void KLink::handle(KTransport* t, const char* json, size_t len) {
     r["t"] = "pong";
     r["ts"] = m["ts"];
     send(r, t);
+  } else if (!strcmp(typ, "seq")) {
+    seqStore(t, m);
+  } else if (!strcmp(typ, "seqrun")) {
+    const char* id = m["id"] | "";
+    if (_nSteps && !_estop && !strcmp(id, _seqId)) {
+      _run = R_RUN;
+      _runI = 0;
+      _entered = false;
+      _stepT = _totalT = 0;
+      _runMsg[0] = 0;
+      _tSeq = now;
+      _repSt = 255;
+    }
+  } else if (!strcmp(typ, "seqctl")) {
+    seqCtl(m["c"] | "");
   } else if (!strcmp(typ, "stop")) {
+    seqStop("Stopped: emergency stop");
     if (!_estop) {
       _estop = true;
       _armed = false;
@@ -509,7 +527,8 @@ void KLink::handle(KTransport* t, const char* json, size_t len) {
   } else if (!strcmp(typ, "bye")) {
     _session = false;
     _ctl = KControl();
-    if (_kind == DRONE && _armed) changeMode(KMode::HOLD, true);
+    // A stored sequence carries on; otherwise a flying drone holds.
+    if (_kind == DRONE && _armed && !sequenceRunning()) changeMode(KMode::HOLD, true);
     t->dropPeer();
   }
 }
@@ -533,6 +552,7 @@ void KLink::sendHello(KTransport* t) {
   d["model"] = _model;
   d["fw"] = _fw;
   d["lib"] = "arduino/" KOEBELT_LINK_VERSION;
+  d["seq"] = KLINK_MAX_STEPS;
   if (_nVideo) {
     JsonArray v = d["video"].to<JsonArray>();
     for (uint8_t i = 0; i < _nVideo; i++) {
@@ -607,7 +627,342 @@ void KLink::sendState() {
   }
   if (_cutoff) ext["cutoff"] = _cutoff;
   for (uint8_t i = 0; i < 4 && _extKey[i]; i++) ext[_extKey[i]] = _extVal[i];
+  if (_run != R_NONE) {
+    static const char* const ST[] = {"", "run", "pause", "done", "fail"};
+    JsonObject r = ext["run"].to<JsonObject>();
+    r["id"] = _seqId;
+    r["i"] = _runI;
+    r["n"] = _nSteps;
+    r["st"] = ST[_run];
+    if (_runMsg[0]) r["msg"] = _runMsg;
+    float p = seqProgress();
+    if (sequenceRunning() && p >= 0) r["p"] = (int)(p * 100 + 0.5f) / 100.0f;
+  }
   send(d);
+}
+
+// ------------------------------------------------------------------ stored sequences
+// PROTOCOL.md "Sequences": the app uploads the steps, the device runs them
+// through the same callbacks as the app's messages and checks completion
+// against its own telemetry, so a sequence keeps going when the link drops.
+
+void KLink::seqStore(KTransport* t, JsonDocument& m) {
+  const char* id = m["id"] | "";
+  JsonArrayConst steps = m["steps"];
+  const char* err = nullptr;
+  char why[64];
+  uint8_t n = 0;
+  bool drone = _kind == DRONE, rover = _kind == ROVER, arm = _kind == ARM, bench = _kind == BENCH;
+  bool moving = !bench && _kind != ROCKET;
+  if (sequenceRunning()) {
+    err = "A sequence is running";
+  } else if (steps.size() == 0) {
+    err = "No steps";
+  } else if (steps.size() > KLINK_MAX_STEPS) {
+    snprintf(why, sizeof(why), "Too many steps: this device stores %d", KLINK_MAX_STEPS);
+    err = why;
+  }
+  Step parsed[KLINK_MAX_STEPS];
+  for (JsonArrayConst w : steps) {
+    if (err) break;
+    const char* ty = w[0] | "";
+    JsonObjectConst a = w[1];
+    Step s = {};
+    if (!strcmp(ty, "takeoff") && drone) {
+      s.type = S_TAKEOFF;
+      s.v[0] = a["alt"] | 6.0f;
+    } else if (!strcmp(ty, "goto") && (drone || rover)) {
+      s.type = S_GOTO;
+      s.v[0] = a["x"] | 0.0f;
+      s.v[1] = a["y"] | 0.0f;
+      s.v[2] = a["z"] | 8.0f;
+    } else if (!strcmp(ty, "land") && drone) {
+      s.type = S_LAND;
+    } else if (!strcmp(ty, "rth") && drone) {
+      s.type = S_RTH;
+    } else if (!strcmp(ty, "pose") && arm) {
+      s.type = S_POSE;
+      JsonArrayConst j = a["j"];
+      for (uint8_t i = 0; i < 6; i++) s.v[i] = j[i] | 0.0f;
+    } else if (!strcmp(ty, "home") && arm) {
+      s.type = S_HOME;
+    } else if (!strcmp(ty, "gripper") && arm) {
+      s.type = S_GRIPPER;
+      s.v[0] = a["v"] | 0.9f;
+    } else if (!strcmp(ty, "throttle") && bench) {
+      s.type = S_THROTTLE;
+      s.v[0] = a["v"] | 0.0f;
+      s.v[1] = a["s"] | 0.0f;
+    } else if (!strcmp(ty, "ramp") && bench) {
+      s.type = S_RAMP;
+      s.v[0] = a["from"] | 0.0f;
+      s.v[1] = a["to"] | 0.0f;
+      s.v[2] = a["s"] | 0.0f;
+    } else if (!strcmp(ty, "wait")) {
+      s.type = S_WAIT;
+      s.v[0] = a["s"] | 0.0f;
+    } else if (!strcmp(ty, "mode") && moving && kModeParse(a["m"] | "") != KMode::UNKNOWN) {
+      s.type = S_MODE;
+      s.v[0] = (float)(uint8_t)kModeParse(a["m"] | "");
+    } else if (!strcmp(ty, "arm")) {
+      s.type = S_ARM;
+      s.v[0] = (a["v"] | false) ? 1 : 0;
+    } else if (!strcmp(ty, "speed") && moving) {
+      s.type = S_SPEED;
+      s.v[0] = a["v"] | 0.5f;
+    } else if (!strcmp(ty, "cmd")) {
+      // Custom commands in stored sequences carry their "v" only.
+      s.type = S_CMD;
+      strncpy(s.name, a["c"] | "", sizeof(s.name) - 1);
+      JsonVariantConst v = a["a"]["v"];
+      s.v[1] = v.isNull() ? 0 : 1;
+      s.v[0] = v | 0.0f;
+    } else {
+      snprintf(why, sizeof(why), "Step \"%s\" is not supported on this device", ty);
+      err = why;
+      break;
+    }
+    parsed[n++] = s;
+  }
+  if (!err) {
+    memcpy(_steps, parsed, sizeof(Step) * n);
+    _nSteps = n;
+    strncpy(_seqId, id, sizeof(_seqId) - 1);
+    _seqId[sizeof(_seqId) - 1] = 0;
+    _run = R_NONE;
+    _stateDirty = true;
+  }
+  JsonDocument r;
+  r["t"] = "seqack";
+  r["id"] = id;
+  r["ok"] = err == nullptr;
+  if (err) r["err"] = err;
+  send(r, t);
+}
+
+void KLink::seqCtl(const char* c) {
+  if (!strcmp(c, "pause")) {
+    seqPause();
+  } else if (!strcmp(c, "resume") && _run == R_PAUSE) {
+    _run = R_RUN;
+    _runMsg[0] = 0;
+    _entered = false;  // re-issue the current step
+    _stepT = 0;
+  } else if (!strcmp(c, "stop")) {
+    seqStop("Stopped from the app");
+  }
+  _stateDirty = true;
+}
+
+void KLink::seqPause() {
+  if (_run != R_RUN) return;
+  _run = R_PAUSE;
+  strcpy(_runMsg, "Paused");
+  uint8_t ty = _runI < _nSteps ? _steps[_runI].type : 255;
+  if (ty == S_THROTTLE || ty == S_RAMP) {
+    JsonDocument a;
+    a["v"] = 0;
+    seqCmd("throttle", a);
+  } else if ((_kind == DRONE || _kind == ROVER) && _armed) {
+    seqMode(KMode::HOLD);
+  }
+}
+
+void KLink::seqStop(const char* why) {
+  if (!sequenceRunning()) return;
+  _run = R_FAIL;
+  strncpy(_runMsg, why, sizeof(_runMsg) - 1);
+  _stateDirty = true;
+  if (_kind == BENCH) {
+    JsonDocument a;
+    a["v"] = 0;
+    seqCmd("throttle", a);
+  }
+  if ((_kind == DRONE || _kind == ROVER) && _armed && !_estop) seqMode(KMode::HOLD);
+}
+
+// The same callbacks the app's messages reach.
+void KLink::seqCmd(const char* name, JsonDocument& args) {
+  if (!_estop && _cbCmd) _cbCmd(name, args.as<JsonObjectConst>());
+}
+void KLink::seqMode(KMode m) {
+  if (!_estop) changeMode(m, true);
+}
+void KLink::seqArm(bool v) {
+  if (_estop || v == _armed) return;
+  _armed = v;
+  _stateDirty = true;
+  if (_cbArm) _cbArm(v);
+}
+
+float KLink::seqProgress() const {
+  if (_runI >= _nSteps) return -1;
+  const Step& s = _steps[_runI];
+  float d = s.type == S_WAIT ? s.v[0] : s.type == S_THROTTLE ? s.v[1] : s.type == S_RAMP ? s.v[2] : s.type == S_GRIPPER ? 0.8f : 0;
+  if (d <= 0) return -1;
+  float p = _stepT / d;
+  return p < 0 ? 0 : p > 1 ? 1 : p;
+}
+
+void KLink::seqTick(uint32_t now) {
+  float dt = (now - _tSeq) / 1000.0f;
+  _tSeq = now;
+  if (_run == R_RUN) {
+    if (_estop) {
+      seqStop("Stopped: emergency stop");
+    } else {
+      seqStep(dt > 1 ? 1 : dt);
+    }
+  }
+  if (_run != R_NONE && (_repSt != _run || _repI != _runI)) {
+    _repSt = _run;
+    _repI = _runI;
+    _stateDirty = true;
+  }
+}
+
+void KLink::seqEnter(const Step& s) {
+  JsonDocument a;
+  switch (s.type) {
+    case S_TAKEOFF:
+      a["alt"] = s.v[0];
+      seqCmd("takeoff", a);
+      break;
+    case S_GOTO:
+      a["x"] = s.v[0];
+      a["y"] = s.v[1];
+      if (_kind == DRONE) a["z"] = s.v[2];
+      seqCmd("goto", a);
+      break;
+    case S_LAND:
+      seqMode(KMode::LAND);
+      break;
+    case S_RTH:
+      seqMode(KMode::RTH);
+      break;
+    case S_POSE: {
+      JsonArray j = a["j"].to<JsonArray>();
+      for (uint8_t i = 0; i < 6; i++) j.add(s.v[i]);
+      seqCmd("pose", a);
+      break;
+    }
+    case S_HOME:
+      a.to<JsonObject>();
+      seqCmd("home", a);
+      break;
+    case S_GRIPPER:
+    case S_THROTTLE:
+      a["v"] = s.v[0];
+      seqCmd(s.type == S_GRIPPER ? "gripper" : "throttle", a);
+      break;
+    case S_MODE:
+      seqMode((KMode)(uint8_t)s.v[0]);
+      break;
+    case S_ARM:
+      seqArm(s.v[0] != 0);
+      break;
+    case S_SPEED:
+      _speed = s.v[0] < 0.1f ? 0.1f : s.v[0] > 1 ? 1 : s.v[0];
+      break;
+    case S_CMD:
+      a.to<JsonObject>();
+      if (s.v[1] != 0) a["v"] = s.v[0];
+      if (s.name[0]) seqCmd(s.name, a);
+      break;
+    default:
+      break;
+  }
+}
+
+void KLink::seqStep(float dt) {
+  if (_runI >= _nSteps) {
+    _run = R_DONE;
+    snprintf(_runMsg, sizeof(_runMsg), "Completed in %.1f s", _totalT);
+    return;
+  }
+  const Step& s = _steps[_runI];
+  _totalT += dt;
+  if (!_entered) {
+    _entered = true;
+    _stepT = 0;
+    _lastThr = -1;
+    seqEnter(s);
+  }
+  _stepT += dt;
+  float t = _stepT;
+  // 1 done, 0 keep going, -1 timed out
+  auto within = [t](float limit, bool ok) { return ok ? 1 : t > limit ? -1 : 0; };
+  const float* p = _pos;
+  int r = 1;
+  switch (s.type) {
+    case S_WAIT:
+    case S_THROTTLE:
+      r = t >= (s.type == S_WAIT ? s.v[0] : s.v[1]);
+      break;
+    case S_TAKEOFF:
+      r = within(60, t > 0.3f && _mode != KMode::TAKEOFF && p[2] > s.v[0] - 0.6f);
+      break;
+    case S_GOTO: {
+      bool drone = _kind == DRONE;
+      float dx = p[0] - s.v[0], dy = p[1] - s.v[1], dz = drone ? p[2] - s.v[2] : 0;
+      float d = sqrtf(dx * dx + dy * dy + dz * dz);
+      snprintf(_runMsg, sizeof(_runMsg), "%.1f m to go", d);
+      r = within(300, d < (drone ? 1.0f : 0.6f));
+      break;
+    }
+    case S_LAND:
+    case S_RTH:
+      r = within(300, t > 0.5f && (!_armed || (p[2] < 0.1f && _mode != KMode::LAND && _mode != KMode::RTH)));
+      break;
+    case S_POSE: {
+      float err = 0;
+      for (uint8_t i = 0; i < 6 && i < _nJoints; i++) err = fmaxf(err, fabsf(_joints[i] - s.v[i]));
+      r = within(60, t > 0.2f && err < 0.03f);
+      break;
+    }
+    case S_HOME: {
+      float moved = 0;
+      for (uint8_t i = 0; i < 6 && i < _nJoints; i++) moved = fmaxf(moved, fabsf(_joints[i] - _lastJ[i]));
+      memcpy(_lastJ, _joints, sizeof(_lastJ));
+      _still = moved < 2e-4f ? _still + dt : 0;
+      r = within(60, t > 0.6f && _still > 0.4f);
+      break;
+    }
+    case S_GRIPPER:
+      r = t >= 0.8f;
+      break;
+    case S_RAMP: {
+      float d = s.v[2] > 0.001f ? s.v[2] : 0.001f, k = t / d > 1 ? 1 : t / d;
+      float thr = s.v[0] + (s.v[1] - s.v[0]) * k;
+      _sendAcc += dt;
+      if (_sendAcc >= 0.1f && fabsf(thr - _lastThr) >= 0.005f) {
+        _sendAcc = 0;
+        _lastThr = thr;
+        JsonDocument a;
+        a["v"] = thr;
+        seqCmd("throttle", a);
+      }
+      r = t >= d;
+      break;
+    }
+    case S_MODE:
+      r = within(3, _mode == (KMode)(uint8_t)s.v[0]);
+      break;
+    case S_ARM:
+      r = within(3, _armed == (s.v[0] != 0));
+      break;
+    default:
+      break;
+  }
+  if (r == 1) {
+    _runI++;
+    _entered = false;
+    _runMsg[0] = 0;
+  } else if (r == -1) {
+    _run = R_FAIL;
+    snprintf(_runMsg, sizeof(_runMsg), "Step %d timed out", _runI + 1);
+    if ((_kind == DRONE || _kind == ROVER) && _armed) seqMode(KMode::HOLD);
+  }
 }
 
 void KLink::sendTelemetry() {
