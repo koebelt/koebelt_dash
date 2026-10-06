@@ -20,6 +20,7 @@ import '../link/udp_io.dart';
 import '../sim/environment.dart';
 import '../sim/sim_device.dart';
 import '../video/video_hub.dart';
+import 'alerts.dart';
 import 'gamepad.dart';
 import 'model.dart';
 import 'sequence.dart';
@@ -184,6 +185,11 @@ class Dash extends ChangeNotifier implements SequenceHost, PadTarget {
   late final gamepads = GamepadInput(padMapper);
 
   final settings = Settings();
+
+  /// Limit alerts (battery, signal, altitude…) and their settings.
+  final alertPrefs = AlertPrefs();
+  final alerts = AlertMonitor();
+  double _alertAcc = 0;
   final List<DeviceInfo> devices = [];
   String? deviceId, connecting, connectError;
   DeviceSession? session;
@@ -315,6 +321,7 @@ class Dash extends ChangeNotifier implements SequenceHost, PadTarget {
     await store.init();
     settings.load(store.readJson('kdash-settings-v1'));
     pad.load(store.readJson('kdash-pad-v1') as Map?);
+    alertPrefs.load(store.readJson('kdash-alerts-v1') as Map?);
     gamepads.addListener(notifyListeners);
     unawaited(gamepads.start());
     final hj = store.readJson('kdash-hud-v1');
@@ -464,10 +471,16 @@ class Dash extends ChangeNotifier implements SequenceHost, PadTarget {
         notifyListeners();
       }
       if (!_wasLost && lost) {
-        _haptic(heavy: true);
+        _alertOut(AlertLevel.critical);
         notifyListeners();
       }
       _wasLost = lost;
+      // Checked 5 times a second, on fresh data only.
+      _alertAcc += dt;
+      if (_alertAcc >= .2) {
+        if (!lost && alerts.step(_alertAcc, liveTel, kind, latency, alertPrefs, _alertOut)) notifyListeners();
+        _alertAcc = 0;
+      }
     }
     if (linkRestored > 0) {
       linkRestored -= dt;
@@ -612,6 +625,7 @@ class Dash extends ChangeNotifier implements SequenceHost, PadTarget {
     linkTest = 0;
     linkRestored = 0;
     _wasLost = false;
+    alerts.clear();
     video = const [];
     videoHub.clear();
     input.fillRange(0, 4, 0);
@@ -820,6 +834,25 @@ class Dash extends ChangeNotifier implements SequenceHost, PadTarget {
     _saveDevices();
     notifyListeners();
     return d;
+  }
+
+  /// Sound and vibration for an alert or a lost link.
+  void _alertOut(AlertLevel l) {
+    if (alertPrefs.sound) SystemSound.play(SystemSoundType.alert);
+    if (!settings.haptics) return;
+    l == AlertLevel.critical ? HapticFeedback.vibrate() : HapticFeedback.heavyImpact();
+  }
+
+  /// Hides an alert's banner until it clears and fires again.
+  void ackAlert(String id) {
+    alerts.ack(id);
+    notifyListeners();
+  }
+
+  void updateAlerts(void Function(AlertPrefs) f) {
+    f(alertPrefs);
+    store.writeJson('kdash-alerts-v1', alertPrefs.toJson());
+    notifyListeners();
   }
 
   void _haptic({bool heavy = false}) {

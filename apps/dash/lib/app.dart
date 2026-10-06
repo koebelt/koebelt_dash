@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
+import 'core/alerts.dart';
 import 'core/dash.dart';
 import 'core/model.dart';
 import 'screens/control.dart';
@@ -763,22 +764,52 @@ class Banners extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final lf = d.linkLostFor;
+    Widget? link;
     if (lf > 0) {
       final fs = d.kind == DeviceKind.drone
           ? const {'HOLD': 'holding position', 'RTH': 'returning home', 'LAND': 'landing in place'}[d.settings.failsafe]!
           : 'holding position';
-      return KNotice(
+      link = KNotice(
+        key: const ValueKey('link'),
         tone: Tone.negative,
         square: true,
         leading: _mark(true),
         title: 'Link lost · ${lf.toStringAsFixed(1)} s',
         child: Text('${lf >= 1.8 ? 'Failsafe active: $fs.' : 'Reconnecting. Failsafe starts at 1.8 s.'} Controls are locked until the link is back.'),
       );
+    } else if (d.linkRestored > 0) {
+      link = KNotice(
+        key: const ValueKey('link'),
+        tone: Tone.positive,
+        square: true,
+        leading: _mark(false),
+        title: 'Link restored',
+        child: const Text('Manual control is available again.'),
+      );
     }
-    if (d.linkRestored > 0) {
-      return KNotice(tone: Tone.positive, square: true, leading: _mark(false), title: 'Link restored', child: const Text('Manual control is available again.'));
-    }
-    return const SizedBox();
+    final shown = d.replay == null ? d.alerts.shown : const <ActiveAlert>[];
+    if (link == null && shown.isEmpty) return const SizedBox();
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        ?link,
+        for (final a in shown)
+          KNotice(
+            key: ValueKey('alert-${a.rule.id}'),
+            tone: a.rule.level == AlertLevel.critical ? Tone.negative : Tone.warning,
+            square: true,
+            title: '${a.rule.label} · ${a.rule.fmt(a.value)}',
+            child: Row(
+              children: [
+                Expanded(child: Text('${a.rule.below ? 'Below' : 'Above'} ${a.rule.fmt(a.limit)}. ${a.rule.act}')),
+                const SizedBox(width: 12),
+                KButton('OK', size: KSize.sm, variant: KButtonVariant.ghost, onPressed: () => d.ackAlert(a.rule.id)),
+              ],
+            ),
+          ),
+      ],
+    );
   }
 
   // Same element through lost → restored, so the mark lifts back up.

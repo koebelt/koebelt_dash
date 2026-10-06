@@ -268,8 +268,10 @@ class MavlinkTransport implements Transport {
         _fix = m.n('fix_type').toInt();
       case Mav.sysStatus:
         final v = m.n('voltage_battery') / 1000, a = m.n('current_battery'), p = m.n('battery_remaining');
+        // 0 V / -1 % mean "no battery monitor": send nothing rather than 0 %.
+        if (v <= 0 && p < 0) return;
         _tlm({
-          'bat': [v, a < 0 ? 0 : a / 100, p < 0 ? 0 : p],
+          'bat': [v, a < 0 ? 0 : a / 100, if (p >= 0) p],
         }, null);
       case Mav.rawImu:
         const g = 9.80665;

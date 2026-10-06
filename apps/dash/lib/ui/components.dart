@@ -540,8 +540,9 @@ class KTabs extends StatelessWidget {
 }
 
 class KInput extends StatefulWidget {
-  const KInput({super.key, this.controller, this.placeholder, this.onChanged, this.height = 48, this.style});
+  const KInput({super.key, this.controller, this.placeholder, this.onChanged, this.height = 48, this.style, this.keyboardType});
   final TextEditingController? controller;
+  final TextInputType? keyboardType;
   final String? placeholder;
   final ValueChanged<String>? onChanged;
   final double height;
@@ -581,6 +582,7 @@ class _KInputState extends State<KInput> {
         controller: widget.controller,
         focusNode: _focus,
         onChanged: widget.onChanged,
+        keyboardType: widget.keyboardType,
         style: st,
         cursorColor: K.accent,
         decoration: InputDecoration.collapsed(

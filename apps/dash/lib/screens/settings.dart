@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../core/alerts.dart';
 import '../core/dash.dart';
 import '../link/protocol.dart';
 import '../theme/tokens.dart';
@@ -130,6 +131,33 @@ class SettingsScreen extends StatelessWidget {
               ),
             ]),
             SizedBox(height: phone ? 20 : 32),
+            section('Alerts', [
+              SetRow(
+                phone: phone,
+                title: 'Alert sound',
+                desc: 'Plays on alerts and when the link is lost. Phones vibrate instead when haptics are on.',
+                child: KSwitch(checked: d.alertPrefs.sound, onChanged: (v) => d.updateAlerts((p) => p.sound = v)),
+              ),
+              for (final r in alertRules)
+                SetRow(
+                  phone: phone,
+                  title: r.label,
+                  desc: [r.desc, if (r.kinds != null) '${r.kinds!.map((k) => k.label).join(', ')} only.'].join(' '),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      MonoLabel(r.below ? 'Below' : 'Above'),
+                      const SizedBox(width: 10),
+                      SizedBox(width: 84, child: _LimitField(d, r)),
+                      const SizedBox(width: 8),
+                      SizedBox(width: 32, child: MonoLabel(r.unit)),
+                      const SizedBox(width: 12),
+                      KSwitch(checked: d.alertPrefs.isOn(r), onChanged: (v) => d.updateAlerts((p) => p.on[r.id] = v)),
+                    ],
+                  ),
+                ),
+            ]),
+            SizedBox(height: phone ? 20 : 32),
             section('Map', [
               SetRow(
                 phone: phone,
@@ -226,5 +254,38 @@ class _TextSettingState extends State<_TextSetting> {
     height: 40,
     style: KText.bodySm,
     onChanged: (v) => widget.d.updateSettings((s) => widget.set(s, v.trim())),
+  );
+}
+
+class _LimitField extends StatefulWidget {
+  const _LimitField(this.d, this.r);
+  final Dash d;
+  final AlertRule r;
+  @override
+  State<_LimitField> createState() => _LimitFieldState();
+}
+
+class _LimitFieldState extends State<_LimitField> {
+  late final _c = TextEditingController(text: _fmt(widget.d.alertPrefs.limitOf(widget.r)));
+
+  String _fmt(double v) => v == v.roundToDouble() ? v.toStringAsFixed(0) : '$v';
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => KInput(
+    controller: _c,
+    placeholder: _fmt(widget.r.def),
+    height: 36,
+    style: KText.mono(13),
+    keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
+    onChanged: (v) {
+      final x = double.tryParse(v.trim().replaceAll(',', '.'));
+      widget.d.updateAlerts((p) => x == null ? p.limit.remove(widget.r.id) : p.limit[widget.r.id] = x);
+    },
   );
 }
