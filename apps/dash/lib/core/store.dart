@@ -61,7 +61,7 @@ class Store {
       writeJson('kdash-recordings-v1', [r, ...l].take(5).toList());
       return;
     }
-    await files.write(d, '${r['id']}.json', jsonEncode(r));
+    await files.writeCompressed(d, '${r['id']}.json', jsonEncode(r));
   }
 
   Future<void> deleteRecording(String id) async {

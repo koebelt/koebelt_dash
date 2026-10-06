@@ -287,72 +287,82 @@ class Telemetry {
   }
 
   // ---- recording ----
-  Map<String, dynamic> snapshot() => {
-    'pos': List.of(pos),
-    'vel': List.of(vel),
-    'roll': roll,
-    'pitch': pitch,
-    'yaw': yaw,
-    'acc': List.of(acc),
-    'gyro': List.of(gyro),
-    'lat': lat,
-    'lon': lon,
-    'voltage': voltage,
-    'current': current,
-    'battery': battery,
-    'rssi': rssi,
-    'joints': List.of(joints),
-    'gripper': gripper,
-    'ft': List.of(ft),
-    'thrust': thrust,
-    'torque': torque,
-    'rpm': rpm,
-    'temp': temp,
-    'thr': throttleOut,
-    'maxAlt': maxAlt,
-    'phaseT': phaseT,
-    'countdown': countdown,
-    'pyro': List.of(pyro),
-    'mode': mode,
-    'armed': armed,
-    'targets': [
-      for (final t in targets) [t.id, t.r, t.a],
-    ],
-    'seen': seen.toList(),
-    if (hasGps) 'galt': gpsAlt,
-    if (custom.isNotEmpty) 'custom': {for (final e in custom.entries) e.key: List.of(e.value)},
-  };
+  /// One recording frame: pose, mode and armed state always, other values
+  /// only for channels the device has sent, rounded to what the sensors
+  /// resolve (millimetres, 0.01°, 0.1 % battery…). About a quarter of the
+  /// full state, and smaller still once the file is compressed.
+  Map<String, dynamic> snapshot() {
+    double r(double v, int digits) {
+      if (!v.isFinite) return 0;
+      final m = _pow10[digits];
+      return (v * m).roundToDouble() / m;
+    }
 
+    List<double> rl(List<double> v, int digits) => [for (final x in v) r(x, digits)];
+    final has = seen.contains;
+    return {
+      'pos': rl(pos, 3),
+      'roll': r(roll, 4),
+      'pitch': r(pitch, 4),
+      'yaw': r(yaw, 4),
+      'mode': mode,
+      'armed': armed,
+      'seen': seen.toList(),
+      if (has('vel')) 'vel': rl(vel, 3),
+      if (has('imu')) ...{'acc': rl(acc, 3), 'gyro': rl(gyro, 4)},
+      if (has('gps')) ...{'lat': r(lat, 7), 'lon': r(lon, 7), 'galt': r(gpsAlt, 2)},
+      if (has('bat')) ...{'voltage': r(voltage, 3), 'current': r(current, 3), 'battery': r(battery, 1)},
+      if (has('rssi')) 'rssi': r(rssi, 1),
+      if (has('joints')) 'joints': rl(joints, 4),
+      if (has('tool')) 'gripper': r(gripper, 3),
+      if (has('ft')) 'ft': rl(ft, 2),
+      if (has('thrust')) ...{'thrust': r(thrust, 3), 'torque': r(torque, 4)},
+      if (has('rpm')) 'rpm': r(rpm, 0),
+      if (has('temp')) 'temp': r(temp, 2),
+      if (has('throttle')) 'thr': r(throttleOut, 3),
+      if (has('rocket')) ...{'maxAlt': r(maxAlt, 2), 'phaseT': r(phaseT, 2), 'countdown': r(countdown, 2), 'pyro': List.of(pyro)},
+      if (targets.isNotEmpty)
+        'targets': [
+          for (final t in targets) [t.id, r(t.r, 2), r(t.a, 4)],
+        ],
+      if (custom.isNotEmpty) 'custom': {for (final e in custom.entries) e.key: rl(e.value, 4)},
+    };
+  }
+
+  static const _pow10 = [1.0, 10.0, 100.0, 1000.0, 10000.0, 100000.0, 1000000.0, 10000000.0];
+
+  /// Restores a frame. Frames from older recordings carry every value;
+  /// newer ones only the channels the device sent.
   void applyFrame(Map<String, dynamic> f) {
-    List<double> l(String k) => (f[k] as List).map((e) => (e as num).toDouble()).toList();
-    double d(String k) => (f[k] as num).toDouble();
-    pos = l('pos');
-    vel = l('vel');
-    roll = d('roll');
-    pitch = d('pitch');
-    yaw = d('yaw');
-    acc = l('acc');
-    gyro = l('gyro');
-    lat = d('lat');
-    lon = d('lon');
-    voltage = d('voltage');
-    current = d('current');
-    battery = d('battery');
-    rssi = d('rssi');
-    joints = l('joints');
-    gripper = d('gripper');
-    ft = l('ft');
-    thrust = d('thrust');
-    torque = d('torque');
-    rpm = d('rpm');
-    temp = d('temp');
-    throttleOut = d('thr');
-    maxAlt = d('maxAlt');
-    phaseT = d('phaseT');
-    countdown = d('countdown');
-    pyro = List<String>.from(f['pyro']);
-    mode = f['mode'];
-    armed = f['armed'];
+    List<double>? l(String k) => f[k] is List ? [for (final e in f[k] as List) (e as num).toDouble()] : null;
+    double? d(String k) => (f[k] as num?)?.toDouble();
+    pos = l('pos') ?? pos;
+    vel = l('vel') ?? vel;
+    roll = d('roll') ?? roll;
+    pitch = d('pitch') ?? pitch;
+    yaw = d('yaw') ?? yaw;
+    acc = l('acc') ?? acc;
+    gyro = l('gyro') ?? gyro;
+    lat = d('lat') ?? lat;
+    lon = d('lon') ?? lon;
+    voltage = d('voltage') ?? voltage;
+    current = d('current') ?? current;
+    battery = d('battery') ?? battery;
+    rssi = d('rssi') ?? rssi;
+    joints = l('joints') ?? joints;
+    gripper = d('gripper') ?? gripper;
+    ft = l('ft') ?? ft;
+    thrust = d('thrust') ?? thrust;
+    torque = d('torque') ?? torque;
+    rpm = d('rpm') ?? rpm;
+    temp = d('temp') ?? temp;
+    throttleOut = d('thr') ?? throttleOut;
+    maxAlt = d('maxAlt') ?? maxAlt;
+    phaseT = d('phaseT') ?? phaseT;
+    countdown = d('countdown') ?? countdown;
+    if (f['pyro'] is List) pyro = List<String>.from(f['pyro']);
+    if (f['mode'] is String) mode = f['mode'];
+    if (f['armed'] is bool) armed = f['armed'];
     if (f['custom'] is Map) {
       custom
         ..clear()

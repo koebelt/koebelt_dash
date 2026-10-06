@@ -1083,12 +1083,12 @@ class Dash extends ChangeNotifier implements SequenceHost, PadTarget {
     if (i + 1 < fr.length) {
       final t0 = s.timeAt(i), t1 = s.timeAt(i + 1);
       final a = fr[i], b = fr[i + 1], k = t1 > t0 ? ((r.t - t0) / (t1 - t0)).clamp(0.0, 1.0) : 0.0;
-      List<double> l(Map f, String key) => [for (final e in f[key] as List) (e as num).toDouble()];
-      double n(Map f, String key) => (f[key] as num).toDouble();
+      List<double> l(Map f, String key) => [for (final e in f[key] as List? ?? const []) (e as num).toDouble()];
+      double n(Map f, String key) => (f[key] as num?)?.toDouble() ?? 0;
       final pa = l(a, 'pos'), pb = l(b, 'pos');
-      r.tel.pos = [for (var j = 0; j < 3; j++) pa[j] + (pb[j] - pa[j]) * k];
+      if (pa.length == 3 && pb.length == 3) r.tel.pos = [for (var j = 0; j < 3; j++) pa[j] + (pb[j] - pa[j]) * k];
       final ja = l(a, 'joints'), jb = l(b, 'joints');
-      if (ja.length == jb.length) r.tel.joints = [for (var j = 0; j < ja.length; j++) ja[j] + (jb[j] - ja[j]) * k];
+      if (ja.isNotEmpty && ja.length == jb.length) r.tel.joints = [for (var j = 0; j < ja.length; j++) ja[j] + (jb[j] - ja[j]) * k];
       double ang(String key) {
         var d = n(b, key) - n(a, key);
         d = math.atan2(math.sin(d), math.cos(d));
@@ -1102,7 +1102,9 @@ class Dash extends ChangeNotifier implements SequenceHost, PadTarget {
     final p = s.kind == DeviceKind.arm, step = math.max(1, (s.rateHz * .3).round());
     r.tel.trail = [
       for (var k = 0; k <= i; k += step)
-        p ? armFk((fr[k]['joints'] as List).map((e) => (e as num).toDouble()).toList())[5] : (fr[k]['pos'] as List).map((e) => (e as num).toDouble()).toList(),
+        p && fr[k]['joints'] is List
+            ? armFk((fr[k]['joints'] as List).map((e) => (e as num).toDouble()).toList())[5]
+            : (fr[k]['pos'] as List? ?? const [0, 0, 0]).map((e) => (e as num).toDouble()).toList(),
     ];
   }
 
