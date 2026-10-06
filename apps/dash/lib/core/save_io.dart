@@ -31,3 +31,15 @@ Future<String?> saveBytes(String name, Uint8List bytes, String mime) async {
   );
   return r.status == ShareResultStatus.dismissed ? null : 'Shared $name';
 }
+
+/// Native open dialog. Desktop filters by [extensions]; phones list every
+/// file (their pickers know types by UTI / MIME, which log formats lack).
+/// Returns the file name and its bytes, or null when cancelled.
+Future<(String, Uint8List)?> openBytes(String label, List<String> extensions) async {
+  final desktop = Platform.isMacOS || Platform.isWindows || Platform.isLinux;
+  final f = await openFile(
+    acceptedTypeGroups: [desktop ? XTypeGroup(label: label, extensions: extensions) : const XTypeGroup(label: 'Files')],
+  );
+  if (f == null) return null;
+  return (f.name, await f.readAsBytes());
+}

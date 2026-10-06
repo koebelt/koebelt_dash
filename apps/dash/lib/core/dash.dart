@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:isolate';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
@@ -22,6 +23,7 @@ import '../sim/sim_device.dart';
 import '../video/video_hub.dart';
 import 'alerts.dart';
 import 'gamepad.dart';
+import 'log_import.dart';
 import 'model.dart';
 import 'sequence.dart';
 import 'store.dart';
@@ -996,6 +998,31 @@ class Dash extends ChangeNotifier implements SequenceHost, PadTarget {
       store.saveRecording(r.toJson());
     }
     notifyListeners();
+  }
+
+  /// Adds a recording from a file: a koebelt/dash JSON export, an ArduPilot
+  /// .bin or .tlog, or a PX4 .ulg. Parsed off the UI thread. Throws
+  /// [LogImportError] with a message for the user.
+  Future<Recording> importLog(String fileName, Uint8List bytes) async {
+    final log = await Isolate.run(() => parseLog(fileName, bytes));
+    final base = fileName.split(RegExp(r'[/\\]')).last;
+    final r = Recording(
+      id: 'i${DateTime.now().millisecondsSinceEpoch}',
+      name: log.name ?? (base.contains('.') ? base.substring(0, base.lastIndexOf('.')) : base),
+      deviceId: 'import',
+      kind: log.kind,
+      deviceName: log.deviceName,
+      date: _date((log.startedAt ?? DateTime.now()).toLocal()),
+      frames: log.frames,
+      cloud: log.cloud,
+      fresh: true,
+      startedAt: log.startedAt,
+    );
+    sessions.insert(0, r);
+    lastSaved = r;
+    await store.saveRecording(r.toJson());
+    notifyListeners();
+    return r;
   }
 
   void openReplay(String id) {

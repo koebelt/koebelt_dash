@@ -195,9 +195,17 @@ class MavlinkTransport implements Transport {
     _gcsHeartbeat = Timer.periodic(const Duration(seconds: 1), (_) => _sendGcsHeartbeat());
   }
 
+  /// Called synchronously with every app message the adapter produces, in
+  /// addition to [messages]; log import uses it to timestamp them.
+  void Function(Msg m)? tap;
+
   void _emit(Msg m) {
+    tap?.call(m);
     if (!_out.isClosed) _out.add(m);
   }
+
+  /// Converts one vehicle message, as if it had arrived on the link.
+  void feed(MavMsg m) => _onMav(m);
 
   void _mav(int id, Map<String, dynamic> f) => link.write(_enc.encode(id, f));
 

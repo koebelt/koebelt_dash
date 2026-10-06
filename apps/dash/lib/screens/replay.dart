@@ -6,6 +6,7 @@ import '../core/dash.dart';
 import '../core/model.dart';
 import '../ui/icons.dart';
 import 'export_dialog.dart';
+import 'import_dialog.dart';
 import '../theme/tokens.dart';
 import '../ui/components.dart';
 import '../viz/scene3d.dart';
@@ -24,6 +25,14 @@ class ReplayScreen extends StatelessWidget {
         Row(
           children: [
             Expanded(child: MonoLabel('${d.sessions.length} ${d.sessions.length == 1 ? 'session' : 'sessions'}', maxLines: 1)),
+            KButton(
+              'Import',
+              size: KSize.sm,
+              variant: KButtonVariant.ghost,
+              iconLeft: const KIcon('upload', size: 14),
+              onPressed: d.recording ? null : () => importRecording(context, d),
+            ),
+            const SizedBox(width: 8),
             d.recording
                 ? KButton(
                     'Stop · ${mmss(d.t - d.recStart)}',

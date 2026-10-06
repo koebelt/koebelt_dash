@@ -1,4 +1,4 @@
-// Guides: live video, the map, game controllers.
+// Guides: live video, the map, game controllers, alerts, recordings.
 import 'guides_data.dart';
 
 const featureGuides = [
@@ -229,7 +229,58 @@ if (startCamera()) {                        // esp_camera_init + httpd on port 8
       Step.rich(
         'Change the mapping',
         'Settings > Game controller shows every axis and button live. Press Learn next to a row and move the stick or press the button you want; for sticks, push the direction that should be positive (up, right). That covers RC transmitters, whose channels arrive as plain axes: learn each one. Dead zone and expo soften the centre for fine control.',
-        note: 'The controller only drives an armed drone or ground robot, and only while you move it: let go and the on-screen sticks work again. Buttons work on every kind of device. STOP on the controller is as good as the STOP button.',
+        note: 'The controller only drives an armed drone, ground robot or arm, and only while you move it: let go and the on-screen sticks work again. Buttons work on every kind of device. STOP on the controller is as good as the STOP button.',
+      ),
+    ],
+  ),
+  Guide('alerts', 'Alerts', 'Warnings for a low battery, a weak signal, altitude and distance limits, with sound and vibration.', 3, section: 'features', [
+    Step.rich(
+      'What is watched',
+      'Settings > Alerts lists every limit with a switch and a value. An alert fires once its value has been past the limit for a second, so a single noisy reading does not set it off, and clears when the value is back by a small margin.',
+      table: [
+        ['Alert', 'Default', 'Needs the device to send'],
+        ['Battery low', 'Below 25 %', 'bat with a percentage'],
+        ['Battery critical', 'Below 10 %, repeats until acknowledged', 'bat with a percentage'],
+        ['Battery voltage', 'Off; set it for your pack', 'bat'],
+        ['Weak signal', 'Below −85 dBm', 'rssi'],
+        ['High latency', 'Above 400 ms', 'Nothing: the app measures it'],
+        ['Altitude ceiling', 'Above 120 m, drones', 'pos'],
+        ['Distance from home', 'Above 300 m, drones and ground robots', 'pos'],
+        ['Temperature', 'Above 70 °C', 'temp'],
+      ],
+      note: 'An alert only watches values the device actually sends: a rover without a battery monitor never shows a battery alert.',
+    ),
+    Step.rich(
+      'When one fires',
+      'A banner appears under the top bar, orange for warnings and red for critical alerts, with the value and the limit. OK hides it until the value clears and crosses the limit again. Computers play the system alert sound; phones vibrate when haptics are on. A lost link sounds the same way. Alerts are not checked during replays.',
+    ),
+  ]),
+  Guide(
+    'recordings',
+    'Recordings and flight logs',
+    'Record at the full telemetry rate, export, and open ArduPilot and PX4 logs in the replay view.',
+    4,
+    section: 'features',
+    [
+      Step.rich(
+        'Recording',
+        'Record (on the Replay screen, the drive screens or a controller button) keeps every telemetry message at the rate set in Settings > Telemetry rate, up to 60 Hz, each with its own time. A device that goes quiet still gets two frames a second, so mode changes and gaps stay on the timeline.',
+        note: 'Video is not recorded with sessions: replays show telemetry only.',
+      ),
+      Step.rich(
+        'Import',
+        'Import on the Replay screen opens a file and plays it like any session: the 3D views, the map, the charts and export all work on it.',
+        table: [
+          ['File', 'From', 'What comes in'],
+          ['.json', 'Export from koebelt/dash', 'Everything, as recorded'],
+          ['.bin', 'ArduPilot flight controller, from the SD card or Mission Planner', 'Attitude, IMU, GPS and position, battery, flight modes, arming'],
+          ['.tlog', 'Mission Planner, QGroundControl, MAVProxy', 'What the ground station received, read like a live MAVLink link'],
+          ['.ulg', 'PX4 flight controller, from the SD card or QGroundControl', 'Attitude, IMU, local position, GPS, battery, flight modes, arming'],
+        ],
+        bullets: [
+          'Flight controller logs are thinned to 50 frames a second; that is plenty for replay and keeps the file small.',
+          'Positions are metres from home: the AHRS home in ArduPilot logs, the first GPS fix otherwise, and PX4\'s local position frame.',
+        ],
       ),
     ],
   ),
