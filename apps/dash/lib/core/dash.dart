@@ -89,7 +89,31 @@ class Recording {
   final List<List<double>> cloud;
   bool fresh;
   final bool demo;
-  double get dur => frames.length / 10;
+
+  /// Seconds from the start of frame [i]. Frames carry their time in `t`
+  /// (recorded at the telemetry rate); older recordings are 10 Hz without it.
+  double timeAt(int i) => (frames[i]['t'] as num?)?.toDouble() ?? i / 10;
+
+  double get dur => frames.isEmpty ? 0 : (frames.last['t'] is num ? timeAt(frames.length - 1) : frames.length / 10);
+
+  /// Average frame rate.
+  double get rateHz => frames.length < 2 || dur <= 0 ? 10 : (frames.length - 1) / timeAt(frames.length - 1).clamp(1e-3, double.infinity);
+
+  /// Last frame at or before [t] seconds.
+  int frameAt(double t) {
+    if (frames.isEmpty) return 0;
+    if (frames.first['t'] is! num) return (t * 10).floor().clamp(0, frames.length - 1);
+    var lo = 0, hi = frames.length - 1;
+    while (lo < hi) {
+      final mid = (lo + hi + 1) >> 1;
+      if (timeAt(mid) <= t) {
+        lo = mid;
+      } else {
+        hi = mid - 1;
+      }
+    }
+    return lo;
+  }
 
   Map<String, dynamic> toJson() => {
     'id': id,
@@ -286,7 +310,8 @@ class Dash extends ChangeNotifier implements SequenceHost, PadTarget {
   bool recording = false;
   double recStart = 0;
   List<Map<String, dynamic>>? _recFrames;
-  double _recAcc = 0;
+  final _recClock = Stopwatch();
+  double _recLast = -1;
   Recording? lastSaved;
   final List<Recording> sessions = [];
 
@@ -556,13 +581,9 @@ class Dash extends ChangeNotifier implements SequenceHost, PadTarget {
       r.tick(dt);
       if ((r.state, r.index) != before) notifyListeners();
     }
-    if (recording && replay == null) {
-      _recAcc += dt;
-      while (_recAcc > .1) {
-        _recFrames!.add(liveTel.snapshot());
-        _recAcc -= .1;
-      }
-    }
+    // Frames come with telemetry; a quiet device still gets two a second,
+    // so mode changes and gaps stay on the timeline.
+    if (recording && replay == null && _recClock.elapsedMicroseconds / 1e6 - _recLast > .5) _recFrame(force: true);
     _sampleAcc += dt;
     while (_sampleAcc > 1 / 30) {
       if (hasDevice || replay != null) {
@@ -705,6 +726,7 @@ class Dash extends ChangeNotifier implements SequenceHost, PadTarget {
     switch (m['t']) {
       case 'tlm':
         if (m['d'] is Map) liveTel.applyTlm((m['d'] as Map).cast<String, dynamic>(), ts: m['ts'] as num?);
+        if (recording && replay == null) _recFrame();
         final d = device;
         if (d != null) d.battery = liveTel.battery.round();
       case 'state':
@@ -929,8 +951,24 @@ class Dash extends ChangeNotifier implements SequenceHost, PadTarget {
     recording = true;
     recStart = t;
     _recFrames = [];
-    _recAcc = 0;
+    _recClock
+      ..reset()
+      ..start();
+    _recLast = -1;
+    _recFrame();
     notifyListeners();
+  }
+
+  /// One frame per telemetry message, up to the telemetry rate set in
+  /// Settings (devices that send several partial messages per cycle do not
+  /// multiply frames).
+  void _recFrame({bool force = false}) {
+    final fr = _recFrames;
+    if (fr == null) return;
+    final now = _recClock.elapsedMicroseconds / 1e6;
+    if (!force && _recLast >= 0 && now - _recLast < .9 / settings.rateHz) return;
+    _recLast = now;
+    fr.add(liveTel.snapshot()..['t'] = (now * 1000).round() / 1000);
   }
 
   void stopRec() {
@@ -938,6 +976,7 @@ class Dash extends ChangeNotifier implements SequenceHost, PadTarget {
     final fr = _recFrames!;
     recording = false;
     _recFrames = null;
+    _recClock.stop();
     if (fr.length > 5) {
       final d = device!;
       final r = Recording(
@@ -950,7 +989,7 @@ class Dash extends ChangeNotifier implements SequenceHost, PadTarget {
         frames: fr,
         cloud: liveTel.cloud.length > 6000 ? liveTel.cloud.sublist(0, 6000) : List.of(liveTel.cloud),
         fresh: true,
-        startedAt: DateTime.now().subtract(Duration(milliseconds: fr.length * 100)),
+        startedAt: DateTime.now().subtract(Duration(microseconds: _recClock.elapsedMicroseconds)),
       );
       sessions.insert(0, r);
       lastSaved = r;
@@ -991,11 +1030,12 @@ class Dash extends ChangeNotifier implements SequenceHost, PadTarget {
     }
     final fr = r.session.frames;
     if (fr.isEmpty) return;
-    final i = math.min(fr.length - 1, (r.t * 10).floor());
+    final s = r.session, i = s.frameAt(r.t);
     r.tel.applyFrame(fr[i]);
-    // Frames are 10 Hz: interpolate the pose between this frame and the next.
+    // Interpolate the pose between this frame and the next.
     if (i + 1 < fr.length) {
-      final a = fr[i], b = fr[i + 1], k = (r.t * 10 - i).clamp(0.0, 1.0);
+      final t0 = s.timeAt(i), t1 = s.timeAt(i + 1);
+      final a = fr[i], b = fr[i + 1], k = t1 > t0 ? ((r.t - t0) / (t1 - t0)).clamp(0.0, 1.0) : 0.0;
       List<double> l(Map f, String key) => [for (final e in f[key] as List) (e as num).toDouble()];
       double n(Map f, String key) => (f[key] as num).toDouble();
       final pa = l(a, 'pos'), pb = l(b, 'pos');
@@ -1012,9 +1052,9 @@ class Dash extends ChangeNotifier implements SequenceHost, PadTarget {
       r.tel.roll = ang('roll');
       r.tel.pitch = ang('pitch');
     }
-    final p = r.session.kind == DeviceKind.arm;
+    final p = s.kind == DeviceKind.arm, step = math.max(1, (s.rateHz * .3).round());
     r.tel.trail = [
-      for (var k = 0; k <= i; k += 3)
+      for (var k = 0; k <= i; k += step)
         p ? armFk((fr[k]['joints'] as List).map((e) => (e as num).toDouble()).toList())[5] : (fr[k]['pos'] as List).map((e) => (e as num).toDouble()).toList(),
     ];
   }

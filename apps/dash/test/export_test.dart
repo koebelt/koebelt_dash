@@ -40,7 +40,7 @@ void main() {
     expect(lines.length - 2, r.frames.length);
     final row = lines[2 + 10].split(',');
     expect(row.length, head.length);
-    expect(row[0], '1.0', reason: '10 Hz time column');
+    expect(row[0], '1.000', reason: 'legacy 10 Hz recordings: time from the frame index');
     // commas and quotes in names are escaped in the comment line only; fields stay numeric
     expect(double.tryParse(row[head.indexOf('lat_deg')]), closeTo(47.3769, .01));
   });

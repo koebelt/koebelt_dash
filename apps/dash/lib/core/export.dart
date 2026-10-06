@@ -6,7 +6,7 @@ import 'dart:math' as math;
 import 'dash.dart';
 
 enum ExportFormat {
-  csv('CSV', 'csv', 'text/csv', 'One row per frame (10 Hz), one column per channel. Opens in spreadsheets, pandas, MATLAB.'),
+  csv('CSV', 'csv', 'text/csv', 'One row per frame at the recorded rate, one column per channel. Opens in spreadsheets, pandas, MATLAB.'),
   json('JSON', 'json', 'application/json', 'The full recording including the point cloud. Lossless.'),
   gpx('GPX', 'gpx', 'application/gpx+xml', 'GPS track for maps and flight-log tools.');
 
@@ -25,7 +25,9 @@ String exportFileName(Recording r, ExportFormat f) {
 
 String exportRecording(Recording r, ExportFormat f) => switch (f) {
   ExportFormat.csv => toCsv(r),
-  ExportFormat.json => const JsonEncoder.withIndent('  ').convert({'format': 'koebelt-dash-recording', 'version': 1, 'rateHz': 10, ...r.toJson()}),
+  ExportFormat.json => const JsonEncoder.withIndent(
+    '  ',
+  ).convert({'format': 'koebelt-dash-recording', 'version': 1, 'rateHz': (r.rateHz * 10).round() / 10, ...r.toJson()}),
   ExportFormat.gpx => toGpx(r),
 };
 
@@ -129,12 +131,12 @@ Iterable<void> _csvRows(Recording r, StringBuffer b) sync* {
     ..writeln(
       '# koebelt/dash recording: ${r.name} · ${r.deviceName} (${r.kind.name}) · ${r.date}'
       '${r.startedAt != null ? ' · started ${r.startedAt!.toUtc().toIso8601String()}' : ''}'
-      ' · 10 Hz · position in metres from home, east/north/up',
+      ' · ${r.rateHz.round()} Hz · position in metres from home, east/north/up',
     )
     ..writeln(['t_s', for (final c in cols) c.$1].join(','));
   for (var i = 0; i < r.frames.length; i++) {
     final f = r.frames[i];
-    b.writeln([(i / 10).toStringAsFixed(1), for (final c in cols) _csvField(c.$2(f))].join(','));
+    b.writeln([r.timeAt(i).toStringAsFixed(3), for (final c in cols) _csvField(c.$2(f))].join(','));
     yield null;
   }
 }
@@ -156,7 +158,7 @@ String toGpx(Recording r) {
     final lat = f['lat'], lon = f['lon'];
     if (lat is! num || lon is! num || (lat == 0 && lon == 0)) continue;
     final ele = f['galt'] is num ? '<ele>${_n(f['galt'], 2)}</ele>' : '';
-    final t = r.startedAt == null ? '' : '<time>${r.startedAt!.add(Duration(milliseconds: i * 100)).toUtc().toIso8601String()}</time>';
+    final t = r.startedAt == null ? '' : '<time>${r.startedAt!.add(Duration(microseconds: (r.timeAt(i) * 1e6).round())).toUtc().toIso8601String()}</time>';
     b.writeln('    <trkpt lat="${_n(lat, 7)}" lon="${_n(lon, 7)}">$ele$t</trkpt>');
   }
   b
