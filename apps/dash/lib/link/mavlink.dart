@@ -104,6 +104,19 @@ const mavDefs = <int, MavDef>{
     MavField('hdg_acc', _u32),
     MavField('yaw', _u16),
   ]),
+  26: MavDef(26, 'SCALED_IMU', 170, [
+    MavField('time_boot_ms', _u32),
+    MavField('xacc', _i16),
+    MavField('yacc', _i16),
+    MavField('zacc', _i16),
+    MavField('xgyro', _i16),
+    MavField('ygyro', _i16),
+    MavField('zgyro', _i16),
+    MavField('xmag', _i16),
+    MavField('ymag', _i16),
+    MavField('zmag', _i16),
+    MavField('temperature', _i16),
+  ]),
   27: MavDef(27, 'RAW_IMU', 144, [
     MavField('time_usec', _u64),
     MavField('xacc', _i16),
@@ -238,6 +251,24 @@ const mavDefs = <int, MavDef>{
     MavField('result_param2', _i32),
     MavField('target_system', _u8),
     MavField('target_component', _u8),
+  ]),
+  105: MavDef(105, 'HIGHRES_IMU', 93, [
+    MavField('time_usec', _u64),
+    MavField('xacc', _f),
+    MavField('yacc', _f),
+    MavField('zacc', _f),
+    MavField('xgyro', _f),
+    MavField('ygyro', _f),
+    MavField('zgyro', _f),
+    MavField('xmag', _f),
+    MavField('ymag', _f),
+    MavField('zmag', _f),
+    MavField('abs_pressure', _f),
+    MavField('diff_pressure', _f),
+    MavField('pressure_alt', _f),
+    MavField('temperature', _f),
+    MavField('fields_updated', _u16),
+    MavField('id', _u8),
   ]),
   109: MavDef(109, 'RADIO_STATUS', 185, [
     MavField('rxerrors', _u16),
@@ -421,6 +452,7 @@ class MavParser {
 // ---- enums used by the adapter (common.xml)
 abstract final class Mav {
   static const heartbeat = 0, sysStatus = 1, setMode = 11, paramRequestList = 21, paramValue = 22, paramSet = 23, gpsRawInt = 24, rawImu = 27;
+  static const scaledImu = 26, highresImu = 105;
   static const attitude = 30, localPositionNed = 32, globalPositionInt = 33, requestDataStream = 66, manualControl = 69, vfrHud = 74;
   static const missionRequest = 40, missionCurrent = 42, missionCount = 44, missionClearAll = 45, missionItemReached = 46, missionAck = 47;
   static const missionRequestInt = 51, missionItemInt = 73;

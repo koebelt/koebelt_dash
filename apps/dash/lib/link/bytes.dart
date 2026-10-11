@@ -127,6 +127,7 @@ class UdpHub {
   static Future<UdpHub> acquire(int port) async {
     final h = _hubs.putIfAbsent(port, () => UdpHub._(port));
     h._users++;
+    h._closing?.cancel();
     await (h._opening ??= h._open());
     return h;
   }
@@ -148,12 +149,23 @@ class UdpHub {
     } catch (_) {}
   }
 
+  /// How long the socket stays open after its last user, so finding a
+  /// vehicle and then connecting to it use one socket: closing the port in
+  /// between makes some NATs and forwarders (Docker on macOS) give the
+  /// vehicle a new source port, and the link would no longer recognise it.
+  static Duration linger = const Duration(seconds: 5);
+  Timer? _closing;
+
   void release() {
     if (--_users > 0) return;
-    _sock?.close();
-    _sock = null;
-    _opening = null;
-    _hubs.remove(port);
+    _closing?.cancel();
+    _closing = Timer(linger, () {
+      if (_users > 0) return;
+      _sock?.close();
+      _sock = null;
+      _opening = null;
+      _hubs.remove(port);
+    });
   }
 }
 

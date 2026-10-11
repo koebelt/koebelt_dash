@@ -1,7 +1,7 @@
 """A stand-in ArduCopter for the app's MAVLink tests, built on pymavlink so
 the app's encoder and decoder are checked against an independent one.
 
-    python mav_vehicle.py VEHICLE_PORT GCS_PORT SECONDS
+    python mav_vehicle.py VEHICLE_PORT GCS_PORT SECONDS [refuse-auto]
 
 Streams heartbeat, attitude, position, battery and GPS to 127.0.0.1:GCS_PORT,
 answers parameters, commands and time sync, takes mission uploads and flies
@@ -17,6 +17,8 @@ import time
 from pymavlink.dialects.v20 import common as m
 
 vport, gport, secs = int(sys.argv[1]), int(sys.argv[2]), float(sys.argv[3])
+# Like ArduCopter before its EKF uses GPS: no AUTO, no mission start.
+refuse_auto = "refuse-auto" in sys.argv[4:]
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sock.bind(("127.0.0.1", vport))
 sock.setblocking(False)
@@ -64,6 +66,10 @@ def handle(msg):
             if msg.param2 == 21196:
                 log["force_disarm"] = True
         elif c == m.MAV_CMD_DO_SET_MODE:
+            if refuse_auto and int(msg.param2) == 3:
+                mav.statustext_send(m.MAV_SEVERITY_WARNING, b"Mode change to Auto failed: requires position")
+                mav.command_ack_send(c, m.MAV_RESULT_FAILED)
+                return
             state["mode"] = int(msg.param2)
             log["modes"].append(int(msg.param2))
             if state["mode"] == 3 and mission["cur"] < 1:
@@ -77,6 +83,9 @@ def handle(msg):
             log["intervals"] += 1
         elif c == m.MAV_CMD_MISSION_START:
             log["mission_start"] += 1
+            if refuse_auto:
+                mav.command_ack_send(c, m.MAV_RESULT_FAILED)
+                return
             start_mission()
         mav.command_ack_send(c, 0)
     elif t == "COMMAND_INT" and msg.command == m.MAV_CMD_DO_REPOSITION:
@@ -119,7 +128,7 @@ def start_mission():
 def fly_mission(dt):
     """Very fast ArduCopter: 20 m/s, items done as soon as they are reached."""
     items, i = mission["items"], mission["cur"]
-    if state["mode"] != 3 or i < 1 or i >= len(items):
+    if state["mode"] != 3 or not state["armed"] or i < 1 or i >= len(items):
         return
     it = items[i]
     mav.mission_current_send(i, len(items), 0, 0)
@@ -150,6 +159,10 @@ def fly_mission(dt):
         mav.mission_item_reached_send(i)
         mission["cur"] += 1
         mission["since"] = 0.0
+        if not state["armed"]:
+            # ArduCopter rewinds to the first item after landing and disarming.
+            mission["cur"] = 1
+            mav.mission_current_send(1, len(items), 0, 0)
 
 
 t0 = time.monotonic()

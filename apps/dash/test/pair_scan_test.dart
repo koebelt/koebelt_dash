@@ -37,6 +37,6 @@ void main() {
 
     Navigator.of(ctx).pop();
     await tester.pumpWidget(const SizedBox());
-    await tester.pump(const Duration(seconds: 1));
+    await tester.pump(const Duration(seconds: 6)); // the UDP ports linger 5 s after the scan
   });
 }

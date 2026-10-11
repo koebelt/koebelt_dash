@@ -291,6 +291,12 @@ ImportedLog _dataflash(Uint8List b) {
     switch (f.name) {
       case 'MSG':
         final m = '${v['Message']}';
+        // Logs usually start at arming (LOG_DISARMED off), after the ARM
+        // record, but always carry these texts.
+        if (m == 'Arming motors' || m == 'Disarming motors') {
+          armed = m == 'Arming motors';
+          state();
+        }
         final w = RegExp(r'^(?:APM:)?(Ardu\w+|Copter|Plane|Rover|Sub|Blimp|AntennaTracker)\b').firstMatch(m)?.group(1);
         if (w != null) {
           final cls = w.replaceFirst('Ardu', '');

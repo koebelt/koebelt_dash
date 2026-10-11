@@ -41,6 +41,34 @@ void main() {
     );
   });
 
+  test('PX4 and ArduPilot IMU messages decode like pymavlink made them', () {
+    // SCALED_IMU (mg, mrad/s) and HIGHRES_IMU (SI) from pymavlink.
+    const scaled = 'fd1700000901011a0000d20400000a00ecffd403010002000300040005000600fadc6b';
+    const highres =
+        'fd3d00000a01016900002e16000000000000cdcccc3dcdcc4cbecdcc1c410ad7233c0ad7a33c8fc2f53ccdcc4c3e9a99993ecdcccc3e00407d44000000000000c8430000c84107f576';
+    final ms = MavParser().add(unhex(scaled + highres));
+    expect(ms.map((m) => m.id), [Mav.scaledImu, Mav.highresImu]);
+    expect(ms[0].n('zacc'), 980);
+    expect(ms[0].n('temperature'), 250);
+    expect(ms[1].n('zacc'), closeTo(9.8, 1e-5));
+    expect(ms[1].n('zgyro'), closeTo(.03, 1e-6));
+    // Through the adapter: both become the app's imu channel.
+    final t = MavlinkTransport(MemoryByteLink.pair().$1);
+    final got = <Map>[];
+    t.tap = (m) => m['t'] == 'tlm' ? got.add(m['d'] as Map) : null;
+    for (final m in MavParser().add(unhex(hb))) {
+      t.feed(m);
+    }
+    for (final m in ms) {
+      t.feed(m);
+    }
+    final imu = [for (final d in got) (d['imu'] as List).cast<num>()];
+    expect(imu[0][2], closeTo(980 * 9.80665 / 1000, 1e-6));
+    expect(imu[1], [
+      for (final v in [.1, -.2, 9.8, .01, .02, .03]) closeTo(v, 1e-5),
+    ]);
+  });
+
   test('parses split, noisy and truncated frames', () {
     final p = MavParser();
     final bytes = [0x00, 0xFD, 0x13, ...unhex(hb), ...unhex(att)];
@@ -266,5 +294,45 @@ void main() {
     },
     skip: hasPymavlink ? false : 'needs pymavlink in libs/python/.venv',
     timeout: const Timeout(Duration(seconds: 40)),
+  );
+
+  test(
+    'through the app: a mission the vehicle refuses to start fails with its reason',
+    () async {
+      const vport = 14574;
+      final proc = await Process.start(py.path, ['test/fixtures/mav_vehicle.py', '$vport', '14550', '6', 'refuse-auto']);
+      addTearDown(proc.kill);
+      TestWidgetsFlutterBinding.ensureInitialized();
+      SharedPreferences.setMockInitialValues({});
+      final d = Dash();
+      await d.init();
+      final dev = d.addManual('Copter', '127.0.0.1:$vport', DeviceKind.drone, proto: 'mavlink');
+      await d.connect(dev.id);
+      await wait(1200);
+      d.runSequence(
+        Sequence(
+          id: 'm2',
+          name: 'Refused',
+          kind: DeviceKind.drone,
+          steps: [
+            SeqStep('arm', {'v': 'ARM'}),
+            SeqStep('takeoff', {'alt': 10.0}),
+            SeqStep('land', {}),
+          ],
+        ),
+      );
+      final r = d.runner!;
+      final sw = Stopwatch()..start();
+      while (r.state == RunState.running && sw.elapsedMilliseconds < 5000) {
+        await wait(20);
+        d.tick(.02);
+      }
+      expect(r.state, RunState.failed, reason: 'not stuck at "Starting the mission"');
+      expect(r.message, contains('requires position'));
+      await d.disconnect();
+      d.dispose();
+    },
+    skip: hasPymavlink ? false : 'needs pymavlink in libs/python/.venv',
+    timeout: const Timeout(Duration(seconds: 30)),
   );
 }

@@ -283,7 +283,12 @@ class MavlinkTransport implements Transport {
         _tlm({
           'bat': [v, a < 0 ? 0 : a / 100, if (p >= 0) p],
         }, null);
-      case Mav.rawImu:
+      case Mav.highresImu:
+        // PX4: SI units.
+        _tlm({
+          'imu': [m.n('xacc'), m.n('yacc'), m.n('zacc'), m.n('xgyro'), m.n('ygyro'), m.n('zgyro')].map((v) => v.toDouble()).toList(),
+        }, null);
+      case Mav.rawImu || Mav.scaledImu:
         const g = 9.80665;
         _tlm({
           'imu': [
@@ -305,12 +310,14 @@ class MavlinkTransport implements Transport {
         _home = (m.n('latitude') / 1e7, m.n('longitude') / 1e7, m.n('altitude') / 1000);
       case Mav.statustext:
         final sev = m.n('severity').toInt();
+        if (sev <= 4) _lastWarning = '${m.f['text']}';
         _emit({'t': 'log', 'lvl': sev <= 3 ? 'error' : (sev == 4 ? 'warn' : 'info'), 'msg': '${m.f['text']}'});
       case Mav.commandAck:
         final r = m.n('result').toInt();
         if (r != 0 && r != 5) {
           const why = {1: 'temporarily rejected', 2: 'denied', 3: 'not supported', 4: 'failed', 6: 'cancelled'};
           _emit({'t': 'log', 'lvl': 'warn', 'msg': 'Vehicle refused command ${m.n('command')}: ${why[r] ?? 'result $r'}'});
+          _startRefused(m.n('command').toInt());
         }
       case Mav.paramValue:
         _onParam(m);
@@ -378,7 +385,9 @@ class MavlinkTransport implements Transport {
     final rate = hz.clamp(1, 20).toInt();
     // ArduPilot: stream groups. PX4 ignores these and uses message intervals.
     _mav(Mav.requestDataStream, {'req_message_rate': rate, 'target_system': sys, 'target_component': comp, 'req_stream_id': 0, 'start_stop': 1});
-    for (final (id, r) in [(Mav.attitude, rate), (Mav.globalPositionInt, rate), (Mav.sysStatus, 2), (Mav.gpsRawInt, 2), (Mav.rawImu, rate)]) {
+    // PX4 has no RAW_IMU stream; it sends HIGHRES_IMU.
+    final imu = autopilot == Mav.px4 ? Mav.highresImu : Mav.rawImu;
+    for (final (id, r) in [(Mav.attitude, rate), (Mav.globalPositionInt, rate), (Mav.sysStatus, 2), (Mav.gpsRawInt, 2), (imu, rate)]) {
       _command(Mav.cmdSetMessageInterval, [id.toDouble(), 1e6 / r]);
     }
   }
@@ -560,6 +569,21 @@ class MavlinkTransport implements Transport {
   Map<String, Object?>? _run;
   bool _mPausing = false, _mSeenAuto = false;
 
+  /// The autopilot's last warning or error text (pre-arm and mode refusals).
+  String? _lastWarning;
+
+  /// Arming, AUTO or the mission start refused while starting: the run
+  /// fails with the autopilot's reason instead of waiting for ever.
+  void _startRefused(int cmd) {
+    final r = _run;
+    if (r == null || r['st'] != 'run' || _mSeenAuto) return;
+    if (cmd != Mav.cmdArmDisarm && cmd != Mav.cmdDoSetMode && cmd != Mav.cmdMissionStart) return;
+    final what = cmd == Mav.cmdArmDisarm ? 'arm' : 'start the mission';
+    r['st'] = 'fail';
+    r['msg'] = 'The vehicle would not $what${_lastWarning == null ? '' : ': $_lastWarning'}';
+    _state();
+  }
+
   void _missionUpload(Msg m) {
     final id = '${m['id']}', steps = m['steps'];
     void fail(String err) => _emit({'t': 'seqack', 'id': id, 'ok': false, 'err': err});
@@ -685,6 +709,7 @@ class MavlinkTransport implements Transport {
   }
 
   void _missionStart() {
+    _lastWarning = null;
     _run = {'id': _mId, 'i': 0, 'n': _mNSteps, 'st': 'run', 'msg': 'Starting the mission'};
     _mPausing = false;
     _mSeenAuto = false;
@@ -729,8 +754,9 @@ class MavlinkTransport implements Transport {
   void _onMissionCurrent(int seq) {
     final r = _run;
     if (r == null || r['st'] != 'run' || seq >= _mStep.length) return;
+    // Forward only: ArduPilot rewinds to item 1 after landing and disarming.
     final i = _mStep[seq];
-    if (r['i'] != i) {
+    if (i > (r['i'] as int)) {
       r['i'] = i;
       _state();
     }

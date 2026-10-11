@@ -90,6 +90,29 @@ void main() {
     }
   });
 
+  test('ArduCopter 4.7 from SITL (written by test/sitl_test.dart, when present)', () {
+    final f = File('test/fixtures/logs/sitl-arducopter.BIN');
+    if (!f.existsSync()) return markTestSkipped('run SITL=1 flutter test test/sitl_test.dart once');
+    final l = parseLog('sitl-arducopter.BIN', f.readAsBytesSync());
+    expect(l.deviceName, 'ArduCopter');
+    expect(l.frames.first['armed'], isTrue, reason: 'the log opens at arming');
+    expect(l.frames.last['armed'], isFalse, reason: 'and ends disarmed');
+    expect(l.frames.any((x) => (x['seen'] as List).contains('bat') && (x['battery'] as num) < 100), isTrue);
+    expect(l.startedAt!.year, greaterThanOrEqualTo(2020), reason: 'GPS time');
+  });
+
+  test('PX4 1.17 from SITL (written by test/sitl_test.dart, when present)', () {
+    final f = File('test/fixtures/logs/sitl-px4.ulg');
+    if (!f.existsSync()) return markTestSkipped('run SITL=1 flutter test test/sitl_test.dart once');
+    final l = parseLog('sitl-px4.ulg', f.readAsBytesSync());
+    expect(l.deviceName, 'PX4');
+    final fr = l.frames;
+    expect(fr.any((x) => (x['seen'] as List).contains('gps')), isTrue, reason: 'sensor_gps / vehicle_gps_position');
+    expect(fr.any((x) => (x['battery'] as num? ?? 100) < 100), isTrue, reason: 'battery_status');
+    expect(fr.any((x) => x['armed'] == true), isTrue);
+    expect({for (final x in fr) x['mode']}, contains('AUTO'), reason: 'AUTO.MISSION');
+  });
+
   test('MAVLink .tlog through the live adapter', () async {
     final b = await _log('vtol.tlog');
     if (b == null) return markTestSkipped('offline');
