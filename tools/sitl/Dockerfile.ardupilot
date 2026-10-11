@@ -1,0 +1,19 @@
+# ArduPilot SITL (software in the loop): the real autopilot code with a
+# simulated vehicle, for testing koebelt/dash without hardware.
+# Prebuilt binaries are x86-64 Linux; on Apple silicon Docker emulates them.
+FROM --platform=linux/amd64 debian:bookworm-slim
+ARG VERSION=stable
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl && rm -rf /var/lib/apt/lists/*
+WORKDIR /sitl
+RUN set -e; for v in Copter:arducopter Plane:arduplane Rover:ardurover; do \
+      dir=${v%%:*}; bin=${v#*:}; url=https://firmware.ardupilot.org/$dir/$VERSION/SITL_x86_64_linux_gnu; \
+      curl -fsSL -o $bin $url/$bin; chmod +x $bin; \
+      curl -fsSL -o $bin.version $url/firmware-version.txt; \
+    done
+# Default parameters for the simulated frames, from the matching release.
+RUN set -e; base=https://raw.githubusercontent.com/ArduPilot/ardupilot/Copter-$(cut -d- -f1 arducopter.version)/Tools/autotest; \
+    curl -fsSL -o copter.parm $base/default_params/copter.parm; \
+    curl -fsSL -o plane.parm $base/models/plane.parm; \
+    curl -fsSL -o rover.parm $base/default_params/rover.parm
+COPY entry.sh /sitl/entry.sh
+ENTRYPOINT ["/sitl/entry.sh"]

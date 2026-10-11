@@ -141,6 +141,7 @@ const connectionGuides = [
           'Sticks are sent as MANUAL_CONTROL while armed in a manual mode. ArduPilot only accepts them from the ground station in SYSID_MYGCS (255, the default).',
           'Go to uses DO_REPOSITION. Sequences of take off, fly to, wait, land and return home are uploaded as a mission and flown in AUTO, so they carry on if the link drops. Both need a GPS fix and a home position.',
           'Parameters appear on the Tune screen, grouped by prefix. The autopilot saves them as soon as they are written.',
+          'Tested against ArduCopter and ArduRover 4.7 and PX4 1.17 in simulation (SITL). You can run the same simulators yourself: tools/sitl in the repository.',
         ],
         warn: true,
         note: 'STOP force-disarms the vehicle: the motors stop even in flight, exactly as STOP does on every other device. Set FS_GCS_ENABLE (ArduPilot) or the data link loss action (PX4) so the vehicle acts on its own if the app goes away.',

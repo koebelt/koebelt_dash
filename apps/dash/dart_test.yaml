@@ -1,0 +1,3 @@
+tags:
+  # Autopilot simulators in Docker (tools/sitl): SITL=1 flutter test test/sitl_test.dart
+  sitl:

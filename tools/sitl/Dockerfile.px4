@@ -1,0 +1,12 @@
+# PX4 SITL with its built-in physics (SIH, no Gazebo), built from source.
+# Native on x86-64 and ARM (Apple silicon); the first build takes a while.
+FROM ubuntu:24.04
+ARG PX4_TAG=v1.17.0
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y --no-install-recommends sudo git ca-certificates socat lsb-release && rm -rf /var/lib/apt/lists/*
+RUN git clone --depth 1 --branch $PX4_TAG --recursive --shallow-submodules https://github.com/PX4/PX4-Autopilot.git /px4
+WORKDIR /px4
+RUN bash Tools/setup/ubuntu.sh --no-nuttx --no-sim-tools && rm -rf /var/lib/apt/lists/*
+RUN make px4_sitl_default && echo $PX4_TAG > /px4/VERSION
+COPY entry-px4.sh /entry.sh
+ENTRYPOINT ["/entry.sh"]

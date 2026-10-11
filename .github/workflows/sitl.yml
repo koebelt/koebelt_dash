@@ -1,0 +1,29 @@
+name: sitl
+# The app against the real ArduPilot and PX4 in simulation (tools/sitl).
+# Slow, so weekly and on demand rather than on every push.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 3 * * 1"
+
+jobs:
+  sitl:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    defaults: { run: { working-directory: apps/dash } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable }
+      - run: docker build -t koebelt/sitl-ardupilot -f Dockerfile.ardupilot .
+        working-directory: tools/sitl
+      - run: docker build -t koebelt/sitl-px4 -f Dockerfile.px4 .
+        working-directory: tools/sitl
+      - run: flutter pub get
+      - run: SITL=1 flutter test test/sitl_test.dart
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: autopilot-logs
+          path: apps/dash/test/fixtures/logs/sitl-*
+          if-no-files-found: ignore
