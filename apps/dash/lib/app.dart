@@ -889,21 +889,27 @@ class NoDevice extends StatelessWidget {
                       ),
                     ),
                   ),
+                SizedBox(height: phone ? 20 : 28),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: KButton('Pair new device', iconLeft: const KIcon('plus', size: 16), onPressed: () => showPairDialog(context, d, go)),
+                ),
                 SizedBox(height: phone ? 24 : 32),
-                Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: [
-                    KButton(
-                      'Pair new device',
-                      variant: KButtonVariant.secondary,
-                      iconLeft: const KIcon('plus', size: 16),
-                      onPressed: () => showPairDialog(context, d, go),
-                    ),
-                    KButton('Set up the library', variant: KButtonVariant.ghost, onPressed: () => go('guides')),
-                    KButton('Open a recording', variant: KButtonVariant.ghost, onPressed: () => go('replay')),
-                    KButton('Add a simulated device', variant: KButtonVariant.ghost, onPressed: () => showPairDialog(context, d, go, simulated: true)),
-                  ],
+                const MonoLabel('Or'),
+                const SizedBox(height: 8),
+                hairline,
+                _Option(
+                  icon: 'devices',
+                  title: 'Add a simulated device',
+                  desc: 'A virtual drone, rover, arm, rocket or test bench, to try the app without hardware.',
+                  onTap: () => showPairDialog(context, d, go, simulated: true),
+                ),
+                _Option(icon: 'replay', title: 'Open a recording', desc: 'Replay a session, a flight log or the sample recordings.', onTap: () => go('replay')),
+                _Option(
+                  icon: 'book',
+                  title: 'Set up the library',
+                  desc: 'Add koebelt/link to your Arduino, Python, ROS 2 or Rust project.',
+                  onTap: () => go('guides'),
                 ),
               ],
             ),
@@ -912,4 +918,40 @@ class NoDevice extends StatelessWidget {
       ),
     );
   }
+}
+
+/// A full-width choice row: icon, title, one line of explanation, arrow.
+class _Option extends StatelessWidget {
+  const _Option({required this.icon, required this.title, required this.desc, required this.onTap});
+  final String icon, title, desc;
+  final VoidCallback onTap;
+  @override
+  Widget build(BuildContext context) => Pressable(
+    onTap: onTap,
+    builder: (_, h, _) => Container(
+      padding: const EdgeInsets.symmetric(vertical: 14),
+      decoration: BoxDecoration(
+        color: h ? K.surfaceHover : Colors.transparent,
+        border: const Border(bottom: BorderSide(color: K.borderHairline)),
+      ),
+      child: Row(
+        children: [
+          KIcon(icon, size: 18, color: h ? K.textPrimary : K.textSecondary),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: KText.bodyMd),
+                const SizedBox(height: 4),
+                Text(desc, style: KText.bodySm.copyWith(color: K.textMuted)),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          KIcon('arrow-right', size: 16, color: h ? K.textAccent : K.textMuted),
+        ],
+      ),
+    ),
+  );
 }
