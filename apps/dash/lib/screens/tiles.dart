@@ -217,6 +217,18 @@ final List<TileDef> tiles = [
     unit: '',
     src: 'Device camera · MJPEG',
   ),
+  TileDef(
+    id: 'fleet',
+    title: 'Fleet',
+    types: {_D, _R, _A, _K, _B, _G},
+    when: (d) => d.links.length > 1,
+    val: (d) => '${d.links.length} connected',
+    body: (d) => FleetTile(d),
+    keys: [],
+    labels: [],
+    unit: '',
+    src: 'Every connected device',
+  ),
   // rocket
   TileDef(
     id: 'phase',
@@ -560,4 +572,46 @@ class Tile extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Every connected device: mode, battery, link and alerts. Tap one to show it.
+class FleetTile extends StatelessWidget {
+  const FleetTile(this.d, {super.key});
+  final Dash d;
+  @override
+  Widget build(BuildContext context) => ListView(
+    padding: const EdgeInsets.symmetric(vertical: 4),
+    children: [
+      for (final l in d.links.values)
+        Pressable(
+          onTap: () => d.focusDevice(l.id),
+          builder: (_, h, _) {
+            final t = l.tel, lost = l.linkLostFor > 0, alerts = l.alerts.shown.length, on = l.id == d.deviceId;
+            return Container(
+              color: on ? K.surfaceAccentSoft : (h ? K.whiteA06 : Colors.transparent),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+              child: Row(
+                children: [
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(color: fleetColor(d, l.id), shape: BoxShape.circle),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(l.info.name, style: KText.bodySm, maxLines: 1, overflow: TextOverflow.ellipsis),
+                  ),
+                  const SizedBox(width: 8),
+                  MonoLabel(
+                    [if (lost) 'LOST' else t.mode, if (t.seen.contains('bat')) '${t.battery.round()}%', if (alerts > 0) '⚠ $alerts'].join(' · '),
+                    size: 9,
+                    color: lost || t.estop ? K.negative : (alerts > 0 ? K.warning : K.textSecondary),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+    ],
+  );
 }

@@ -38,7 +38,7 @@ class DevicesScreen extends StatelessWidget {
         ],
         children: [
           Text(
-            'The pairing key, HUD layouts and parameter drafts for ${dev.name} are deleted from this app.${dev.id == d.deviceId ? ' It will be disconnected first.' : ''}',
+            'The pairing key, HUD layouts and parameter drafts for ${dev.name} are deleted from this app.${d.links.containsKey(dev.id) ? ' It will be disconnected first.' : ''}',
           ),
           const Text('Recordings are kept. To use the device again, pair it with a new code.'),
         ],
@@ -99,7 +99,10 @@ class DevicesScreen extends StatelessWidget {
                 ),
               ),
             SizedBox(height: phone ? 20 : 32),
-            const MonoLabel('Switching device keeps the previous one in its current mode. Drones switch to hold.', height: 1.7),
+            const MonoLabel(
+              'Several devices can be connected at once. The one shown gets the sticks; the others hold on centred sticks, and STOP stops them all.',
+              height: 1.7,
+            ),
           ],
         ),
       ),
@@ -107,8 +110,8 @@ class DevicesScreen extends StatelessWidget {
   }
 
   Widget _row(BuildContext context, DeviceInfo dev, bool phone) {
-    final act = dev.id == d.deviceId && d.replay == null, off = !dev.online;
-    final bat = act ? d.liveTel.battery.round() : dev.battery;
+    final linked = d.links[dev.id], act = dev.id == d.deviceId && d.replay == null, off = !dev.online;
+    final bat = linked != null ? linked.tel.battery.round() : dev.battery;
     final name = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -118,7 +121,7 @@ class DevicesScreen extends StatelessWidget {
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
             Text(dev.name, style: KText.headingXs),
-            if (act) const KTag('Active', tone: TagTone.accent),
+            if (act) const KTag('Active', tone: TagTone.accent) else if (linked != null) const KTag('Connected', tone: TagTone.info),
             if (dev.simulated) const SimTag() else KTag(dev.transport.label, height: 22),
             if (dev.proto != 'koebelt') KTag(_PairDialogState._protoLabel(dev.proto), tone: TagTone.info, height: 22),
           ],
@@ -132,9 +135,19 @@ class DevicesScreen extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         if (phone) ...[KBadge(off ? 'Off' : '$bat%', tone: off ? Tone.negative : Tone.positive), const SizedBox(width: 8)],
-        if (act) ...[
-          KButton('Disconnect', size: KSize.sm, variant: KButtonVariant.ghost, onPressed: d.disconnect),
-          if (!phone) ...[const SizedBox(width: 8), KButton('Open', size: KSize.sm, variant: KButtonVariant.secondary, onPressed: () => go('live'))],
+        if (linked != null) ...[
+          KButton(
+            'Disconnect',
+            size: KSize.sm,
+            variant: KButtonVariant.ghost,
+            onPressed: () => d.disconnect(id: dev.id),
+          ),
+          if (!phone) ...[
+            const SizedBox(width: 8),
+            act
+                ? KButton('Open', size: KSize.sm, variant: KButtonVariant.secondary, onPressed: () => go('live'))
+                : KButton('Show', size: KSize.sm, variant: KButtonVariant.secondary, onPressed: () => d.focusDevice(dev.id)),
+          ],
         ] else if (d.connecting == dev.id)
           const Row(mainAxisSize: MainAxisSize.min, children: [MarkMotion(MarkLoop.loading, size: 28), SizedBox(width: 10), MonoLabel('Connecting')])
         else

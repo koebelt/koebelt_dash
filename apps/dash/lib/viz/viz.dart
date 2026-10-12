@@ -15,6 +15,16 @@ abstract final class VC {
 
 const axisColors = [VC.white, VC.info, VC.warn];
 
+/// Colours of the other connected devices on the map, in 3D and in the
+/// Fleet tile; the one shown is always lime.
+const fleetColors = [VC.info, Color(0xFFB79CF0), Color(0xFF6FD3C9), Color(0xFFF29ACB), VC.ink200, VC.warn];
+
+Color fleetColor(Dash d, String id) {
+  if (id == d.deviceId && d.replay == null || id == d.replay?.session.id) return VC.lime;
+  final i = d.companions.indexWhere((c) => c.id == id);
+  return fleetColors[(i < 0 ? 0 : i) % fleetColors.length];
+}
+
 const _monoStyle = TextStyle(fontFamily: fontMono, fontSize: 10, fontWeight: FontWeight.w500);
 
 void drawText(Canvas c, String s, Offset o, Color color, {TextAlign align = TextAlign.left, double? width, bool middle = false}) {

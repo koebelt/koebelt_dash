@@ -149,6 +149,13 @@ class VideoHub {
 
   VideoFeed feed(VideoStream s, DeviceInfo? device) => _feeds.putIfAbsent('${device?.id}|${s.id}|${s.url}', () => VideoFeed(s, resolveVideoUrl(s.url, device)));
 
+  /// Closes the connections to one device's cameras.
+  void clearDevice(String id) {
+    for (final k in _feeds.keys.where((k) => k.startsWith('$id|')).toList()) {
+      _feeds.remove(k)!.shutdown();
+    }
+  }
+
   /// Closes every connection. Feeds are not disposed: widgets still holding
   /// one release it normally when they go away.
   void clear() {

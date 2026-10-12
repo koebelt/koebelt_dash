@@ -20,6 +20,7 @@ import '../link/protocol.dart' show appVersion;
 import '../screens/guides_data.dart' show repoUrl;
 import '../theme/tokens.dart';
 import '../ui/components.dart';
+import 'viz.dart' show fleetColor;
 import '../ui/icons.dart';
 
 /// Tile sources offered in Settings.
@@ -234,6 +235,11 @@ class _MapViewState extends State<MapView> {
     final here = _here, home = _home!;
     final src = tileSourceFor(st);
     final track = _track(), wps = _waypoints(home);
+    // The other connected devices, or the rest of the replayed session: arrow, name, track.
+    final others = [
+      for (final c in d.companions)
+        if (c.tel.seen.contains('gps') && (c.tel.lat != 0 || c.tel.lon != 0)) c,
+    ];
     final hdg = (90 - t.heading) * math.pi / 180; // map: east = 0, CCW
     Widget? tiles;
     if (src != null) {
@@ -283,12 +289,44 @@ class _MapViewState extends State<MapView> {
                   ),
                 ],
               ),
+            if (others.isNotEmpty)
+              PolylineLayer(
+                polylines: [
+                  for (final c in others)
+                    if (c.tel.gpsTrail.length > 1)
+                      Polyline(points: [for (final g in c.tel.gpsTrail) LatLng(g[0], g[1])], color: fleetColor(d, c.id).withValues(alpha: .5), strokeWidth: 2),
+                ],
+              ),
             if (track.length > 1)
               PolylineLayer(
                 polylines: [Polyline(points: track, color: K.accent.withValues(alpha: .75), strokeWidth: 2.5)],
               ),
             MarkerLayer(
               markers: [
+                for (final c in others) ...[
+                  Marker(
+                    point: LatLng(c.tel.lat, c.tel.lon),
+                    width: 120,
+                    height: 20,
+                    alignment: Alignment.centerRight,
+                    child: Padding(
+                      padding: const EdgeInsets.only(left: 18),
+                      child: MonoLabel(c.name, size: 9, color: fleetColor(d, c.id), maxLines: 1),
+                    ),
+                  ),
+                  Marker(
+                    point: LatLng(c.tel.lat, c.tel.lon),
+                    width: 30,
+                    height: 30,
+                    child: GestureDetector(
+                      onTap: () => d.showCompanion(c.id),
+                      child: Transform.rotate(
+                        angle: -(90 - c.tel.heading) * math.pi / 180,
+                        child: CustomPaint(painter: _Arrow(fleetColor(d, c.id), .8)),
+                      ),
+                    ),
+                  ),
+                ],
                 Marker(point: home, width: 72, height: 22, alignment: Alignment.centerRight, child: const _HomeMark()),
                 for (final (i, w) in wps.indexed) Marker(point: w, width: 18, height: 18, child: _Waypoint(i + 1)),
                 Marker(
@@ -400,14 +438,17 @@ class _Waypoint extends StatelessWidget {
 }
 
 class _Arrow extends CustomPainter {
+  _Arrow([this.color = K.accent, this.scale = 1.0]);
+  final Color color;
+  final double scale;
   @override
   void paint(Canvas c, Size s) {
-    final m = s.center(Offset.zero);
+    final m = s.center(Offset.zero), k = scale;
     final p = Path()
-      ..moveTo(m.dx + 13, m.dy)
-      ..lineTo(m.dx - 9, m.dy - 9)
-      ..lineTo(m.dx - 4, m.dy)
-      ..lineTo(m.dx - 9, m.dy + 9)
+      ..moveTo(m.dx + 13 * k, m.dy)
+      ..lineTo(m.dx - 9 * k, m.dy - 9 * k)
+      ..lineTo(m.dx - 4 * k, m.dy)
+      ..lineTo(m.dx - 9 * k, m.dy + 9 * k)
       ..close();
     c.drawPath(
       p,
@@ -416,11 +457,11 @@ class _Arrow extends CustomPainter {
         ..style = PaintingStyle.stroke
         ..strokeWidth = 3,
     );
-    c.drawPath(p, Paint()..color = K.accent);
+    c.drawPath(p, Paint()..color = color);
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter o) => false;
+  bool shouldRepaint(covariant _Arrow o) => o.color != color;
 }
 
 /// Metre grid when no tile source is set (offline, or tiles turned off).

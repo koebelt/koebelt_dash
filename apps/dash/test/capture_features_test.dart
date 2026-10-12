@@ -172,7 +172,7 @@ void main() {
     }
     await tester.pumpWidget(const SizedBox());
     await tester.runAsync(() async {
-      await dash.disconnect();
+      await dash.disconnectAll();
       await Future<void>.delayed(const Duration(milliseconds: 300));
     });
     await tester.pump(const Duration(seconds: 10));

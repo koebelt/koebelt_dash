@@ -66,7 +66,13 @@ connects your hardware to it.
   and pause on link loss.
 - **Tune**: parameter tables declared by the firmware, with search, a live
   response chart per group, unsaved-change tracking, revert and write-to-device.
-- **Replay**: record sessions at 10 Hz, then scrub and play them back at 1, 2 or 4×.
+- **Several devices at once**: up to 8 connected together. The one shown gets
+  the sticks; the others hold on centred sticks without tripping their
+  failsafe, keep their alerts, sequences and recordings, and show on the map
+  and in 3D. STOP stops them all.
+- **Replay**: record sessions at the telemetry rate, with the camera, every
+  connected device at once; scrub and play them back at 1, 2 or 4×; import
+  ArduPilot and PX4 logs.
 - **Boards that connect as they are**: ArduPilot and PX4 vehicles over
   MAVLink (USB, telemetry radios, Wi-Fi on UDP 14550): telemetry, map,
   parameters, arming, modes, sticks, take-off, go to, return, land and STOP.
@@ -80,11 +86,11 @@ connects your hardware to it.
   device by IP address.
 - **Guides**: an in-app quickstart for Arduino, Python, ROS 2 and Rust. Every
   snippet in it is compiled or tested against the real libraries.
-- **Simulated devices, one at a time**: the pairing dialog has a Simulated tab
+- **Simulated devices**: the pairing dialog has a Simulated tab
   (drone, rover, arm, rocket, test bench). Add only the ones you want; they are
   marked SIM everywhere, come with example sequences, and speak the same
   protocol as real devices with sensor sets a hobby build would have. Sample
-  recordings are loaded from the Replay screen and marked Demo.
+  recordings are loaded from Replay > Import and marked Demo.
 - **Home**: "Set home" (Control, Program) makes the current position the origin
   for return-to-home, the Home readout and waypoints; arms save the current
   pose as their home pose.

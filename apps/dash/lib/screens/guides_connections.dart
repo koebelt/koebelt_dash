@@ -59,7 +59,7 @@ const connectionGuides = [
             'Navigates, reports AUTO then HOLD',
           ],
           ['STOP', 'Sends it three times', 'Calls onStop, disarms, blocks motion', 'Cuts the motors'],
-          ['Link loss', 'Shows the failsafe banner', 'Fires the failsafe after 1.8 s', 'Holds, returns home or lands'],
+          ['Link loss', 'Shows it in the top bar', 'Fires the failsafe after 1.8 s', 'Holds, returns home or lands'],
         ],
       ),
       Step.rich(

@@ -27,7 +27,8 @@ enum PadAction {
   faster('Speed up', 'Raise the speed limit 10 %'),
   armFrame('Joint / Cartesian', 'Arms: what the sticks move'),
   armWrist('Wrist', 'Arms: right stick moves J5 and J6 instead of J3 and J4'),
-  gripper('Gripper', 'Arms: open or close');
+  gripper('Gripper', 'Arms: open or close'),
+  nextDevice('Next device', 'Several connected: show and drive the next one');
 
   const PadAction(this.label, this.hint);
   final String label, hint;
@@ -80,6 +81,7 @@ class PadConfig {
     PadAction.armFrame: 'n:dpadLeft',
     PadAction.armWrist: 'n:dpadRight',
     PadAction.gripper: 'n:rightStick',
+    PadAction.nextDevice: null,
   };
 
   void reset() {

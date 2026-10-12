@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:flutter/services.dart';
 
 import 'core/alerts.dart';
 import 'core/dash.dart';
@@ -61,9 +63,16 @@ class _DashAppState extends State<DashApp> with SingleTickerProviderStateMixin {
   }
 
   @override
-  Widget build(BuildContext context) => ListenableBuilder(
-    listenable: widget.dash,
-    builder: (_, _) => Shell(d: widget.dash, initial: widget.initial),
+  Widget build(BuildContext context) => CallbackShortcuts(
+    // 1–9: show and drive the Nth connected device (text fields keep their digits).
+    bindings: {for (var i = 0; i < 9; i++) SingleActivator(LogicalKeyboardKey(LogicalKeyboardKey.digit1.keyId + i)): () => widget.dash.focusNth(i)},
+    child: Focus(
+      autofocus: true,
+      child: ListenableBuilder(
+        listenable: widget.dash,
+        builder: (_, _) => Shell(d: widget.dash, initial: widget.initial),
+      ),
+    ),
   );
 }
 
@@ -126,6 +135,9 @@ class _ShellState extends State<Shell> {
         final Widget body;
         if (none) {
           body = NoDevice(d: d, w: bodyW, go: go);
+        } else if (d.replay != null && const ['control', 'program', 'params'].contains(screen)) {
+          // Controls, sequences and parameters act on a live device, not a recording.
+          body = ReplayHold(d: d, w: bodyW, screen: screen, go: go);
         } else {
           body = switch (screen) {
             'live' =>
@@ -157,7 +169,12 @@ class _ShellState extends State<Shell> {
                             Expanded(
                               child: DeviceBtn(d: d, go: go, sub: false),
                             ),
-                            const SizedBox(width: 12),
+                            const SizedBox(width: 10),
+                            ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 120),
+                              child: AlertChip(d: d, compact: true),
+                            ),
+                            const SizedBox(width: 10),
                             EStop(d: d, compact: true),
                           ],
                         ),
@@ -190,7 +207,12 @@ class _ShellState extends State<Shell> {
                 child: Row(
                   children: [
                     DeviceBtn(d: d, go: go),
-                    const SizedBox(width: 24),
+                    const SizedBox(width: 20),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 340),
+                      child: AlertChip(d: d),
+                    ),
+                    const SizedBox(width: 20),
                     Expanded(
                       child: Align(
                         alignment: Alignment.centerRight,
@@ -209,7 +231,6 @@ class _ShellState extends State<Shell> {
         final main = Column(
           children: [
             top,
-            Banners(d: d),
             Expanded(child: ClipRect(child: body)),
           ],
         );
@@ -318,10 +339,14 @@ class _ShellState extends State<Shell> {
                       onClose: d.ackStop,
                       footer: [
                         KButton('Keep stopped', variant: KButtonVariant.ghost, onPressed: d.ackStop),
-                        KButton('Reset stop', onPressed: d.resetStop),
+                        KButton(d.links.values.where((l) => l.tel.estop).length > 1 ? 'Reset all' : 'Reset stop', onPressed: d.resetStop),
                       ],
                       children: [
-                        Text('Motors are stopped and all motion commands are blocked on ${d.device?.name ?? 'the device'}.'),
+                        Text(
+                          d.links.length > 1
+                              ? 'Motors are stopped and all motion commands are blocked on ${d.links.values.where((l) => l.tel.estop).map((l) => l.info.name).join(', ')}.'
+                              : 'Motors are stopped and all motion commands are blocked on ${d.device?.name ?? 'the device'}.',
+                        ),
                         const Text('Check the device before you reset. After reset it stays disarmed until you arm it again.'),
                       ],
                     ),
@@ -393,19 +418,30 @@ class _ShellState extends State<Shell> {
                         ),
                       ),
                       if (dev.simulated) ...[const MonoLabel('Sim', color: K.info, size: 9), const SizedBox(width: 8)],
-                      KBadge(
-                        dev.id == d.deviceId
-                            ? 'Active'
-                            : dev.id == d.connecting
-                            ? '…'
-                            : !dev.online
-                            ? 'Off'
-                            : 'On',
-                        tone: !dev.online
-                            ? Tone.negative
-                            : dev.id == d.deviceId || dev.id == d.connecting
-                            ? Tone.accent
-                            : Tone.positive,
+                      Builder(
+                        builder: (_) {
+                          final l = d.links[dev.id], lost = (l?.linkLostFor ?? 0) > 0;
+                          return KBadge(
+                            dev.id == d.deviceId
+                                ? 'Active'
+                                : lost
+                                ? 'Lost'
+                                : l != null
+                                ? 'Linked'
+                                : dev.id == d.connecting
+                                ? '…'
+                                : !dev.online
+                                ? 'Off'
+                                : 'On',
+                            tone: !dev.online || lost
+                                ? Tone.negative
+                                : dev.id == d.deviceId || dev.id == d.connecting
+                                ? Tone.accent
+                                : l != null
+                                ? Tone.info
+                                : Tone.positive,
+                          );
+                        },
                       ),
                     ],
                   ),
@@ -722,12 +758,17 @@ class EStop extends StatelessWidget {
   final bool compact;
   @override
   Widget build(BuildContext context) {
-    final off = !d.hasDevice || d.replay != null;
+    // Live while anything is connected, replay or not: a device may be moving.
+    final off = d.links.isEmpty, n = d.links.length;
     return Semantics(
       button: true,
-      label: 'Emergency stop',
+      label: n > 1 ? 'Emergency stop, all $n devices' : 'Emergency stop',
       child: _maybeTip(
-        d.hasDevice && !d.canControl ? 'STOP is still sent over this telemetry-only radio, but it is slow: up to a second' : null,
+        n > 1
+            ? 'Stops all $n connected devices'
+            : d.hasDevice && !d.canControl
+            ? 'STOP is still sent over this telemetry-only radio, but it is slow: up to a second'
+            : null,
         Opacity(
           opacity: off ? .3 : 1,
           child: Pressable(
@@ -743,7 +784,7 @@ class EStop extends StatelessWidget {
                   const KIcon('octagon', size: 18, color: K.ink900),
                   const SizedBox(width: 8),
                   Text(
-                    'STOP',
+                    n > 1 && !compact ? 'STOP ALL' : 'STOP',
                     style: KText.mono(12, w: FontWeight.w700, color: K.ink900, tracking: K.trLabel),
                   ),
                 ],
@@ -758,62 +799,293 @@ class EStop extends StatelessWidget {
   static Widget _maybeTip(String? msg, Widget child) => msg == null ? child : Tooltip(message: msg, child: child);
 }
 
-class Banners extends StatelessWidget {
-  const Banners({super.key, required this.d});
-  final Dash d;
-  @override
-  Widget build(BuildContext context) {
-    final lf = d.linkLostFor;
-    Widget? link;
-    if (lf > 0) {
-      final fs = d.kind == DeviceKind.drone
-          ? const {'HOLD': 'holding position', 'RTH': 'returning home', 'LAND': 'landing in place'}[d.settings.failsafe]!
-          : 'holding position';
-      link = KNotice(
-        key: const ValueKey('link'),
+/// Something that needs attention: a lost link, an alert, on the device
+/// shown or another connected one.
+class Issue {
+  const Issue(this.key, this.title, this.body, {required this.tone, this.mark, this.ok, this.show});
+  final String key, title, body;
+  final Tone tone;
+
+  /// The link mark (lost or lifting back) for link states.
+  final bool? mark;
+  final VoidCallback? ok, show;
+}
+
+List<Issue> issuesOf(Dash d) {
+  final out = <Issue>[];
+  final lf = d.linkLostFor, several = d.links.length > 1;
+  final who = several ? '${d.deviceName} · ' : '';
+  if (lf > 0) {
+    final fs = d.kind == DeviceKind.drone
+        ? const {'HOLD': 'holding position', 'RTH': 'returning home', 'LAND': 'landing in place'}[d.settings.failsafe]!
+        : 'holding position';
+    out.add(
+      Issue(
+        'link',
+        '${who}Link lost · ${lf.toStringAsFixed(1)} s',
+        '${lf >= 1.8 ? 'Failsafe active: $fs.' : 'Reconnecting. Failsafe starts at 1.8 s.'} Controls are locked until the link is back.',
         tone: Tone.negative,
-        square: true,
-        leading: _mark(true),
-        title: 'Link lost · ${lf.toStringAsFixed(1)} s',
-        child: Text('${lf >= 1.8 ? 'Failsafe active: $fs.' : 'Reconnecting. Failsafe starts at 1.8 s.'} Controls are locked until the link is back.'),
-      );
-    } else if (d.linkRestored > 0) {
-      link = KNotice(
-        key: const ValueKey('link'),
-        tone: Tone.positive,
-        square: true,
-        leading: _mark(false),
-        title: 'Link restored',
-        child: const Text('Manual control is available again.'),
+        mark: true,
+      ),
+    );
+  } else if (d.linkRestored > 0) {
+    out.add(Issue('link', '${who}Link restored', 'Manual control is available again.', tone: Tone.positive, mark: false));
+  }
+  Issue alert(ActiveAlert a, String name, VoidCallback ok, [VoidCallback? show]) => Issue(
+    'alert-$name-${a.rule.id}',
+    '$name${a.rule.label} · ${a.rule.fmt(a.value)}',
+    '${a.rule.below ? 'Below' : 'Above'} ${a.rule.fmt(a.limit)}. ${a.rule.act}',
+    tone: a.rule.level == AlertLevel.critical ? Tone.negative : Tone.warning,
+    ok: ok,
+    show: show,
+  );
+  if (d.replay == null) {
+    for (final a in d.alerts.shown) {
+      out.add(alert(a, who, () => d.ackAlert(a.rule.id)));
+    }
+  }
+  // The other connected devices: a lost link or an alert still shows, by name.
+  for (final l in d.links.values) {
+    if (l.id == d.deviceId) continue;
+    if (l.linkLostFor > 0) {
+      out.add(
+        Issue(
+          'lost-${l.id}',
+          '${l.info.name} · Link lost · ${l.linkLostFor.toStringAsFixed(1)} s',
+          'Its failsafe takes over after 1.8 s.',
+          tone: Tone.negative,
+          show: () => d.focusDevice(l.id),
+        ),
       );
     }
-    final shown = d.replay == null ? d.alerts.shown : const <ActiveAlert>[];
-    if (link == null && shown.isEmpty) return const SizedBox();
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        ?link,
-        for (final a in shown)
-          KNotice(
-            key: ValueKey('alert-${a.rule.id}'),
-            tone: a.rule.level == AlertLevel.critical ? Tone.negative : Tone.warning,
-            square: true,
-            title: '${a.rule.label} · ${a.rule.fmt(a.value)}',
+    if (d.replay == null) {
+      for (final a in l.alerts.shown) {
+        out.add(alert(a, '${l.info.name} · ', () => d.ackAlert(a.rule.id, on: l.id), () => d.focusDevice(l.id)));
+      }
+    }
+  }
+  // Most urgent first: critical, then warnings, then good news.
+  int rank(Tone t) => t == Tone.negative ? 0 : (t == Tone.warning ? 1 : 2);
+  return out..sort((a, b) => rank(a.tone) - rank(b.tone));
+}
+
+/// Alerts and link problems as one chip in the top bar: the most urgent,
+/// and how many more. Tap for all of them. It takes no room of the screen
+/// below and moves nothing.
+class AlertChip extends StatefulWidget {
+  const AlertChip({super.key, required this.d, this.compact = false});
+  final Dash d;
+  final bool compact;
+  @override
+  State<AlertChip> createState() => _AlertChipState();
+}
+
+class _AlertChipState extends State<AlertChip> {
+  final _link = LayerLink();
+  OverlayEntry? _entry;
+
+  void _close() {
+    _entry?.remove();
+    _entry = null;
+    if (mounted) setState(() {});
+  }
+
+  void _open() {
+    // Under the chip, kept inside the screen (on a phone the chip sits at the right).
+    final screen = MediaQuery.sizeOf(context), w = (screen.width - 32).clamp(0.0, 420.0);
+    final box = context.findRenderObject()! as RenderBox, at = box.localToGlobal(Offset.zero);
+    final left = at.dx.clamp(16.0, math.max(16.0, screen.width - 16 - w)).toDouble(), top = at.dy + box.size.height + 10;
+    _entry = OverlayEntry(
+      builder: (_) => Stack(
+        children: [
+          Positioned.fill(
+            child: GestureDetector(behavior: HitTestBehavior.translucent, onTap: _close),
+          ),
+          Positioned(
+            left: left,
+            top: top,
+            child: Material(
+              type: MaterialType.transparency,
+              child: ListenableBuilder(
+                listenable: widget.d,
+                builder: (_, _) {
+                  final issues = issuesOf(widget.d);
+                  if (issues.isEmpty) WidgetsBinding.instance.addPostFrameCallback((_) => _close());
+                  return Container(
+                    width: w,
+                    constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * .6),
+                    decoration: BoxDecoration(
+                      color: K.surfaceRaised,
+                      border: Border.all(color: K.borderSubtle),
+                      borderRadius: BorderRadius.circular(K.radiusCard),
+                      boxShadow: K.shadowOverlay,
+                    ),
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(8),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          for (final (i, x) in issues.indexed) ...[
+                            if (i > 0) const SizedBox(height: 8),
+                            KNotice(
+                              key: ValueKey(x.key),
+                              tone: x.tone,
+                              leading: x.mark == null ? null : _mark(x.mark!),
+                              title: x.title,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(x.body),
+                                  if (x.ok != null || x.show != null) ...[
+                                    const SizedBox(height: 8),
+                                    Row(
+                                      children: [
+                                        if (x.show != null)
+                                          KButton(
+                                            'Show',
+                                            size: KSize.sm,
+                                            variant: KButtonVariant.ghost,
+                                            onPressed: () {
+                                              x.show!();
+                                              _close();
+                                            },
+                                          ),
+                                        if (x.ok != null) KButton('OK', size: KSize.sm, variant: KButtonVariant.ghost, onPressed: x.ok),
+                                      ],
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+    Overlay.of(context).insert(_entry!);
+    setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _entry?.remove();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final issues = issuesOf(widget.d);
+    if (issues.isEmpty) return const SizedBox.shrink();
+    final top = issues.first, c = toneColor(top.tone), more = issues.length - 1;
+    return CompositedTransformTarget(
+      link: _link,
+      child: Semantics(
+        button: true,
+        label: '${issues.length} alert${issues.length == 1 ? '' : 's'}: ${top.title}',
+        child: Pressable(
+          onTap: () => _entry == null ? _open() : _close(),
+          builder: (_, h, _) => Container(
+            height: 32,
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            decoration: BoxDecoration(
+              color: c.withValues(alpha: h ? .22 : .14),
+              border: Border.all(color: c.withValues(alpha: .6)),
+              borderRadius: BorderRadius.circular(K.radiusControl),
+            ),
             child: Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Expanded(child: Text('${a.rule.below ? 'Below' : 'Above'} ${a.rule.fmt(a.limit)}. ${a.rule.act}')),
-                const SizedBox(width: 12),
-                KButton('OK', size: KSize.sm, variant: KButtonVariant.ghost, onPressed: () => d.ackAlert(a.rule.id)),
+                if (top.mark != null)
+                  SizedBox(width: 18, height: 18, child: _mark(top.mark!))
+                else
+                  KIcon(top.tone == Tone.positive ? 'check' : (top.tone == Tone.negative ? 'circle-alert' : 'triangle-alert'), size: 16, color: c),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    (widget.compact
+                            ? (top.mark == true
+                                  ? 'Link lost'
+                                  : issues.length == 1
+                                  ? '1 alert'
+                                  : '${issues.length} alerts')
+                            : top.title)
+                        .toUpperCase(),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: KText.mono(11, w: FontWeight.w600, color: c, tracking: K.trLabel),
+                  ),
+                ),
+                if (more > 0 && !widget.compact) ...[const SizedBox(width: 8), MonoLabel('+$more', color: c)],
               ],
             ),
           ),
-      ],
+        ),
+      ),
     );
   }
 
   // Same element through lost → restored, so the mark lifts back up.
-  static Widget _mark(bool lost) => MarkMotion(MarkLoop.link, key: const ValueKey('link-mark'), size: 26, lost: lost, gap: K.surfaceSunken);
+  static Widget _mark(bool lost) => MarkMotion(MarkLoop.link, key: const ValueKey('link-mark'), size: 18, lost: lost, gap: K.surfaceSunken);
+}
+
+/// Control, Program and Tune while a recording plays: they act on live
+/// devices, so they wait until the replay is closed.
+class ReplayHold extends StatelessWidget {
+  const ReplayHold({super.key, required this.d, required this.w, required this.screen, required this.go});
+  final Dash d;
+  final double w;
+  final String screen;
+  final ValueChanged<String> go;
+  @override
+  Widget build(BuildContext context) {
+    final phone = w < 600;
+    final (title, what) = switch (screen) {
+      'control' => ('Controls are off during a replay', 'Controls act'),
+      'program' => ('Sequences are off during a replay', 'Sequences run'),
+      _ => ('Tuning is off during a replay', 'Parameters are read and written'),
+    };
+    final live = d.device?.name;
+    return SingleChildScrollView(
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 560),
+          child: Padding(
+            padding: phone ? const EdgeInsets.symmetric(horizontal: 16, vertical: 40) : const EdgeInsets.symmetric(horizontal: 32, vertical: 80),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                MonoLabel('Replay · ${groupTitle(d.replay!.session)}', color: K.textAccent),
+                const SizedBox(height: 12),
+                Text(title, style: phone ? KText.headingMd : KText.headingLg),
+                const SizedBox(height: 12),
+                Text(
+                  '$what on a connected device, not on a recording. '
+                  '${live != null ? 'Exit the replay to get back to $live.' : 'Exit the replay, then connect a device.'}',
+                  style: KText.bodyMd.copyWith(color: K.textSecondary),
+                ),
+                SizedBox(height: phone ? 24 : 32),
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: [
+                    KButton('Back to the replay', iconLeft: const KIcon('replay', size: 16), onPressed: () => go('replay')),
+                    KButton(live != null ? 'Exit replay, back to $live' : 'Exit replay', variant: KButtonVariant.secondary, onPressed: d.closeReplay),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class NoDevice extends StatelessWidget {

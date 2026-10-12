@@ -135,10 +135,17 @@ Iterable<void> _csvRows(Recording r, StringBuffer b) sync* {
       '${r.startedAt != null ? ' · started ${r.startedAt!.toUtc().toIso8601String()}' : ''}'
       ' · ${r.rateHz.round()} Hz · position in metres from home, east/north/up',
     )
-    ..writeln(['t_s', for (final c in cols) c.$1].join(','));
+    ..writeln(['t_s', for (final c in cols) c.$1, if (r.events.isNotEmpty) 'event'].join(','));
+  // Each event goes on the first row at or after it.
+  final events = [...r.events]..sort((a, b) => a.t.compareTo(b.t));
+  var e = 0;
   for (var i = 0; i < r.frames.length; i++) {
-    final f = r.frames[i];
-    b.writeln([r.timeAt(i).toStringAsFixed(3), for (final c in cols) _csvField(c.$2(f))].join(','));
+    final f = r.frames[i], t = r.timeAt(i);
+    final here = <String>[];
+    while (e < events.length && (events[e].t <= t + 1e-6 || i == r.frames.length - 1)) {
+      here.add(events[e++].text);
+    }
+    b.writeln([t.toStringAsFixed(3), for (final c in cols) _csvField(c.$2(f)), if (events.isNotEmpty) _csvField(here.join('; '))].join(','));
     yield null;
   }
 }

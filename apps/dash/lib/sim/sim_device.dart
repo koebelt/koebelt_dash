@@ -568,8 +568,23 @@ class SimDevice {
 
   List<double> gps() {
     const la0 = 47.37690, lo0 = 8.54170;
-    return [la0 + pos[1] / 111111, lo0 + pos[0] / (111111 * math.cos(47.3769 * math.pi / 180))];
+    final o = _field;
+    return [la0 + (pos[1] + o[1]) / 111111, lo0 + (pos[0] + o[0]) / (111111 * math.cos(47.3769 * math.pi / 180))];
   }
+
+  /// Where on the field this device starts (metres east, north), so several
+  /// simulated devices show apart on the map. Numbered copies step aside.
+  late final List<double> _field = () {
+    const byKind = {
+      DeviceKind.rover: [45.0, -30.0],
+      DeviceKind.rocket: [-70.0, 55.0],
+      DeviceKind.arm: [20.0, 60.0],
+      DeviceKind.bench: [-40.0, -50.0],
+    };
+    final k = byKind[kind] ?? const [0.0, 0.0];
+    final n = RegExp(r'-(\d+)$').firstMatch(info.id), m = n == null ? 0 : int.parse(n.group(1)!) - 1;
+    return [k[0] + m * 18.0, k[1] - m * 12.0];
+  }();
 
   /// Telemetry snapshot in the app's recording format (for seeded sessions).
   Map<String, dynamic> frame() {

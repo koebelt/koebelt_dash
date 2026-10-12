@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../core/dash.dart';
+import '../core/device_link.dart';
+import '../core/sequence.dart';
 import '../core/model.dart';
 import '../theme/tokens.dart';
 import '../ui/components.dart';
 import '../ui/icons.dart';
 import '../ui/mark.dart';
 import 'devices.dart';
+import 'replay.dart' show groupTitle;
 
 /// The device name at the top left. Opens a popover to see the active
 /// device, switch to another paired one, disconnect, or pair a new one.
@@ -117,10 +120,28 @@ class _DeviceBtnState extends State<DeviceBtn> {
                         Flexible(
                           child: Text(nm, style: KText.headingXs, maxLines: 1, overflow: TextOverflow.ellipsis),
                         ),
-                        if (d.simulated) ...[const SizedBox(width: 8), SimTag(text: d.replay != null ? 'Demo' : 'Sim', height: 20)],
+                        if (d.replay != null) ...[const SizedBox(width: 8), const KTag('Replay', tone: TagTone.info, height: 20)],
+                        // On a phone (no second line) one tag: Replay wins.
+                        if (d.simulated && (widget.sub || d.replay == null)) ...[
+                          const SizedBox(width: 8),
+                          SimTag(text: d.replay != null ? 'Demo' : 'Sim', height: 20),
+                        ],
+                        if (!widget.sub && d.replay == null && d.links.length > 1) ...[
+                          const SizedBox(width: 8),
+                          MonoLabel('+${d.links.length - 1}', color: K.textAccent),
+                        ],
                       ],
                     ),
-                    if (widget.sub) ...[const SizedBox(height: 6), MonoLabel(dev != null || d.replay != null ? d.kind.label : 'Not connected')],
+                    if (widget.sub) ...[
+                      const SizedBox(height: 6),
+                      MonoLabel(
+                        [
+                          if (d.replay != null) 'Replay · ${groupTitle(d.replay!.session)}' else if (dev != null) d.kind.label else 'Not connected',
+                          if (d.replay == null && d.links.length > 1) '+${d.links.length - 1} connected',
+                        ].join(' · '),
+                        maxLines: 1,
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -149,7 +170,11 @@ class DeviceMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final active = d.replay == null ? d.device : null;
-    final others = d.devices.where((x) => x.id != active?.id).toList();
+    final connected = [
+      for (final l in d.links.values)
+        if (l.id != active?.id) l,
+    ];
+    final others = d.devices.where((x) => x.id != active?.id && !d.links.containsKey(x.id)).toList();
     final maxH = MediaQuery.sizeOf(context).height * .7;
     return Container(
       width: width,
@@ -172,11 +197,20 @@ class DeviceMenu extends StatelessWidget {
                 children: [
                   if (d.replay != null) _replay(),
                   if (active != null) _active(active),
-                  if (others.isNotEmpty) ...[
+                  if (connected.isNotEmpty) ...[
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
-                      child: MonoLabel(active != null || d.replay != null ? 'Switch to' : 'Paired devices'),
+                      padding: const EdgeInsets.fromLTRB(16, 10, 8, 4),
+                      child: Row(
+                        children: [
+                          const Expanded(child: MonoLabel('Also connected')),
+                          KButton('Disconnect all', size: KSize.sm, variant: KButtonVariant.ghost, onPressed: d.disconnectAll),
+                        ],
+                      ),
                     ),
+                    for (final l in connected) _linked(l),
+                  ],
+                  if (others.isNotEmpty) ...[
+                    Padding(padding: const EdgeInsets.fromLTRB(16, 10, 16, 4), child: MonoLabel(d.links.isNotEmpty ? 'Connect another' : 'Paired devices')),
                     for (final x in others) _row(x),
                   ],
                   if (d.devices.isEmpty)
@@ -300,6 +334,49 @@ class DeviceMenu extends StatelessWidget {
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  /// A connected device that is not focused: tap to show it, ✕ to disconnect.
+  Widget _linked(DeviceLink l) {
+    final x = l.info, t = l.tel, lost = l.linkLostFor > 0, alerts = l.alerts.shown.length;
+    final facts = [
+      if (lost) 'link lost' else t.mode,
+      if (t.armed) 'armed',
+      if (t.seen.contains('bat')) '${t.battery.round()} %',
+      if (alerts > 0) '$alerts alert${alerts == 1 ? '' : 's'}',
+      if (l.runner?.state == RunState.running) 'sequence running',
+    ];
+    return Pressable(
+      onTap: () => d.focusDevice(x.id),
+      builder: (_, h, _) => Container(
+        color: h ? K.whiteA06 : Colors.transparent,
+        padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
+        child: Row(
+          children: [
+            PulseDot(color: lost || t.estop ? K.negative : (alerts > 0 ? K.warning : K.positive), animate: !lost),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(x.name, style: KText.bodySm, maxLines: 1, overflow: TextOverflow.ellipsis),
+                  const SizedBox(height: 4),
+                  MonoLabel(facts.join(' · '), size: 9, color: lost ? K.negative : null, maxLines: 1),
+                ],
+              ),
+            ),
+            MonoLabel('Show', color: h ? K.textAccent : K.textMuted),
+            KIconButton(
+              'x',
+              label: 'Disconnect ${x.name}',
+              size: KSize.sm,
+              variant: KIconButtonVariant.bare,
+              onPressed: () => d.disconnect(id: x.id),
+            ),
+          ],
+        ),
       ),
     );
   }

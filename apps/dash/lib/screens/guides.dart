@@ -313,9 +313,9 @@ class _PairPanelState extends State<PairPanel> {
               runSpacing: 8,
               children: [
                 KButton(
-                  d.deviceId == paired.id ? 'Connected' : 'Connect now',
+                  d.links.containsKey(paired.id) ? 'Connected' : 'Connect now',
                   size: KSize.sm,
-                  onPressed: d.deviceId == paired.id || d.connecting != null
+                  onPressed: d.links.containsKey(paired.id) || d.connecting != null
                       ? null
                       : () {
                           if (d.replay != null) d.closeReplay();

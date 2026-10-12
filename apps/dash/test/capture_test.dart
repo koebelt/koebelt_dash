@@ -71,7 +71,7 @@ void main() {
       if (dev != cur) {
         await tester.runAsync(() async {
           if (dev == 'none') {
-            await dash.disconnect();
+            await dash.disconnectAll();
           } else {
             await dash.connect(dev);
           }
@@ -111,7 +111,7 @@ void main() {
       if (screen == 'replay') dash.closeReplay();
     }
     await tester.pumpWidget(const SizedBox());
-    await tester.runAsync(() async => dash.disconnect());
+    await tester.runAsync(() async => dash.disconnectAll());
     await tester.pump(const Duration(seconds: 10)); // flush toast / UI timers
     tester.view.reset();
   });

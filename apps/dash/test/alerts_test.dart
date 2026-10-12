@@ -1,6 +1,9 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:koebelt_dash/core/alerts.dart';
 import 'package:koebelt_dash/core/dash.dart';
+import 'package:koebelt_dash/core/export.dart';
 import 'package:koebelt_dash/core/model.dart';
 import 'package:koebelt_dash/core/telemetry.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -118,4 +121,48 @@ void main() {
     expect(d.alerts.active, isEmpty);
     d.dispose();
   });
+
+  test('a recording keeps its alerts, link losses and STOP as events', () async {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    SharedPreferences.setMockInitialValues({});
+    final d = Dash();
+    await d.init();
+    d.updateSettings((s) => s.recordVideo = false);
+    d.updateAlerts((p) => p.sound = false);
+    final dev = d.addSimulated(simTemplates().first);
+    await d.connect(dev.id);
+    Future<void> run(int ms, [bool Function()? until]) async {
+      final sw = Stopwatch()..start();
+      while (sw.elapsedMilliseconds < ms && !(until?.call() ?? false)) {
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+        d.tick(.02);
+      }
+    }
+
+    await run(300);
+    d.startRec();
+    d.updateAlerts((p) => p.limit['battery'] = 101);
+    await run(3000, () => d.alerts.shown.isNotEmpty);
+    d.dropLink(); // the test failsafe: 6 s without heartbeat
+    await run(9000, () => d.links.values.first.linkRestored > 0);
+    d.emergencyStop();
+    await run(300);
+    d.stopRec();
+    final r = d.lastSaved!;
+    expect(r.events.map((e) => e.kind).toList(), ['alert', 'lost', 'restored', 'stop']);
+    expect(r.events.first.text, startsWith('Battery low'));
+    expect(r.events.map((e) => e.t).toList(), orderedEquals([...r.events.map((e) => e.t)]..sort()));
+    expect(r.events.firstWhere((e) => e.kind == 'stop').critical, isTrue);
+    // Saved and loaded with the recording.
+    final back = Recording.fromJson(jsonDecode(jsonEncode(r.toJson())) as Map<String, dynamic>);
+    expect(back.events.map((e) => (e.kind, e.text)).toList(), r.events.map((e) => (e.kind, e.text)).toList());
+    // CSV: an event column, each event on one row.
+    final csv = toCsv(r).trim().split('\n');
+    expect(csv[1].split(',').last, 'event');
+    expect(csv.where((l) => l.contains('Battery low')), hasLength(1));
+    // Events within one frame share its row.
+    expect(csv.where((l) => l.split(',').last.split('; ').contains('STOP')), hasLength(1));
+    await d.disconnect();
+    d.dispose();
+  }, timeout: const Timeout(Duration(seconds: 40)));
 }

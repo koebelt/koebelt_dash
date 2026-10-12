@@ -252,7 +252,7 @@ if (startCamera()) {                        // esp_camera_init + httpd on port 8
     ),
     Step.rich(
       'When one fires',
-      'A banner appears under the top bar, orange for warnings and red for critical alerts, with the value and the limit. OK hides it until the value clears and crosses the limit again. Computers play the system alert sound; phones vibrate when haptics are on. A lost link sounds the same way. Alerts are not checked during replays.',
+      'A chip appears in the top bar, orange for warnings and red for critical alerts, with the most urgent one and how many more; it never covers or moves the screen. Tap it for each alert with its value and limit. OK hides an alert until the value clears and crosses the limit again. Computers play the system alert sound; phones vibrate when haptics are on. A lost link shows there too, and sounds the same way. Alerts are not checked during replays; the ones that fired while recording show as marks on the replay timeline.',
     ),
   ]),
   Guide(
@@ -268,6 +268,7 @@ if (startCamera()) {                        // esp_camera_init + httpd on port 8
         bullets: [
           'Only the channels the device sends are kept, rounded to what sensors resolve, and files are compressed: about 1 MB for 10 minutes of a drone at 30 Hz.',
           'The camera is recorded with the session when Settings > Recording > Record video is on, at most at the frame rate set there. The camera stays connected while recording, even when no screen shows it. Replays show it under VIDEO, and in the camera tiles and views.',
+          'Alerts, link losses and STOP are kept with the recording: marks over the replay timeline (hover for what happened, tap to jump there), and an event column in the CSV export.',
           'Export: CSV, JSON and GPX for the telemetry, and Video as an MJPEG AVI (VLC, ffmpeg and most editors). The JSON export leaves the video out.',
         ],
       ),
@@ -285,6 +286,37 @@ if (startCamera()) {                        // esp_camera_init + httpd on port 8
           'Flight controller logs are thinned to 50 frames a second; that is plenty for replay and keeps the file small.',
           'Positions are metres from home: the AHRS home in ArduPilot logs, the first GPS fix otherwise, and PX4\'s local position frame.',
         ],
+      ),
+    ],
+  ),
+  Guide(
+    'fleet',
+    'Several devices at once',
+    'Connect a drone, a rover and an arm together: who gets the sticks, what STOP does, and what each one keeps doing.',
+    3,
+    section: 'features',
+    [
+      Step.rich(
+        'Connect more than one',
+        'Connect a device and then another, from the device name at the top left, the sidebar or the Devices screen: the first stays connected. Up to 8 at once. The screens show one device at a time, the one whose name is at the top left; tap another in that list, or press 1 to 9 on a keyboard, to show it.',
+        table: [
+          ['', 'Device shown', 'The other connected devices'],
+          ['Sticks, sliders, tilt, controller', 'Drive it', 'Get centred sticks: they hold'],
+          ['Failsafe', 'As usual', 'Does not trip: the heartbeat keeps going'],
+          ['Alerts, lost link', 'In the top bar alert chip, and sound', 'In the same chip with its name and a Show button, and sound'],
+          ['Sequences', 'Run', 'Keep running'],
+          ['Record', 'Recorded', 'Recorded too, as its own recording'],
+        ],
+        note: 'Switching away from a device you are driving centres its sticks first, so it holds instead of keeping your last input.',
+      ),
+      Step.rich(
+        'STOP stops them all',
+        'With several devices connected the button reads STOP ALL: one press stops every connected device, as STOP does for one. Reset clears the stop on all of them; each stays disarmed until you arm it again.',
+        warn: true,
+      ),
+      Step.rich(
+        'Seeing them together',
+        'The map shows every connected device with a GPS fix, each with its own colour, name and track; tap one to show it. The 3D views mark them too, placed by GPS. The Fleet widget (Edit layout > Add widget) lists them all with mode, battery, link and alerts. A controller button can cycle through them: Settings > Game controller > Next device.',
       ),
     ],
   ),

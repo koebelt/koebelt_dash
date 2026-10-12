@@ -398,6 +398,24 @@ class _ScenePainter extends FramePainter {
         c.drawPath(gr, st(VC.white, 2));
     }
 
+    // The other connected devices, placed by GPS relative to this one: a
+    // ring, a line down to the ground and the name, in each one's colour.
+    if (S.seen.contains('gps') && (S.lat != 0 || S.lon != 0) && !arm) {
+      final c0 = math.cos(S.lat * math.pi / 180);
+      for (final m in dash.companions) {
+        final o = m.tel;
+        if (!o.seen.contains('gps') || (o.lat == 0 && o.lon == 0)) continue;
+        final q = [S.rPos[0] + (o.lon - S.lon) * 111111 * c0, S.rPos[1] + (o.lat - S.lat) * 111111, o.rPos[2]];
+        final col = fleetColor(dash, m.id), mark = Path(), drop = Path();
+        _ring(mark, P, q, .6, 16);
+        line(drop, q, [q[0], q[1], 0]);
+        c.drawPath(drop, st(col.withValues(alpha: .4)));
+        c.drawPath(mark, st(col, 2));
+        final p = P(q);
+        if (label && p != null) drawText(c, m.name.toUpperCase(), Offset(p[0] + 10, p[1] - 6), col);
+      }
+    }
+
     if (label) {
       final p = P(
         isArm
