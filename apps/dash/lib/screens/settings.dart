@@ -7,6 +7,7 @@ import '../theme/tokens.dart';
 import '../ui/components.dart';
 import '../ui/icons.dart';
 import 'controller_settings.dart';
+import 'update_ui.dart';
 
 class SetRow extends StatelessWidget {
   const SetRow({super.key, required this.title, this.desc, required this.child, required this.phone});
@@ -242,6 +243,8 @@ class SettingsScreen extends StatelessWidget {
                 ),
               ),
             ]),
+            SizedBox(height: phone ? 20 : 32),
+            section('Updates', [UpdatesSection(d: d, phone: phone)]),
           ],
         ),
       ),

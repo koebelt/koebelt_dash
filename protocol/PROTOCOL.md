@@ -186,7 +186,7 @@ Echoes `ts` from `ping` so the app can measure round-trip latency.
 | Message | Example | Notes |
 |---------|---------|-------|
 | `discover` | `{"t":"discover"}` | UDP broadcast only. |
-| `hello` | `{"t":"hello","v":1,"app":"dash/0.9.2","key":"a1b2…"}` | Starts a session. `key` is omitted for unpaired devices in open mode. |
+| `hello` | `{"t":"hello","v":1,"app":"dash/1.0.0","key":"a1b2…"}` | Starts a session. `key` is omitted for unpaired devices in open mode. |
 | `pair` | `{"t":"pair","code":"4F7-K2Q","key":"<32 hex>"}` | Device stores `key` if `code` matches its pairing code. |
 | `ctl` | `{"t":"ctl","s":812,"lx":0,"ly":0.4,"rx":0,"ry":-0.1}` | Four normalised axes −1…1. Sent at 20 Hz while a session is open, also when all zero: it is the heartbeat for the failsafe. |
 | `jog` | `{"t":"jog","j":[0,0,1,0,0,0]}` | Arm joint jog velocity per joint, −1…1. |

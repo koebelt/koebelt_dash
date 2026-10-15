@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The folder updates are downloaded to (updateDownloadDir in lib/core/updater_install.dart). -->
+<paths>
+    <cache-path name="updates" path="updates/" />
+</paths>

@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'core/alerts.dart';
 import 'core/dash.dart';
 import 'core/model.dart';
+import 'core/updater.dart' show UpdateState;
 import 'screens/control.dart';
 import 'screens/device_menu.dart';
 import 'screens/devices.dart';
@@ -17,6 +18,7 @@ import 'screens/params.dart';
 import 'screens/program.dart';
 import 'screens/replay.dart';
 import 'screens/settings.dart';
+import 'screens/update_ui.dart';
 import 'theme/tokens.dart';
 import 'ui/components.dart';
 import 'ui/icons.dart';
@@ -169,6 +171,10 @@ class _ShellState extends State<Shell> {
                             Expanded(
                               child: DeviceBtn(d: d, go: go, sub: false),
                             ),
+                            if (d.updater.nudge || d.updater.state == UpdateState.downloading || d.updater.state == UpdateState.installing) ...[
+                              const SizedBox(width: 10),
+                              UpdateChip(d: d, compact: true),
+                            ],
                             const SizedBox(width: 10),
                             ConstrainedBox(
                               constraints: const BoxConstraints(maxWidth: 120),
@@ -219,6 +225,7 @@ class _ShellState extends State<Shell> {
                         child: StatusCluster(d: d),
                       ),
                     ),
+                    UpdateChip(d: d, gap: 16),
                     const SizedBox(width: 24),
                     Container(width: 1, height: 28, color: K.borderHairline),
                     const SizedBox(width: 24),

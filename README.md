@@ -80,6 +80,9 @@ connects your hardware to it.
   the sticks; the others hold on centred sticks without tripping their
   failsafe, keep their alerts, sequences and recordings, and show on the map
   and in 3D. STOP stops them all.
+- **Updates**: the downloads from GitHub (macOS, Windows, Linux, Android)
+  check for a new release and update in one click, after checking the file
+  against the release; never while a device is armed.
 - **Replay**: record sessions at the telemetry rate, with the camera, every
   connected device at once; scrub and play them back at 1, 2 or 4×; import
   ArduPilot and PX4 logs.

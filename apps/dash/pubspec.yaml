@@ -32,6 +32,7 @@ dependencies:
   flutter_map: ^8.3.2
   latlong2: ^0.10.1
   http: ^1.6.0
+  crypto: ^3.0.6
 # Patched copy until upstream drops jcenter() (third_party/flutter_libserialport/KOEBELT.md).
 dependency_overrides:
   flutter_libserialport:

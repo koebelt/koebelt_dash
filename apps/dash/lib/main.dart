@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import 'app.dart';
 import 'core/dash.dart';
+import 'core/macos_migrate.dart';
 import 'theme/tokens.dart';
 import 'ui/mark.dart';
 import 'viz/map_view.dart';
@@ -10,6 +11,7 @@ import 'viz/map_view.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.light);
+  await migrateFromSandbox();
   await initMapCache();
   final dash = Dash();
   runApp(KoebeltDash(dash: dash));

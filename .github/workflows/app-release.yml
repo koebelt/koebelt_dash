@@ -27,6 +27,7 @@ jobs:
           if [ "$PUBLISH" = true ] && [ "${GITHUB_REF_NAME#app-v}" != "$v" ]; then
             echo "Tag $GITHUB_REF_NAME does not match pubspec version $v" >&2; exit 1
           fi
+          grep -q "^const appVersion = '$v';" apps/dash/lib/link/protocol.dart || { echo "appVersion in lib/link/protocol.dart is not $v" >&2; exit 1; }
           echo "version=$v" >> "$GITHUB_OUTPUT"
 
   macos:
@@ -41,7 +42,7 @@ jobs:
         with: { channel: stable }
       # The libserialport pod builds from source with autotools.
       - run: brew install automake libtool
-      - run: flutter build macos --release --build-number=${{ needs.version.outputs.build }}
+      - run: flutter build macos --release --build-number=${{ needs.version.outputs.build }} --dart-define=KDASH_UPDATES=github
         working-directory: apps/dash
       - name: Signing keychain
         if: env.HAS_SIGNING == 'true'
@@ -147,7 +148,7 @@ jobs:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
         working-directory: apps/dash
         run: |
-          flutter build apk --release --build-number=${{ needs.version.outputs.build }}
+          flutter build apk --release --build-number=${{ needs.version.outputs.build }} --dart-define=KDASH_UPDATES=github
           flutter build appbundle --release --build-number=${{ needs.version.outputs.build }}
           mv build/app/outputs/flutter-apk/app-release.apk "$GITHUB_WORKSPACE/koebelt-dash-$V-android.apk"
           mv build/app/outputs/bundle/release/app-release.aab "$GITHUB_WORKSPACE/koebelt-dash-$V-android.aab"
@@ -164,7 +165,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with: { channel: stable }
-      - run: flutter build windows --release --build-number=${{ needs.version.outputs.build }}
+      - run: flutter build windows --release --build-number=${{ needs.version.outputs.build }} --dart-define=KDASH_UPDATES=github
         working-directory: apps/dash
       - name: Installer
         run: |
@@ -183,7 +184,7 @@ jobs:
       - run: sudo apt-get update && sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev libudev-dev
       - uses: subosito/flutter-action@v2
         with: { channel: stable }
-      - run: flutter build linux --release --build-number=${{ needs.version.outputs.build }}
+      - run: flutter build linux --release --build-number=${{ needs.version.outputs.build }} --dart-define=KDASH_UPDATES=github
         working-directory: apps/dash
       - name: Tarball
         run: |
@@ -210,5 +211,7 @@ jobs:
       - run: |
           notes=tools/release/app-notes/$V.md
           [ -f "$notes" ] || notes=/dev/null
+          # The app checks every update it downloads against this list.
+          (cd dist && sha256sum *.dmg *.exe *.apk *.tar.gz > SHA256SUMS && cat SHA256SUMS)
           gh release create "$GITHUB_REF_NAME" --title "koebelt dash $V" --notes-file "$notes" \
-            dist/*.dmg dist/*.exe dist/*.apk dist/*.tar.gz
+            dist/*.dmg dist/*.exe dist/*.apk dist/*.tar.gz dist/SHA256SUMS

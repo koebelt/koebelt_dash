@@ -31,6 +31,8 @@ import 'model.dart';
 import 'sequence.dart';
 import 'store.dart';
 import 'telemetry.dart';
+import 'updater.dart';
+import 'updater_install.dart' show beforeUpdateQuit;
 
 class Settings {
   String control = 'joysticks'; // joysticks | sliders | tilt
@@ -263,8 +265,15 @@ List<DeviceInfo> simTemplates() => [
 
 /// App state. The Flutter counterpart of the design's `SIM` object.
 class Dash extends ChangeNotifier implements PadTarget {
-  Dash({Store? store}) : store = store ?? Store();
+  Dash({Store? store, this._updater}) : store = store ?? Store();
   final Store store;
+
+  /// In-app updates for the builds published on GitHub (core/updater.dart).
+  late final Updater updater = _updater ?? Updater(store);
+  final Updater? _updater;
+
+  /// Updating restarts the app, which drops every link; not while armed.
+  bool get updateBlocked => links.values.any((l) => l.tel.armed);
 
   /// Game controller mapping and the plugin listener.
   final pad = PadConfig();
@@ -420,6 +429,9 @@ class Dash extends ChangeNotifier implements PadTarget {
   // ------------------------------------------------------------ lifecycle
   Future<void> init() async {
     await store.init();
+    updater.addListener(notifyListeners);
+    beforeUpdateQuit = disconnectAll;
+    updater.start();
     settings.load(store.readJson('kdash-settings-v1'));
     pad.load(store.readJson('kdash-pad-v1') as Map?);
     alertPrefs.load(store.readJson('kdash-alerts-v1') as Map?);

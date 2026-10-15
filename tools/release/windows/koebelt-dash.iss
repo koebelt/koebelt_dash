@@ -28,6 +28,9 @@ LicenseFile={#SourcePath}\..\..\..\LICENSE
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
+; In-app updates run this silently while the app is quitting.
+CloseApplications=yes
+RestartApplications=no
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked

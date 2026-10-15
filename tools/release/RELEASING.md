@@ -59,10 +59,20 @@ and then:
 
 - creates the GitHub Release `app-vX.Y.Z` with the notes in
   [`app-notes/X.Y.Z.md`](app-notes/) and the macOS .dmg (signed with
-  Developer ID, notarized), the Windows installer, the Linux tarball and the
-  Android APK;
+  Developer ID, notarized), the Windows installer, the Linux tarball, the
+  Android APK and `SHA256SUMS`;
 - uploads the iOS build to App Store Connect, where it appears in TestFlight
   after Apple's processing (about 15 minutes).
+
+Installed copies from GitHub find the new release by themselves (at launch
+and once a day) and update in one click: the app downloads its file, checks
+it against `SHA256SUMS` (and on macOS the Developer ID team and Gatekeeper),
+swaps itself and restarts; Android hands the APK to the system installer.
+Those builds get `--dart-define=KDASH_UPDATES=github`; the iOS build and
+local builds do not, and never check. So the file names, the `app-v` tag and
+`SHA256SUMS` must stay as they are, and `appVersion` in
+`lib/link/protocol.dart` must match `pubspec.yaml` (a test and the workflow
+check it). Version 1.0.0 had no updater: its users install 1.1.0 by hand once.
 
 Running the workflow by hand (Actions > app-release > Run workflow) builds
 everything without publishing, unsigned where secrets are missing, and keeps
@@ -71,8 +81,9 @@ the files as workflow artifacts.
 ## Each release
 
 ```bash
-# 1. Bump `version:` in apps/dash/pubspec.yaml (keep +1 after it), and write
-#    tools/release/app-notes/X.Y.Z.md
+# 1. Bump `version:` in apps/dash/pubspec.yaml (keep +1 after it) and
+#    `appVersion` in apps/dash/lib/link/protocol.dart, and write
+#    tools/release/app-notes/X.Y.Z.md (shown in the app's update dialog)
 # 2. Commit, tag, push
 git tag app-v1.0.1 && git push origin main app-v1.0.1
 # 3. In App Store Connect > TestFlight, the build appears; add it to a group
