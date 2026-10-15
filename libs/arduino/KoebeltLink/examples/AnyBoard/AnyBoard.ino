@@ -1,6 +1,10 @@
 // Runs on any supported board: Wi-Fi where the board has it, otherwise
 // Bluetooth LE, otherwise USB serial. Tested in CI on ESP32, ESP8266,
 // Raspberry Pi Pico W, Arduino UNO R4 WiFi, Nano 33 IoT and Nano 33 BLE.
+//
+// ESP32: Wi-Fi and Bluetooth together do not fit the default 1.2 MB app
+// partition. Pick Tools > Partition Scheme > Huge APP, or include
+// <NimBLEDevice.h> (see the NimBLE example), which is much smaller.
 #include <KoebeltLink.h>
 
 // Libraries that are not part of the board's core must be included by the

@@ -1,6 +1,7 @@
 // Quickstart: an ESP32 streams IMU + battery to koebelt/dash over Wi-Fi and
 // maps stick input to four motor outputs. Replace the fake sensor reads.
 #include <KoebeltLink.h>
+#include <WiFi.h>  // WiFi.RSSI()
 
 const char* WIFI_SSID = "your-ssid";
 const char* WIFI_PASS = "your-password";

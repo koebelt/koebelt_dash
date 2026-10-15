@@ -57,6 +57,7 @@ const deviceGuides = [
             'cpp',
             r'''// Drone companion: an ESP32 next to the flight controller.
 #include <KoebeltLink.h>
+#include <WiFi.h>
 
 KLink klink("Kite", KLink::DRONE);
 

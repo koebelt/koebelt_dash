@@ -184,6 +184,7 @@ const connectionGuides = [
           'arduino': [
             'cpp',
             r'''#include <KoebeltLink.h>
+#include <WiFi.h>   // WiFi.localIP(), WiFi.RSSI()
 
 KLink klink("Mule", KLink::ROVER);
 

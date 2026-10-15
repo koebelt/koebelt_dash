@@ -10,9 +10,13 @@
 /// class: WiFiUDP (ESP32, ESP8266, Pico W, WiFiNINA, WiFiS3, WiFi101,
 /// WiFiEspAT), EthernetUDP (W5100/W5500, ENC28J60 with EthernetENC, STM32
 /// Ethernet), QNEthernet on Teensy 4.1… Anything with the usual methods.
+// std::declval, which AVR cores do not ship.
+template <typename T>
+T& kDeclval();
+
 template <typename U>
 class KUdpTransportT : public KTransport {
-  typedef decltype(static_cast<U*>(nullptr)->remoteIP()) Addr;
+  typedef decltype(kDeclval<U>().remoteIP()) Addr;
 
  public:
   explicit KUdpTransportT(U& udp) : _udp(udp) {}

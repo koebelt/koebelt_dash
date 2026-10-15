@@ -56,9 +56,20 @@ jobs:
             - libs/arduino/KoebeltLink/examples/ThrustBench
             - libs/arduino/KoebeltLink/examples/RadioRover
             - libs/arduino/KoebeltLink/examples/CameraRover
-            - libs/arduino/KoebeltLink/examples/AnyBoard
             - libs/arduino/KoebeltLink/examples/BluetoothModule
             - libs/arduino/KoebeltLink/examples/NimBLE
+      # Wi-Fi and Bluedroid together need the Huge APP partition (see the sketch).
+      - uses: arduino/compile-sketches@v1
+        with:
+          fqbn: esp32:esp32:esp32:PartitionScheme=huge_app
+          platforms: |
+            - name: esp32:esp32
+              source-url: https://espressif.github.io/arduino-esp32/package_esp32_index.json
+          libraries: |
+            - source-path: libs/arduino/KoebeltLink
+            - name: ArduinoJson
+          sketch-paths: |
+            - libs/arduino/KoebeltLink/examples/AnyBoard
 
   arduino-boards:
     runs-on: ubuntu-latest

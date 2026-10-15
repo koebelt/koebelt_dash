@@ -58,8 +58,3 @@ class HardwareSerial : public Stream {
 };
 inline HardwareSerial Serial, Serial1, Serial2;
 
-struct WiFiClass {
-  int RSSI() { return -55; }
-  const char* localIP() { return "192.168.1.42"; }
-};
-inline WiFiClass WiFi;
