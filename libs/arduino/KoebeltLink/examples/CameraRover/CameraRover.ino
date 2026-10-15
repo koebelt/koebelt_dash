@@ -1,6 +1,6 @@
 // ESP32-CAM (AI-Thinker) rover with live video in the app.
 // Board: "AI Thinker ESP32-CAM", PSRAM enabled. The camera streams MJPEG on
-// port 81; the app finds it through link.video() and shows it in the Camera
+// port 81; the app finds it through klink.video() and shows it in the Camera
 // view, the drive screen background and the Camera tile.
 #include <KoebeltLink.h>
 #include <WiFi.h>
@@ -8,7 +8,7 @@
 #include "esp_camera.h"
 #include "esp_http_server.h"
 
-KLink link("Cam-Rover", KLink::ROVER);
+KLink klink("Cam-Rover", KLink::ROVER);
 float speed = 0, turn = 0;
 
 // multipart/x-mixed-replace: one JPEG per part, with its length.
@@ -71,22 +71,22 @@ static bool startCamera() {
 
 void setup() {
   Serial.begin(115200);
-  link.setSensors("CAMERA, IMU");
-  link.begin("my-ssid", "my-password");
+  klink.setSensors("CAMERA, IMU");
+  klink.begin("my-ssid", "my-password");
   if (startCamera()) {
-    link.video(":81/stream", "cam", "mjpeg", "Front");  // port and path on this board's IP
+    klink.video(":81/stream", "cam", "mjpeg", "Front");  // port and path on this board's IP
   } else {
-    link.log("Camera failed to start", "error");
+    klink.log("Camera failed to start", "error");
   }
-  link.onControl([](const KControl& c) { speed = c.ry; turn = c.lx; });
-  link.onStop([] { speed = turn = 0; });
-  link.failsafe(1000, KMode::HOLD);
+  klink.onControl([](const KControl& c) { speed = c.ry; turn = c.lx; });
+  klink.onStop([] { speed = turn = 0; });
+  klink.failsafe(1000, KMode::HOLD);
 }
 
 void loop() {
   // Drive your motor driver from speed and turn here.
-  link.battery(7.6f, 80);
-  link.rssi(WiFi.RSSI());
-  link.update();
+  klink.battery(7.6f, 80);
+  klink.rssi(WiFi.RSSI());
+  klink.update();
   delay(20);
 }

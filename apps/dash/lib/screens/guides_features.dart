@@ -34,17 +34,17 @@ const featureGuides = [
             'cpp',
             r'''#include <KoebeltLink.h>
 
-KLink link("Mule", KLink::ROVER);
+KLink klink("Mule", KLink::ROVER);
 
 void setup() {
-  link.begin("your-ssid", "your-password");
+  klink.begin("your-ssid", "your-password");
   // An IP camera on the same network (any MJPEG URL works).
-  link.video("http://192.168.1.50:8080/video", "cam", "mjpeg", "Front");
+  klink.video("http://192.168.1.50:8080/video", "cam", "mjpeg", "Front");
 }
 
 void loop() {
-  link.battery(12.1, 70);
-  link.update();
+  klink.battery(12.1, 70);
+  klink.update();
 }''',
           ],
           'python': [
@@ -117,7 +117,7 @@ fn main() -> std::io::Result<()> {
             r'''// Board: AI Thinker ESP32-CAM, PSRAM enabled. Full sketch:
 // libs/arduino/KoebeltLink/examples/CameraRover
 if (startCamera()) {                        // esp_camera_init + httpd on port 81
-  link.video(":81/stream", "cam", "mjpeg", "Front");
+  klink.video(":81/stream", "cam", "mjpeg", "Front");
 }''',
           ],
           'python': [
@@ -156,7 +156,7 @@ if (startCamera()) {                        // esp_camera_init + httpd on port 8
         'Send a GPS fix',
         'The map appears as soon as the device sends gps: a MAP view on the Live and drive screens, and the GPS tile becomes a small map. Send the local position too, if you have it: the app places home from the two, and draws the running sequence\'s waypoints in the right place.',
         c: {
-          'arduino': ['cpp', 'link.gps(lat, lon, altitudeM, satellites);\nlink.position(xEast, yNorth, up);      // metres from home'],
+          'arduino': ['cpp', 'klink.gps(lat, lon, altitudeM, satellites);\nklink.position(xEast, yNorth, up);      // metres from home'],
           'python': ['python', 'dev.gps(lat, lon, alt, sats)\ndev.position(x_east, y_north, up)'],
           'rust': ['rust', 'dev.link.gps(lat, lon, alt, sats);\ndev.position([x_east, y_north, up])?;'],
           'ros2': ['yaml', 'sensors:\n  gps:  /fix     # sensor_msgs/NavSatFix\n  odom: /odom    # nav_msgs/Odometry, x east and y north'],

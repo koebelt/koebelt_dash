@@ -5,7 +5,7 @@ SRC = ../src/KoebeltLink.cpp ../src/KoebeltLink_platform.cpp host_test.cpp guide
 run: host_test
 	./host_test
 
-host_test: $(SRC) ../src/*.h
+host_test: $(SRC) ../src/*.h shim/*.h
 	$(CXX) $(CXXFLAGS) -Ishim -I../src $(SRC) -o $@
 
 clean:

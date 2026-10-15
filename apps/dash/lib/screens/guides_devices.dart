@@ -58,7 +58,7 @@ const deviceGuides = [
             r'''// Drone companion: an ESP32 next to the flight controller.
 #include <KoebeltLink.h>
 
-KLink link("Kite", KLink::DRONE);
+KLink klink("Kite", KLink::DRONE);
 
 // ---- replace with your flight controller interface ----------------------
 struct Fc {
@@ -82,43 +82,43 @@ struct Fc {
 
 void setup() {
   Serial.begin(115200);
-  link.setModel("Quadcopter 5 in · 1.4 kg");
-  link.setSensors("IMU,BARO,COMPASS,GPS");
-  link.begin("your-ssid", "your-password");
+  klink.setModel("Quadcopter 5 in · 1.4 kg");
+  klink.setSensors("IMU,BARO,COMPASS,GPS");
+  klink.begin("your-ssid", "your-password");
 
   // Sticks arrive 20 times a second while the app is open, each −1…1.
-  link.onControl([](const KControl& c) {
-    if (link.mode() == KMode::MANUAL) fc.sticks(c.ly, c.lx, c.ry, c.rx);
+  klink.onControl([](const KControl& c) {
+    if (klink.mode() == KMode::MANUAL) fc.sticks(c.ly, c.lx, c.ry, c.rx);
   });
-  link.onMode([](KMode m) { fc.setMode(m); });   // AUTO, MANUAL, HOLD, LAND, RTH
-  link.onArm([](bool a) { fc.arm(a); });
-  link.onStop([] { fc.killMotors(); });          // STOP must always cut the motors
-  link.onCommand([](const char* c, JsonObjectConst a) {
+  klink.onMode([](KMode m) { fc.setMode(m); });   // AUTO, MANUAL, HOLD, LAND, RTH
+  klink.onArm([](bool a) { fc.arm(a); });
+  klink.onStop([] { fc.killMotors(); });          // STOP must always cut the motors
+  klink.onCommand([](const char* c, JsonObjectConst a) {
     if (!strcmp(c, "takeoff")) {
       fc.takeOff(a["alt"] | 5.0f);
-      link.setMode(KMode::TAKEOFF);
+      klink.setMode(KMode::TAKEOFF);
     } else if (!strcmp(c, "goto")) {
       fc.goTo(a["x"] | fc.x, a["y"] | fc.y, a["z"] | fc.z);
-      link.setMode(KMode::AUTO);
+      klink.setMode(KMode::AUTO);
     } else if (!strcmp(c, "sethome")) {
       fc.setHomeHere();
     }
   });
-  link.failsafe(1800, KMode::RTH);              // the app can change the action
+  klink.failsafe(1800, KMode::RTH);              // the app can change the action
 }
 
 void loop() {
   fc.read();
-  link.attitude(fc.roll, fc.pitch, fc.yaw);
-  link.position(fc.x, fc.y, fc.z);
-  link.velocity(fc.vx, fc.vy, fc.vz);
-  link.imu(fc.ax, fc.ay, fc.az, fc.gx, fc.gy, fc.gz);
-  link.gps(fc.lat, fc.lon, fc.z, 14);
-  link.battery(fc.volts, fc.pct, fc.amps);
-  link.rssi(WiFi.RSSI());
-  if (link.mode() == KMode::TAKEOFF && fc.arrived()) link.setMode(KMode::HOLD);
-  if (link.mode() == KMode::AUTO && fc.arrived()) link.setMode(KMode::HOLD);
-  link.update();
+  klink.attitude(fc.roll, fc.pitch, fc.yaw);
+  klink.position(fc.x, fc.y, fc.z);
+  klink.velocity(fc.vx, fc.vy, fc.vz);
+  klink.imu(fc.ax, fc.ay, fc.az, fc.gx, fc.gy, fc.gz);
+  klink.gps(fc.lat, fc.lon, fc.z, 14);
+  klink.battery(fc.volts, fc.pct, fc.amps);
+  klink.rssi(WiFi.RSSI());
+  if (klink.mode() == KMode::TAKEOFF && fc.arrived()) klink.setMode(KMode::HOLD);
+  if (klink.mode() == KMode::AUTO && fc.arrived()) klink.setMode(KMode::HOLD);
+  klink.update();
 }''',
           ],
           'python': [
@@ -275,7 +275,7 @@ fn main() -> std::io::Result<()> {
             r'''// Rover: differential drive, wheel odometry, 2D lidar, waypoints.
 #include <KoebeltLink.h>
 
-KLink link("Mule", KLink::ROVER);
+KLink klink("Mule", KLink::ROVER);
 KParam maxSpeed, turnGain;
 
 const int LEFT_PWM = 25, RIGHT_PWM = 26;   // motor driver inputs
@@ -309,31 +309,31 @@ int readLidar() {                           // replace with your lidar driver
 void setup() {
   pinMode(LEFT_PWM, OUTPUT);
   pinMode(RIGHT_PWM, OUTPUT);
-  link.setModel("4WD rover · 6 kg");
-  link.setSensors("IMU,WHEEL ODOM,2D LIDAR");
-  link.begin("your-ssid", "your-password");
-  maxSpeed = link.param("MAX_SPD", 1.5, 0.2, 4, "m/s");
-  turnGain = link.param("TURN_GAIN", 1.2, 0, 4);
+  klink.setModel("4WD rover · 6 kg");
+  klink.setSensors("IMU,WHEEL ODOM,2D LIDAR");
+  klink.begin("your-ssid", "your-password");
+  maxSpeed = klink.param("MAX_SPD", 1.5, 0.2, 4, "m/s");
+  turnGain = klink.param("TURN_GAIN", 1.2, 0, 4);
 
-  link.onControl([](const KControl& c) {
-    if (link.mode() == KMode::MANUAL) drive(c.ry * link.speedLimit() * 2, -c.lx);
+  klink.onControl([](const KControl& c) {
+    if (klink.mode() == KMode::MANUAL) drive(c.ry * klink.speedLimit() * 2, -c.lx);
   });
-  link.onStop([] { drive(0, 0); goingTo = false; });
-  link.onMode([](KMode m) {
+  klink.onStop([] { drive(0, 0); goingTo = false; });
+  klink.onMode([](KMode m) {
     goingTo = false;
     if (m == KMode::HOLD) drive(0, 0);
   });
-  link.onCommand([](const char* c, JsonObjectConst a) {
+  klink.onCommand([](const char* c, JsonObjectConst a) {
     if (!strcmp(c, "goto")) {
       goalX = a["x"] | x;
       goalY = a["y"] | y;
       goingTo = true;
-      link.setMode(KMode::AUTO);
+      klink.setMode(KMode::AUTO);
     } else if (!strcmp(c, "sethome")) {
       x = y = 0;
     }
   });
-  link.failsafe(1000, KMode::HOLD);
+  klink.failsafe(1000, KMode::HOLD);
 }
 
 void loop() {
@@ -342,28 +342,28 @@ void loop() {
   last = millis();
   readOdometry(dt);
 
-  if (goingTo && link.armed() && !link.stopped()) {
+  if (goingTo && klink.armed() && !klink.stopped()) {
     float dx = goalX - x, dy = goalY - y, dist = sqrtf(dx * dx + dy * dy);
     float err = atan2f(dy, dx) - heading;
     err = atan2f(sinf(err), cosf(err));
     if (dist < 0.3f) {
       drive(0, 0);
       goingTo = false;
-      link.setMode(KMode::HOLD);         // the app moves to the next step
+      klink.setMode(KMode::HOLD);         // the app moves to the next step
     } else {
       drive(fminf(dist, (float)maxSpeed) / 4, err * turnGain);
     }
   }
 
-  link.position(x, y, 0);
-  link.attitude(0, 0, heading);
-  link.velocity(cosf(heading) * speed, sinf(heading) * speed, 0);
-  link.battery(12.4, 76);
+  klink.position(x, y, 0);
+  klink.attitude(0, 0, heading);
+  klink.velocity(cosf(heading) * speed, sinf(heading) * speed, 0);
+  klink.battery(12.4, 76);
   if (millis() - lastScan > 200) {         // 5 scans a second is plenty
     lastScan = millis();
-    link.points(scan, readLidar());
+    klink.points(scan, readLidar());
   }
-  link.update();
+  klink.update();
 }''',
           ],
           'python': [
@@ -498,7 +498,7 @@ safety:
             r'''// 6-axis desktop arm with position-controlled servos.
 #include <KoebeltLink.h>
 
-KLink link("Cell arm", KLink::ARM);
+KLink klink("Cell arm", KLink::ARM);
 float joints[6] = {0, -0.5f, 1.1f, 0, 0.6f, 0};   // rad, measured
 float target[6] = {0, -0.5f, 1.1f, 0, 0.6f, 0};   // rad
 float jogVel[6] = {0};
@@ -515,16 +515,16 @@ void setPose(const float* p) {
 }
 
 void setup() {
-  link.setModel("6-axis desktop arm · 1 kg payload");
-  link.setSensors("JOINT ENCODERS,MOTOR CURRENT");
-  link.beginBLE();                   // or link.begin(ssid, pass) / link.beginSerial(Serial)
-  link.onJog([](const float* v) {
+  klink.setModel("6-axis desktop arm · 1 kg payload");
+  klink.setSensors("JOINT ENCODERS,MOTOR CURRENT");
+  klink.beginBLE();                   // or klink.begin(ssid, pass) / klink.beginSerial(Serial)
+  klink.onJog([](const float* v) {
     for (int i = 0; i < 6; i++) jogVel[i] = v[i];
   });
-  link.onStop([] {
+  klink.onStop([] {
     for (int i = 0; i < 6; i++) { jogVel[i] = 0; target[i] = joints[i]; }   // freeze where it is
   });
-  link.onCommand([](const char* c, JsonObjectConst a) {
+  klink.onCommand([](const char* c, JsonObjectConst a) {
     if (!strcmp(c, "pose")) {
       JsonArrayConst j = a["j"];
       for (int i = 0; i < 6 && i < (int)j.size(); i++) target[i] = j[i];
@@ -543,15 +543,15 @@ void loop() {
   static uint32_t last = millis();
   float dt = (millis() - last) / 1000.0f;
   last = millis();
-  if (link.armed() && !link.stopped()) {
-    for (int i = 0; i < 6; i++) target[i] += jogVel[i] * 1.2f * link.speedLimit() * 2 * dt;
+  if (klink.armed() && !klink.stopped()) {
+    for (int i = 0; i < 6; i++) target[i] += jogVel[i] * 1.2f * klink.speedLimit() * 2 * dt;
     writeServos();
   }
   readEncoders();
-  link.joints(joints, 6);
-  link.tool(0.4f, 0, 0.6f, gripper);  // tool position from your forward kinematics
-  link.battery(12.0, 100, 1.4f);      // supply voltage and motor current
-  link.update();
+  klink.joints(joints, 6);
+  klink.tool(0.4f, 0, 0.6f, gripper);  // tool position from your forward kinematics
+  klink.battery(12.0, 100, 1.4f);      // supply voltage and motor current
+  klink.update();
 }''',
           ],
           'python': [
@@ -670,7 +670,7 @@ safety:
 #include <KoebeltLink.h>
 #include <LoRa.h>        // sandeepmistry/arduino-LoRa: include it so the IDE links it
 
-KLink link("Nova", KLink::ROCKET);
+KLink klink("Nova", KLink::ROCKET);
 KParam mainAlt, pulseMs, launchG;
 const int PYRO[2] = {12, 13}, SENSE[2] = {34, 35};   // fire and continuity pins
 float alt = 0, maxAlt = 0, vz = 0, accelZ = 9.81f, countdown = 0;
@@ -681,12 +681,12 @@ float readBaroAlt() { return alt; }          // replace with your barometer
 float readAccelZ() { return 9.81f; }        // replace with your IMU (m/s², 200 G)
 
 void phase(KMode m) {
-  link.setMode(m);
+  klink.setMode(m);
   phaseStart = millis();
 }
 
 void fire(int ch) {
-  if (fired[ch] || !link.armed()) return;
+  if (fired[ch] || !klink.armed()) return;
   digitalWrite(PYRO[ch], HIGH);
   delay((uint32_t)(float)pulseMs);          // short, so blocking is acceptable here
   digitalWrite(PYRO[ch], LOW);
@@ -699,21 +699,21 @@ const char* continuity(int ch) {
 
 void setup() {
   for (int i = 0; i < 2; i++) { pinMode(PYRO[i], OUTPUT); pinMode(SENSE[i], INPUT); }
-  link.setModel("Mid-power rocket · H128");
-  link.setSensors("IMU 200 G,BARO,GPS,PYRO x2");
-  link.begin("your-ssid", "your-password");
-  link.fallback(KLink::LORA, 868E6);         // keep telemetry beyond Wi-Fi range
-  mainAlt = link.param("MAIN_ALT", 150, 50, 500, "m");
-  pulseMs = link.param("PYRO_PULSE", 500, 100, 2000, "ms");
-  launchG = link.param("LAUNCH_G", 3, 1.5, 10, "g");
-  link.onCommand([](const char* c, JsonObjectConst a) {
-    KMode m = link.mode();
-    if (!strcmp(c, "countdown") && m == KMode::PAD && link.armed()) {
+  klink.setModel("Mid-power rocket · H128");
+  klink.setSensors("IMU 200 G,BARO,GPS,PYRO x2");
+  klink.begin("your-ssid", "your-password");
+  klink.fallback(KLink::LORA, 868E6);         // keep telemetry beyond Wi-Fi range
+  mainAlt = klink.param("MAIN_ALT", 150, 50, 500, "m");
+  pulseMs = klink.param("PYRO_PULSE", 500, 100, 2000, "ms");
+  launchG = klink.param("LAUNCH_G", 3, 1.5, 10, "g");
+  klink.onCommand([](const char* c, JsonObjectConst a) {
+    KMode m = klink.mode();
+    if (!strcmp(c, "countdown") && m == KMode::PAD && klink.armed()) {
       countdown = a["s"] | 10.0f;
       phase(KMode::COUNT);
     } else if (!strcmp(c, "abort") && m == KMode::COUNT) {
       phase(KMode::PAD);
-      link.setArmed(false);
+      klink.setArmed(false);
     } else if (!strcmp(c, "deploy")) {
       int ch = a["ch"] | 0;
       fire(ch);
@@ -724,7 +724,7 @@ void setup() {
       phase(KMode::PAD);
     }
   });
-  link.onStop([] { if (link.mode() == KMode::COUNT) phase(KMode::PAD); });
+  klink.onStop([] { if (klink.mode() == KMode::COUNT) phase(KMode::PAD); });
 }
 
 void loop() {
@@ -737,13 +737,13 @@ void loop() {
   vz = dt > 0 ? (alt - prev) / dt : 0;
   maxAlt = fmaxf(maxAlt, alt);
 
-  switch (link.mode()) {
+  switch (klink.mode()) {
     case KMode::COUNT:
       countdown -= dt;
       if (countdown <= 0) phase(KMode::BOOST);   // or wait for launch detection
       break;
     case KMode::PAD:
-      if (link.armed() && accelZ > (float)launchG * 9.81f) phase(KMode::BOOST);
+      if (klink.armed() && accelZ > (float)launchG * 9.81f) phase(KMode::BOOST);
       break;
     case KMode::BOOST:
       if (accelZ < 9.81f) phase(KMode::COAST);
@@ -761,13 +761,13 @@ void loop() {
       break;
   }
 
-  link.position(0, 0, alt);
-  link.velocity(0, 0, vz);
-  link.imu(0, 0, accelZ, 0, 0, 0);
-  link.rocketState(maxAlt, (millis() - phaseStart) / 1000.0f, countdown);
-  link.setPyro(continuity(0), continuity(1), "-", "-");
-  link.battery(7.6, 90);
-  link.update();
+  klink.position(0, 0, alt);
+  klink.velocity(0, 0, vz);
+  klink.imu(0, 0, accelZ, 0, 0, 0);
+  klink.rocketState(maxAlt, (millis() - phaseStart) / 1000.0f, countdown);
+  klink.setPyro(continuity(0), continuity(1), "-", "-");
+  klink.battery(7.6, 90);
+  klink.update();
 }''',
           ],
           'python': [
@@ -873,7 +873,7 @@ dev.run(hz=20, loop=loop)''',
             r'''// Thrust bench: ESC, load cell, tachometer, current, temperature.
 #include <KoebeltLink.h>
 
-KLink link("Thrust bench", KLink::BENCH);
+KLink klink("Thrust bench", KLink::BENCH);
 KParam maxCurrent, maxTemp, rampTime;
 float throttle = 0, seqT = 0;
 bool ramping = false;
@@ -890,26 +890,26 @@ void setThrottle(float t) {
 }
 
 void setup() {
-  link.setModel("Motor test stand · 25 kg load cell");
-  link.setSensors("LOAD CELL,RPM,CURRENT,TEMP");
-  link.beginSerial(Serial);                     // USB: lowest latency on the bench
-  maxCurrent = link.param("MAX_CURRENT", 45, 5, 120, "A");
-  maxTemp = link.param("MAX_TEMP", 90, 40, 150, "C");
-  rampTime = link.param("RAMP_TIME", 10, 2, 60, "s");
-  link.onStop([] { ramping = false; setThrottle(0); });
-  link.onArm([](bool a) { if (!a) setThrottle(0); });
-  link.onCommand([](const char* c, JsonObjectConst a) {
-    if (!strcmp(c, "throttle") && link.armed()) {
+  klink.setModel("Motor test stand · 25 kg load cell");
+  klink.setSensors("LOAD CELL,RPM,CURRENT,TEMP");
+  klink.beginSerial(Serial);                     // USB: lowest latency on the bench
+  maxCurrent = klink.param("MAX_CURRENT", 45, 5, 120, "A");
+  maxTemp = klink.param("MAX_TEMP", 90, 40, 150, "C");
+  rampTime = klink.param("RAMP_TIME", 10, 2, 60, "s");
+  klink.onStop([] { ramping = false; setThrottle(0); });
+  klink.onArm([](bool a) { if (!a) setThrottle(0); });
+  klink.onCommand([](const char* c, JsonObjectConst a) {
+    if (!strcmp(c, "throttle") && klink.armed()) {
       setThrottle(a["v"] | 0.0f);
-      link.setMode(throttle > 0 ? KMode::MANUAL : KMode::IDLE);
+      klink.setMode(throttle > 0 ? KMode::MANUAL : KMode::IDLE);
     } else if (!strcmp(c, "seq")) {
-      ramping = link.armed() && !a["kind"].isNull();
+      ramping = klink.armed() && !a["kind"].isNull();
       seqT = 0;
       if (!ramping) setThrottle(0);
-      link.setMode(ramping ? KMode::RAMP : KMode::IDLE);
+      klink.setMode(ramping ? KMode::RAMP : KMode::IDLE);
     } else if (!strcmp(c, "clear")) {
-      link.setCutoff(nullptr);
-      link.setMode(KMode::IDLE);
+      klink.setCutoff(nullptr);
+      klink.setMode(KMode::IDLE);
     }
   });
 }
@@ -922,21 +922,21 @@ void loop() {
     seqT += dt;
     float rt = rampTime;
     setThrottle(seqT < rt ? seqT / rt : seqT < rt + 2 ? 1 : 0);
-    if (seqT > rt + 2) { ramping = false; link.setMode(KMode::IDLE); }
+    if (seqT > rt + 2) { ramping = false; klink.setMode(KMode::IDLE); }
   }
   float amps = readCurrentA(), temp = readTempC(), thrust = readThrustN();
   if (amps > (float)maxCurrent || temp > (float)maxTemp) {   // the firmware enforces limits
     ramping = false;
     setThrottle(0);
-    link.setCutoff(amps > (float)maxCurrent ? "Current limit" : "Temperature limit");
-    link.setMode(KMode::CUTOFF);
+    klink.setCutoff(amps > (float)maxCurrent ? "Current limit" : "Temperature limit");
+    klink.setMode(KMode::CUTOFF);
   }
-  link.thrust(thrust, thrust * 0.012f);
-  link.rpm(readRpm());
-  link.battery(22.2f, 100, amps);
-  link.temperature(temp);
-  link.throttleOut(throttle);
-  link.update();
+  klink.thrust(thrust, thrust * 0.012f);
+  klink.rpm(readRpm());
+  klink.battery(22.2f, 100, amps);
+  klink.temperature(temp);
+  klink.throttleOut(throttle);
+  klink.update();
 }''',
           ],
           'python': [
@@ -1017,7 +1017,7 @@ dev.run(hz=60, loop=loop)''',
             r'''// Greenhouse controller: custom channels, parameters and commands.
 #include <KoebeltLink.h>
 
-KLink link("Greenhouse", KLink::GENERIC);
+KLink klink("Greenhouse", KLink::GENERIC);
 KChannel climate, soil;
 KParam targetTemp, ventOpenAt;
 float ventPosition = 0;                  // 0 closed … 1 open
@@ -1025,16 +1025,16 @@ float ventPosition = 0;                  // 0 closed … 1 open
 void setVent(float v) { ventPosition = constrain(v, 0.0f, 1.0f); }   // drive the actuator here
 
 void setup() {
-  link.setModel("Greenhouse controller");
-  link.setSensors("SHT45,SOIL x4");
-  link.begin("your-ssid", "your-password");
+  klink.setModel("Greenhouse controller");
+  klink.setSensors("SHT45,SOIL x4");
+  klink.begin("your-ssid", "your-password");
   // id, axes, unit, nominal rate: each becomes a tile, a HUD widget and CSV columns
-  climate = link.channel("climate", {"Temp", "Humidity"}, "", 1);
-  soil = link.channel("soil_moisture", {"Bed 1", "Bed 2", "Bed 3", "Bed 4"}, "%", 0.2f);
-  targetTemp = link.param("CLIMATE_TARGET", 22, 10, 35, "C");
-  ventOpenAt = link.param("CLIMATE_VENT_AT", 26, 15, 40, "C");
+  climate = klink.channel("climate", {"Temp", "Humidity"}, "", 1);
+  soil = klink.channel("soil_moisture", {"Bed 1", "Bed 2", "Bed 3", "Bed 4"}, "%", 0.2f);
+  targetTemp = klink.param("CLIMATE_TARGET", 22, 10, 35, "C");
+  ventOpenAt = klink.param("CLIMATE_VENT_AT", 26, 15, 40, "C");
   // Triggered from Program > Custom command, e.g. name "vent", value 0.5
-  link.onCommand([](const char* c, JsonObjectConst a) {
+  klink.onCommand([](const char* c, JsonObjectConst a) {
     if (!strcmp(c, "vent")) setVent(a["v"] | 0.0f);
   });
 }
@@ -1051,7 +1051,7 @@ void loop() {
     lastSoil = millis();
     soil.publish(analogRead(32) / 40.95f, analogRead(33) / 40.95f, analogRead(34) / 40.95f, analogRead(35) / 40.95f);
   }
-  link.update();
+  klink.update();
 }''',
           ],
           'python': [

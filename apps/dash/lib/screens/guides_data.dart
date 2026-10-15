@@ -109,7 +109,7 @@ Guide quickstart(String pair) => Guide('quickstart', 'Quickstart', "Install the 
     {
       'arduino': [
         'cpp',
-        '#include <KoebeltLink.h>\n\nKLink link("Kite-03", KLink::DRONE);\n\nvoid setup() {\n  link.begin(WIFI_SSID, WIFI_PASS);   // or link.beginBLE()\n}\n\nvoid loop() {\n  link.update();                      // call every loop, non-blocking\n}',
+        '#include <KoebeltLink.h>\n\nKLink klink("Kite-03", KLink::DRONE);\n\nvoid setup() {\n  klink.begin(WIFI_SSID, WIFI_PASS);   // or klink.beginBLE()\n}\n\nvoid loop() {\n  klink.update();                      // call every loop, non-blocking\n}',
       ],
       'python': [
         'python',
@@ -125,7 +125,7 @@ Guide quickstart(String pair) => Guide('quickstart', 'Quickstart', "Install the 
     {
       'arduino': [
         'cpp',
-        'void loop() {\n  imu.read();\n  link.imu(imu.ax, imu.ay, imu.az, imu.gx, imu.gy, imu.gz);\n  link.gps(gps.lat, gps.lon, gps.alt);\n  link.battery(vbat, pct);\n  link.update();\n}',
+        'void loop() {\n  imu.read();\n  klink.imu(imu.ax, imu.ay, imu.az, imu.gx, imu.gy, imu.gz);\n  klink.gps(gps.lat, gps.lon, gps.alt);\n  klink.battery(vbat, pct);\n  klink.update();\n}',
       ],
       'python': [
         'python',
@@ -144,7 +144,7 @@ Guide quickstart(String pair) => Guide('quickstart', 'Quickstart', "Install the 
     {
       'arduino': [
         'cpp',
-        'link.onControl([](const KControl& c) {\n  throttle = c.ly;  yaw = c.lx;\n  pitch    = c.ry;  roll = c.rx;\n});\n\nlink.onMode([](KMode m) {\n  if (m == KMode::RTH) nav.returnHome();\n});',
+        'klink.onControl([](const KControl& c) {\n  throttle = c.ly;  yaw = c.lx;\n  pitch    = c.ry;  roll = c.rx;\n});\n\nklink.onMode([](KMode m) {\n  if (m == KMode::RTH) nav.returnHome();\n});',
       ],
       'python': [
         'python',
@@ -163,7 +163,7 @@ Guide quickstart(String pair) => Guide('quickstart', 'Quickstart', "Install the 
     {
       'arduino': [
         'cpp',
-        'link.onStop([] { motors.cut(); });\nlink.onArm([](bool armed) { motors.enable(armed); });\n\n// no packet for 1.8 s -> hold position\nlink.failsafe(1800, KMode::HOLD);',
+        'klink.onStop([] { motors.cut(); });\nklink.onArm([](bool armed) { motors.enable(armed); });\n\n// no packet for 1.8 s -> hold position\nklink.failsafe(1800, KMode::HOLD);',
       ],
       'python': ['python', '@dev.on_stop\ndef stop():\n    motors.brake()\n\ndev.failsafe(timeout=1.8, action="hold")'],
       'ros2': ['yaml', 'safety:\n  stop_service: /robot/estop     # std_srvs/Trigger\n  failsafe_timeout: 1.8\n  failsafe_action: hold'],
@@ -175,7 +175,7 @@ Guide quickstart(String pair) => Guide('quickstart', 'Quickstart', "Install the 
     'Pass the pairing code below once. The device stores the key and reconnects on its own afterwards.',
     pair: true,
     c: {
-      'arduino': ['cpp', 'void setup() {\n  link.begin(WIFI_SSID, WIFI_PASS);\n  link.pair("$pair");   // remove after first pairing\n}'],
+      'arduino': ['cpp', 'void setup() {\n  klink.begin(WIFI_SSID, WIFI_PASS);\n  klink.pair("$pair");   // remove after first pairing\n}'],
       'python': ['python', 'dev.pair("$pair")'],
       'ros2': ['bash', 'ros2 launch koebelt_link_ros bridge.launch.py \\\n  config:=config/device.yaml pair:=$pair'],
       'rust': ['rust', 'dev.pair("$pair")?;'],

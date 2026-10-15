@@ -29,19 +29,19 @@ const moreGuides = [
             'cpp',
             r'''#include <KoebeltLink.h>
 
-KLink link("Kite", KLink::DRONE);
+KLink klink("Kite", KLink::DRONE);
 KChannel motorTemp, airspeed;
 
 void setup() {
-  link.begin("your-ssid", "your-password");
-  motorTemp = link.channel("motor_temp", {"M1", "M2", "M3", "M4"}, "C", 10);
-  airspeed = link.channel("airspeed", {"value"}, "m/s", 20);
+  klink.begin("your-ssid", "your-password");
+  motorTemp = klink.channel("motor_temp", {"M1", "M2", "M3", "M4"}, "C", 10);
+  airspeed = klink.channel("airspeed", {"value"}, "m/s", 20);
 }
 
 void loop() {
   motorTemp.publish(41.2, 43.0, 40.8, 42.5);   // one value per axis
   airspeed.publish(12.4);
-  link.update();
+  klink.update();
 }''',
           ],
           'python': [
@@ -125,7 +125,7 @@ channels:
         c: {
           'arduino': [
             'cpp',
-            'link.onCommand([](const char* c, JsonObjectConst a) {\n  if (!strcmp(c, "lights")) digitalWrite(LED_PIN, (a["v"] | 0) > 0 ? HIGH : LOW);\n});',
+            'klink.onCommand([](const char* c, JsonObjectConst a) {\n  if (!strcmp(c, "lights")) digitalWrite(LED_PIN, (a["v"] | 0) > 0 ? HIGH : LOW);\n});',
           ],
           'python': ['python', '@dev.on_command\ndef command(name, a):\n    if name == "lights":\n        lights.set(a.get("v", 0) > 0)'],
           'rust': ['rust', 'dev.on_command(|name, args| {\n    if name == "lights" {\n        lights.set(args.value().unwrap_or(0.0) > 0.0);\n    }\n});'],
@@ -147,7 +147,7 @@ channels:
         c: {
           'arduino': [
             'cpp',
-            'KParam rollP = link.param("RATE_RLL_P", 0.135, 0.0, 0.5);\nKParam maxTilt = link.param("MAX_TILT", 35, 10, 60, "deg");\nKParam cellScale = link.param("CELL_SCALE", 1.0, 0.9, 1.1, "", 0.001);   // explicit step',
+            'KParam rollP = klink.param("RATE_RLL_P", 0.135, 0.0, 0.5);\nKParam maxTilt = klink.param("MAX_TILT", 35, 10, 60, "deg");\nKParam cellScale = klink.param("CELL_SCALE", 1.0, 0.9, 1.1, "", 0.001);   // explicit step',
           ],
           'python': [
             'python',
@@ -162,7 +162,7 @@ channels:
         c: {
           'arduino': [
             'cpp',
-            'rollP.onChange([](float v) { rollPid.kp = v; });\n\nlink.onParamsWritten([] { link.saveParams(); });   // ESP32: stored in NVS flash',
+            'rollP.onChange([](float v) { rollPid.kp = v; });\n\nklink.onParamsWritten([] { klink.saveParams(); });   // ESP32: stored in NVS flash',
           ],
           'python': [
             'python',
@@ -191,7 +191,7 @@ channels:
         c: {
           'arduino': [
             'cpp',
-            'link.onCommand([](const char* c, JsonObjectConst a) {\n  if (!strcmp(c, "goto")) {\n    nav.goTo(a["x"] | 0.0f, a["y"] | 0.0f, a["z"] | 0.0f);\n    link.setMode(KMode::AUTO);\n  }\n  if (!strcmp(c, "takeoff")) nav.takeOff(a["alt"] | 5.0f);\n});\n\n// in loop(): report arrival\nif (link.mode() == KMode::AUTO && nav.arrived()) link.setMode(KMode::HOLD);',
+            'klink.onCommand([](const char* c, JsonObjectConst a) {\n  if (!strcmp(c, "goto")) {\n    nav.goTo(a["x"] | 0.0f, a["y"] | 0.0f, a["z"] | 0.0f);\n    klink.setMode(KMode::AUTO);\n  }\n  if (!strcmp(c, "takeoff")) nav.takeOff(a["alt"] | 5.0f);\n});\n\n// in loop(): report arrival\nif (klink.mode() == KMode::AUTO && nav.arrived()) klink.setMode(KMode::HOLD);',
           ],
           'python': [
             'python',
@@ -228,7 +228,7 @@ channels:
           ['Steps', 'Arduino: up to 32 (8 on AVR). Python: 64. Rust: 32', 'Any number'],
         ],
         bullets: [
-          'Check link.sequenceRunning() (Arduino), dev.sequence_running (Python) or link.sequence_running() (Rust) to know whether your code is driving or a stored sequence is.',
+          'Check klink.sequenceRunning() (Arduino), dev.sequence_running (Python) or dev.link.sequence_running() (Rust) to know whether your code is driving or a stored sequence is.',
           'Custom command steps reach onCommand with their value as "v".',
           'ArduPilot and PX4: take off, fly to, wait, land and return home become a mission flown in AUTO; leading arm steps happen before it starts. A sequence with other steps runs from the app.',
         ],
@@ -254,7 +254,7 @@ channels:
           'stays disarmed after reset until you arm again.',
         ],
         c: {
-          'arduino': ['cpp', 'link.onStop([] { motors.cut(); });\n\n// and in loop(), as a second guard:\nif (link.stopped() || !link.armed()) motors.cut();'],
+          'arduino': ['cpp', 'klink.onStop([] { motors.cut(); });\n\n// and in loop(), as a second guard:\nif (klink.stopped() || !klink.armed()) motors.cut();'],
           'python': ['python', '@dev.on_stop\ndef stop():\n    motors.cut()\n\n# in your loop\nif dev.estop or not dev.armed:\n    motors.cut()'],
           'rust': ['rust', 'dev.on_stop(|| motors.cut());\n\n// in your loop\nif dev.link.stopped() || !dev.link.armed() {\n    motors.cut();\n}'],
         },
@@ -270,7 +270,7 @@ channels:
           ['Rocket', 'Nothing: the flight continues'],
         ],
         c: {
-          'arduino': ['cpp', 'link.failsafe(1800, KMode::HOLD);\nlink.onMode([](KMode m) { nav.setMode(m); });   // the failsafe arrives here'],
+          'arduino': ['cpp', 'klink.failsafe(1800, KMode::HOLD);\nklink.onMode([](KMode m) { nav.setMode(m); });   // the failsafe arrives here'],
           'python': ['python', 'dev.failsafe(timeout=1.8, action="hold")\ndev.on_mode(nav.set_mode)   # the failsafe arrives here'],
           'rust': ['rust', 'dev.failsafe(Duration::from_millis(1800), Mode::Hold);\ndev.on_mode(|m| nav.set_mode(m));'],
         },

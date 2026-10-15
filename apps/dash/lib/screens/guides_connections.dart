@@ -185,12 +185,12 @@ const connectionGuides = [
             'cpp',
             r'''#include <KoebeltLink.h>
 
-KLink link("Mule", KLink::ROVER);
+KLink klink("Mule", KLink::ROVER);
 
 void setup() {
   Serial.begin(115200);
   // Joins the network (15 s timeout) and listens on UDP 47800.
-  if (!link.begin("your-ssid", "your-password")) {
+  if (!klink.begin("your-ssid", "your-password")) {
     Serial.println("Wi-Fi failed: check the name, the password and that it is 2.4 GHz");
   }
   Serial.print("IP address: ");
@@ -198,9 +198,9 @@ void setup() {
 }
 
 void loop() {
-  link.battery(12.4, 80);
-  link.rssi(WiFi.RSSI());           // shown in the app's status bar
-  link.update();
+  klink.battery(12.4, 80);
+  klink.rssi(WiFi.RSSI());           // shown in the app's status bar
+  klink.update();
 }''',
           ],
           'python': [
@@ -279,17 +279,17 @@ fn main() -> std::io::Result<()> {
             'cpp',
             r'''#include <KoebeltLink.h>
 
-KLink link("Cell arm", KLink::ARM);
+KLink klink("Cell arm", KLink::ARM);
 
 void setup() {
   Serial.begin(115200);
-  if (!link.beginBLE()) Serial.println("This board has no Bluetooth (ESP32 only)");
+  if (!klink.beginBLE()) Serial.println("This board has no Bluetooth (ESP32 only)");
 }
 
 void loop() {
   const float joints[6] = {0, -0.5, 1.1, 0, 0.6, 0};
-  link.joints(joints, 6);
-  link.update();
+  klink.joints(joints, 6);
+  klink.update();
 }''',
           ],
           'python': [
@@ -362,16 +362,16 @@ fn main() -> std::io::Result<()> {
             'cpp',
             r'''#include <KoebeltLink.h>
 
-KLink link("Thrust bench", KLink::BENCH);
+KLink klink("Thrust bench", KLink::BENCH);
 
 void setup() {
   Serial.begin(115200);
-  link.beginSerial(Serial);     // the USB port now belongs to koebelt/link
+  klink.beginSerial(Serial);     // the USB port now belongs to koebelt/link
 }
 
 void loop() {
-  link.thrust(analogRead(34) * 0.01f);
-  link.update();
+  klink.thrust(analogRead(34) * 0.01f);
+  klink.update();
 }''',
           ],
           'python': [
@@ -406,7 +406,7 @@ fn main() -> std::io::Result<()> {
           ],
         },
         warn: true,
-        note: 'Do not print debug text on the same port: it breaks the message stream. Use a second UART (Serial1) for debugging, or link.log("…") to send it to the app.',
+        note: 'Do not print debug text on the same port: it breaks the message stream. Use a second UART (Serial1) for debugging, or klink.log("…") to send it to the app.',
       ),
       Step.rich(
         'Platforms and permissions',
@@ -454,22 +454,22 @@ fn main() -> std::io::Result<()> {
             'cpp',
             r'''#include <KoebeltLink.h>
 
-KLink link("Mule", KLink::ROVER);
+KLink klink("Mule", KLink::ROVER);
 float speed = 0, turn = 0;
 
 void setup() {
   // ESP32: radio TX -> GPIO16, radio RX -> GPIO17, GND, 5 V.
   Serial2.begin(kRadioProfile(KRadio::SIK).baud, SERIAL_8N1, 16, 17);
-  link.beginRadio(Serial2, KRadio::SIK);     // or KRadio::HC12, KRadio::XBEE, KRadio::LORA
-  link.onControl([](const KControl& c) { speed = c.ry; turn = c.lx; });
-  link.onStop([] { speed = turn = 0; });
-  link.failsafe(1500, KMode::HOLD);          // radios drop packets: give the failsafe some slack
+  klink.beginRadio(Serial2, KRadio::SIK);     // or KRadio::HC12, KRadio::XBEE, KRadio::LORA
+  klink.onControl([](const KControl& c) { speed = c.ry; turn = c.lx; });
+  klink.onStop([] { speed = turn = 0; });
+  klink.failsafe(1500, KMode::HOLD);          // radios drop packets: give the failsafe some slack
 }
 
 void loop() {
-  link.position(0, 0, 0);
-  link.battery(12.1, 64);
-  link.update();
+  klink.position(0, 0, 0);
+  klink.battery(12.1, 64);
+  klink.update();
 }''',
           ],
           'python': [
@@ -522,7 +522,7 @@ fn main() -> std::io::Result<()> {
         c: {
           'arduino': [
             'cpp',
-            'link.begin("your-ssid", "your-password");\nSerial2.begin(57600, SERIAL_8N1, 16, 17);\nlink.beginRadio(Serial2, KRadio::SIK);   // second link = fallback',
+            'klink.begin("your-ssid", "your-password");\nSerial2.begin(57600, SERIAL_8N1, 16, 17);\nklink.beginRadio(Serial2, KRadio::SIK);   // second link = fallback',
           ],
           'python': ['python', 'dev.connect(wifi=True, fallback={"radio": ("/dev/ttyAMA0", "sik")})'],
           'rust': ['rust', 'let mut dev = Device::new("Mule", Kind::Rover).wifi("", "").radio("/dev/ttyAMA0", Radio::Sik).start()?;'],
@@ -559,7 +559,7 @@ fn main() -> std::io::Result<()> {
         c: {
           'arduino': [
             'cpp',
-            '// LoRa on SPI (sandeepmistry/LoRa library; include it in the sketch):\n#include <LoRa.h>\n\nlink.fallback(KLink::LORA, 868E6);        // 868 MHz Europe, 915 MHz Americas\n\n// A LoRa module with a UART (E22, E32) in transparent mode:\nSerial2.begin(115200, SERIAL_8N1, 16, 17);\nlink.beginRadio(Serial2, KRadio::LORA);',
+            '// LoRa on SPI (sandeepmistry/LoRa library; include it in the sketch):\n#include <LoRa.h>\n\nklink.fallback(KLink::LORA, 868E6);        // 868 MHz Europe, 915 MHz Americas\n\n// A LoRa module with a UART (E22, E32) in transparent mode:\nSerial2.begin(115200, SERIAL_8N1, 16, 17);\nklink.beginRadio(Serial2, KRadio::LORA);',
           ],
           'python': ['python', 'dev.connect(wifi=True, fallback={"radio": ("/dev/ttyUSB1", "lora")})'],
           'rust': ['rust', 'let mut dev = Device::new("Nova", Kind::Rocket).wifi("", "").radio("/dev/ttyUSB1", Radio::Lora).start()?;'],
@@ -621,21 +621,21 @@ void loop() {
             'cpp',
             r'''#include <KoebeltLink.h>
 
-KLink link("Module-Bot", KLink::ROVER);
+KLink klink("Module-Bot", KLink::ROVER);
 float speed = 0, turn = 0;
 
 void setup() {
   // Module TX -> RX1, module RX -> TX1 (through a divider on 5 V boards).
   Serial1.begin(9600);               // the module's factory baud rate
-  link.beginModule(Serial1, 9600);   // 2 Hz telemetry; set the module to 115200 for 10 Hz
-  link.onControl([](const KControl& c) { speed = c.ry; turn = c.lx; });
-  link.onStop([] { speed = turn = 0; });
-  link.failsafe(1500, KMode::HOLD);
+  klink.beginModule(Serial1, 9600);   // 2 Hz telemetry; set the module to 115200 for 10 Hz
+  klink.onControl([](const KControl& c) { speed = c.ry; turn = c.lx; });
+  klink.onStop([] { speed = turn = 0; });
+  klink.failsafe(1500, KMode::HOLD);
 }
 
 void loop() {
-  link.battery(7.4, 80);
-  link.update();
+  klink.battery(7.4, 80);
+  klink.update();
 }''',
           ],
           'python': [
@@ -704,14 +704,14 @@ fn main() -> std::io::Result<()> {
 #include <Ethernet.h>
 EthernetUDP udp;
 Ethernet.begin(mac);
-link.beginUdp(udp);
+klink.beginUdp(udp);
 
 // An ESP-01 running ESP-AT as Wi-Fi for a board without it (WiFiEspAT)
 #include <WiFiEspAT.h>
 WiFiUDP udp;
 WiFi.init(Serial1);
 WiFi.begin("ssid", "password");
-link.beginUdp(udp);''',
+klink.beginUdp(udp);''',
           ],
         },
         bullets: [
@@ -741,7 +741,7 @@ link.beginUdp(udp);''',
           'From then on the device only accepts sessions that present that key. Remove the pair call afterwards.',
         ],
         c: {
-          'arduino': ['cpp', 'link.pair("4F7-K2Q");   // once; the key is stored in flash (ESP32)'],
+          'arduino': ['cpp', 'klink.pair("4F7-K2Q");   // once; the key is stored in flash (ESP32)'],
           'python': ['python', 'dev.pair("4F7-K2Q")    # key stored in ~/.config/koebelt-link/<id>.json'],
           'rust': ['rust', 'dev.pair("4F7-K2Q")?;   // key stored in ~/.config/koebelt-link/<id>.key'],
           'ros2': ['bash', 'ros2 launch koebelt_link_ros bridge.launch.py config:=config/device.yaml pair:=4F7-K2Q'],
@@ -751,7 +751,7 @@ link.beginUdp(udp);''',
         'Open mode and unpairing',
         'A device that was never paired accepts any app on the network ("open mode"). That is convenient on a bench, but avoid it in public places. To start over, call unpair() (Arduino, Python), delete the key file (Rust), or remove the device in the app and pair again with a new code.',
         c: {
-          'arduino': ['cpp', 'if (digitalRead(PAIR_BUTTON) == LOW) link.unpair();'],
+          'arduino': ['cpp', 'if (digitalRead(PAIR_BUTTON) == LOW) klink.unpair();'],
           'python': ['python', 'dev.unpair()'],
         },
       ),

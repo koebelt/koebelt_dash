@@ -6,6 +6,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <strings.h>
+// The ESP32 core pulls in POSIX names (link, unlink, close…) through Arduino.h;
+// sketches must not clash with them.
+#include <unistd.h>
 
 extern uint32_t g_millis;
 inline uint32_t millis() { return g_millis; }

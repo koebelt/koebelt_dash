@@ -5,19 +5,19 @@
 // 5 V boards), VCC, GND. The app finds BLE modules under Pair device > Nearby.
 #include <KoebeltLink.h>
 
-KLink link("Module-Bot", KLink::ROVER);
+KLink klink("Module-Bot", KLink::ROVER);
 float speed = 0, turn = 0;
 
 void setup() {
   Serial1.begin(9600);             // the module's factory baud rate
-  link.beginModule(Serial1, 9600); // 2 Hz telemetry at 9600 baud; 10 Hz at 115200
-  link.onControl([](const KControl& c) { speed = c.ry; turn = c.lx; });
-  link.onStop([] { speed = turn = 0; });
-  link.failsafe(1500, KMode::HOLD);
+  klink.beginModule(Serial1, 9600); // 2 Hz telemetry at 9600 baud; 10 Hz at 115200
+  klink.onControl([](const KControl& c) { speed = c.ry; turn = c.lx; });
+  klink.onStop([] { speed = turn = 0; });
+  klink.failsafe(1500, KMode::HOLD);
 }
 
 void loop() {
-  link.battery(7.4f, 80);
-  link.update();
+  klink.battery(7.4f, 80);
+  klink.update();
   delay(20);
 }

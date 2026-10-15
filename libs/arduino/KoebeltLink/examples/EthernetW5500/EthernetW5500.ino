@@ -6,7 +6,7 @@
 
 byte mac[] = {0x02, 0x4B, 0x4C, 0x00, 0x00, 0x01};
 EthernetUDP udp;
-KLink link("Wired-Bench", KLink::BENCH);
+KLink klink("Wired-Bench", KLink::BENCH);
 
 void setup() {
   Serial.begin(115200);
@@ -14,12 +14,12 @@ void setup() {
   if (Ethernet.begin(mac) == 0) {  // DHCP
     Serial.println("Ethernet: no DHCP answer");
   }
-  link.beginUdp(udp);              // listens on 47800, announces on 47801
-  link.onStop([] { /* cut the motor */ });
+  klink.beginUdp(udp);              // listens on 47800, announces on 47801
+  klink.onStop([] { /* cut the motor */ });
 }
 
 void loop() {
-  link.thrust(analogRead(A0) * 0.01f, 0);
-  link.update();
+  klink.thrust(analogRead(A0) * 0.01f, 0);
+  klink.update();
   Ethernet.maintain();
 }

@@ -3,7 +3,7 @@
 #include <KoebeltLink.h>
 #include <ESP32Servo.h>   // any ESC driver works
 
-KLink link("Thrust bench", KLink::BENCH);
+KLink klink("Thrust bench", KLink::BENCH);
 Servo esc;
 KParam maxCurrent, maxTemp, rampTime;
 float throttle = 0, seqT = 0;
@@ -19,22 +19,22 @@ void setThrottle(float v) { throttle = constrain(v, 0, 1); esc.writeMicroseconds
 void setup() {
   esc.attach(18);
   setThrottle(0);
-  link.begin("your-ssid", "your-password");
-  maxCurrent = link.param("MAX_CURRENT", 45, 5, 120, "A");
-  maxTemp = link.param("MAX_TEMP", 90, 40, 150, "C");
-  rampTime = link.param("RAMP_TIME", 10, 2, 60, "s");
-  link.onStop([] { seq = nullptr; setThrottle(0); });
-  link.onCommand([](const char* c, JsonObjectConst a) {
-    if (!link.armed()) return;
+  klink.begin("your-ssid", "your-password");
+  maxCurrent = klink.param("MAX_CURRENT", 45, 5, 120, "A");
+  maxTemp = klink.param("MAX_TEMP", 90, 40, 150, "C");
+  rampTime = klink.param("RAMP_TIME", 10, 2, 60, "s");
+  klink.onStop([] { seq = nullptr; setThrottle(0); });
+  klink.onCommand([](const char* c, JsonObjectConst a) {
+    if (!klink.armed()) return;
     if (!strcmp(c, "throttle")) setThrottle(a["v"] | 0.0f);
     if (!strcmp(c, "seq")) {
       const char* k = a["kind"];
       seq = k && !strcmp(k, "RAMP") ? "RAMP" : nullptr;
       seqT = 0;
-      link.setMode(seq ? KMode::RAMP : KMode::IDLE);
+      klink.setMode(seq ? KMode::RAMP : KMode::IDLE);
       if (!seq) setThrottle(0);
     }
-    if (!strcmp(c, "clear")) { link.setCutoff(nullptr); link.setMode(KMode::IDLE); }
+    if (!strcmp(c, "clear")) { klink.setCutoff(nullptr); klink.setMode(KMode::IDLE); }
   });
 }
 
@@ -46,20 +46,20 @@ void loop() {
     seqT += dt;
     float rt = rampTime;
     setThrottle(seqT < rt ? seqT / rt : seqT < rt + 2 ? 1 : 0);
-    if (seqT > rt + 2) { seq = nullptr; link.setMode(KMode::IDLE); }
+    if (seqT > rt + 2) { seq = nullptr; klink.setMode(KMode::IDLE); }
   }
   float amps = readCurrentA(), temp = readTempC();
   if (amps > maxCurrent || temp > maxTemp) {
     seq = nullptr;
     setThrottle(0);
-    link.setCutoff(amps > maxCurrent ? "Current limit" : "Temperature limit");
-    link.setMode(KMode::CUTOFF);
+    klink.setCutoff(amps > maxCurrent ? "Current limit" : "Temperature limit");
+    klink.setMode(KMode::CUTOFF);
   }
   float n = readThrustN();
-  link.thrust(n, n * 0.012f);
-  link.rpm(readRpm());
-  link.battery(22.2f, 100, amps);
-  link.temperature(temp);
-  link.throttleOut(throttle);
-  link.update();
+  klink.thrust(n, n * 0.012f);
+  klink.rpm(readRpm());
+  klink.battery(22.2f, 100, amps);
+  klink.temperature(temp);
+  klink.throttleOut(throttle);
+  klink.update();
 }
