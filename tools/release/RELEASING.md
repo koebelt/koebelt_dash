@@ -85,8 +85,12 @@ git tag app-v1.0.1 && git push origin main app-v1.0.1
   Integrations > App Store Connect API > Team Keys > +, access Admin) and
   download it, then run
   `python3 tools/release/setup_apple.py --key ~/Downloads/AuthKey_XXXX.p8 --issuer <Issuer ID>`.
-  It registers the bundle id `com.koebelt.dash`, makes the certificates and
-  profile and stores them as secrets. Then create the app (Apps > + > New App:
+  It registers the bundle id `com.koebelt.dash`, makes the App Store
+  certificate and profile and stores them as secrets. Apple lets only the
+  Account Holder create the Developer ID certificate (macOS download): the
+  script writes `developer-id.csr`, you upload it in the developer portal
+  (Certificates > + > Developer ID Application) and rerun the script with
+  `--devid-cer <downloaded .cer>`. Reruns reuse the saved keys. Then create the app (Apps > + > New App:
   iOS, name "koebelt dash", bundle id `com.koebelt.dash`, SKU `koebelt-dash`);
   the bundle id is in the list once registered.
   Certificates last a year: rerun the script when Apple's renewal email arrives.
