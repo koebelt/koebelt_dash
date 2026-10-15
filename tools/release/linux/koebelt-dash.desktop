@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=koebelt dash
+Comment=Companion app for drones, rovers, robot arms and test benches
+Exec=koebelt_dash
+Icon=com.koebelt.dash
+Terminal=false
+Categories=Development;Engineering;
+StartupWMClass=com.koebelt.dash

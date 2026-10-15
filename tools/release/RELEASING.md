@@ -49,3 +49,57 @@ patch version.
   (a pull request on `repositories.txt`; a bot checks and merges it).
 - **PlatformIO**: an account named `koebelt` (`pio account register`), so the
   package is `koebelt/KoebeltLink`.
+
+# Releasing the app
+
+Pushing a tag `app-vX.Y.Z` runs [`app-release.yml`](../../.github/workflows/app-release.yml).
+X.Y.Z must be the version in `apps/dash/pubspec.yaml`; the build number is
+the workflow's run number, so it always goes up. It builds every platform
+and then:
+
+- creates the GitHub Release `app-vX.Y.Z` with the notes in
+  [`app-notes/X.Y.Z.md`](app-notes/) and the macOS .dmg (signed with
+  Developer ID, notarized), the Windows installer, the Linux tarball and the
+  Android APK;
+- uploads the iOS build to App Store Connect, where it appears in TestFlight
+  after Apple's processing (about 15 minutes).
+
+Running the workflow by hand (Actions > app-release > Run workflow) builds
+everything without publishing, unsigned where secrets are missing, and keeps
+the files as workflow artifacts.
+
+## Each release
+
+```bash
+# 1. Bump `version:` in apps/dash/pubspec.yaml (keep +1 after it), and write
+#    tools/release/app-notes/X.Y.Z.md
+# 2. Commit, tag, push
+git tag app-v1.0.1 && git push origin main app-v1.0.1
+# 3. In App Store Connect > TestFlight, the build appears; add it to a group
+#    of testers, or submit it for App Store review.
+```
+
+## One-time setup
+
+- **Apple**: in App Store Connect, create the app (Apps > + > New App: iOS,
+  name "koebelt dash", bundle id `com.koebelt.dash`, SKU `koebelt-dash`).
+  Create an API key (Users and Access > Integrations > App Store Connect API >
+  Team Keys > +, access Admin) and download it, then run
+  `python3 tools/release/setup_apple.py --key ~/Downloads/AuthKey_XXXX.p8 --issuer <Issuer ID>`.
+  It makes the certificates and profile and stores them as secrets.
+  Certificates last a year: rerun it when Apple's renewal email arrives.
+- **Android**: run `tools/release/setup_android_key.sh` once. The key in
+  `~/Documents/koebelt-release-keys` signs every APK; installed copies only
+  update from APKs signed with it, so back it up.
+- **Google Play (later)**: when creating the app, choose to use your own app
+  signing key and give Play this same key (Play Console guides you through
+  exporting it with its PEPK tool), so people who installed the APK can
+  update from Play. The workflow already builds the .aab Play wants.
+- **iOS LAN discovery**: finding devices by UDP broadcast on iPhone and
+  iPad needs Apple's multicast networking entitlement. Request it at
+  https://developer.apple.com/contact/request/networking-multicast for
+  `com.koebelt.dash`; once granted, give the Runner target an entitlements
+  file with `com.apple.developer.networking.multicast` and rerun
+  `setup_apple.py` so the profile includes it. Until then, iOS connects over Bluetooth and Add by IP.
+- **Windows code signing (later)**: the installer is unsigned, so SmartScreen
+  warns at first. Azure Trusted Signing is the cheapest way to sign it.

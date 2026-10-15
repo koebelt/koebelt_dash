@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "dev.koebelt.koebelt_dash"
+    namespace = "com.koebelt.dash"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -15,8 +15,7 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "dev.koebelt.koebelt_dash"
+        applicationId = "com.koebelt.dash"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
@@ -29,11 +28,24 @@ android {
         versionName = flutter.versionName
     }
 
+    // Release builds are signed with the upload key when the release workflow
+    // provides it (ANDROID_KEYSTORE, see tools/release/RELEASING.md), and with
+    // the debug key otherwise, so `flutter run --release` works anywhere.
+    val keystore = System.getenv("ANDROID_KEYSTORE")?.let { file(it) }?.takeIf { it.exists() }
+    signingConfigs {
+        if (keystore != null) {
+            create("upload") {
+                storeFile = keystore
+                storePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("ANDROID_KEY_ALIAS") ?: "upload"
+                keyPassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName(if (keystore != null) "upload" else "debug")
         }
     }
 }

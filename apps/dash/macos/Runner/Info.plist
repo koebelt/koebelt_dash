@@ -30,5 +30,11 @@
 	<string>NSApplication</string>
 	<key>NSBluetoothAlwaysUsageDescription</key>
 	<string>koebelt dash connects to your drones and robots over Bluetooth.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>koebelt dash finds and controls devices on your local network.</string>
+	<key>LSApplicationCategoryType</key>
+	<string>public.app-category.developer-tools</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 </dict>
 </plist>

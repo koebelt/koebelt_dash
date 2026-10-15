@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "dev.koebelt" "\0"
-            VALUE "FileDescription", "koebelt_dash" "\0"
+            VALUE "CompanyName", "Thomas Koebel" "\0"
+            VALUE "FileDescription", "koebelt dash" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "koebelt_dash" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 dev.koebelt. All rights reserved." "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 Thomas Koebel" "\0"
             VALUE "OriginalFilename", "koebelt_dash.exe" "\0"
-            VALUE "ProductName", "koebelt_dash" "\0"
+            VALUE "ProductName", "koebelt dash" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END
