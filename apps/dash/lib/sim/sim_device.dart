@@ -186,7 +186,7 @@ class SimDevice {
           'kind': kind.name,
           'model': info.model,
           'fw': '2.4.1',
-          'lib': 'sim/1.6.0',
+          'lib': 'sim/1.0.0',
           'sensors': info.sensors,
           'seq': 64,
           if (camera?.running ?? false)

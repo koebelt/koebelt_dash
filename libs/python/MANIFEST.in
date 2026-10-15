@@ -1,0 +1,2 @@
+# The tests read the shared vectors in protocol/, outside the package.
+prune tests

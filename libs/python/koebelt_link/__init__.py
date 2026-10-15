@@ -1,6 +1,6 @@
 """koebelt/link: connect drones, robots and test rigs to the koebelt/dash app."""
 
-__version__ = "1.6.0"
+__version__ = "1.0.0"
 
 from .device import Channel, Control, Device, Param, Vec3  # noqa: E402
 from .protocol import RADIO_PROFILES, decode, decode_points, encode, encode_points  # noqa: E402

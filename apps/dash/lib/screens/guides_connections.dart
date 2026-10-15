@@ -309,7 +309,7 @@ dev.run(hz=30, loop=loop)''',
           ],
           'rust': [
             'rust',
-            r'''// Cargo.toml: koebelt-link = { version = "1.6", features = ["ble"] }
+            r'''// Cargo.toml: koebelt-link = { version = "1.0", features = ["ble"] }
 // Linux (BlueZ): sudo apt install libdbus-1-dev pkg-config. macOS and Windows as they are.
 use koebelt_link::{Device, Kind};
 

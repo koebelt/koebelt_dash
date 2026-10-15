@@ -1,16 +1,34 @@
 [build-system]
-requires = ["setuptools>=61"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "koebelt-link"
-version = "1.6.0"
+version = "1.0.0"
 description = "Connect drones, robots and test rigs to the koebelt/dash app."
 readme = "README.md"
 requires-python = ">=3.8"
-license = { text = "MIT" }
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [{ name = "Thomas Koebel", email = "contact@koebelt.com" }]
+keywords = ["robotics", "drone", "rover", "telemetry", "raspberry-pi", "koebelt"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering",
+    "Topic :: System :: Hardware",
+    "Typing :: Typed",
+]
 dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/koebelt/koebelt_dash"
+Source = "https://github.com/koebelt/koebelt_dash/tree/main/libs/python"
+Protocol = "https://github.com/koebelt/koebelt_dash/blob/main/protocol/PROTOCOL.md"
+Issues = "https://github.com/koebelt/koebelt_dash/issues"
 
 [project.optional-dependencies]
 serial = ["pyserial>=3.5"]

@@ -1,11 +1,17 @@
 [package]
 name = "koebelt-link"
-version = "1.6.0"
+version = "1.0.0"
 edition = "2024"
+rust-version = "1.88"
 description = "Connect drones, robots and test rigs to the koebelt/dash app (koebelt/link protocol)."
 authors = ["Thomas Koebel <contact@koebelt.com>"]
 license = "MIT"
 repository = "https://github.com/koebelt/koebelt_dash"
+homepage = "https://github.com/koebelt/koebelt_dash"
+documentation = "https://docs.rs/koebelt-link"
+readme = "README.md"
+# The tests read the shared vectors in protocol/, outside the crate.
+include = ["src/**", "examples/**", "README.md", "LICENSE"]
 keywords = ["robotics", "drone", "telemetry", "embedded", "no-std"]
 categories = ["embedded", "no-std", "network-programming"]
 

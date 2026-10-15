@@ -94,7 +94,7 @@ Guide quickstart(String pair) => Guide('quickstart', 'Quickstart', "Install the 
   const Step('Install the library', "Add the library to your project. It has no runtime dependencies beyond the platform's network stack.", {
     'arduino': [
       'cpp',
-      '// Arduino IDE: Sketch > Include Library > Manage Libraries\n// search "KoebeltLink" and install 1.6.x\n\n// PlatformIO: platformio.ini\nlib_deps = koebelt/KoebeltLink@^1.6.0',
+      '// Arduino IDE: Sketch > Include Library > Manage Libraries\n// search "KoebeltLink" and install 1.0.x\n\n// PlatformIO: platformio.ini\nlib_deps = koebelt/KoebeltLink@^1.0.0',
     ],
     'python': ['bash', 'pip install koebelt-link\n\n# optional extras\npip install "koebelt-link[ble,serial]"'],
     'ros2': [

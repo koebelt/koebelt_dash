@@ -738,7 +738,7 @@ class _GuidesScreenState extends State<GuidesScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const MonoLabel('koebelt/link · library 1.6', color: K.textAccent),
+            const MonoLabel('koebelt/link · library 1.0', color: K.textAccent),
             const SizedBox(height: 12),
             Text('Connect your hardware', style: phone ? KText.headingMd : KText.headingLg),
             const SizedBox(height: 12),

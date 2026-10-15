@@ -219,10 +219,10 @@ channels:
       ),
       Step.rich(
         'Stored on the device',
-        'Devices running the koebelt/link library 1.6 or later store the sequence: Run uploads it, and the device runs the steps through your own handlers above, checking its own telemetry. It keeps going when the link drops, and the app picks it up again when it reconnects. Nothing to add to your code.',
+        'Devices running the koebelt/link library store the sequence: Run uploads it, and the device runs the steps through your own handlers above, checking its own telemetry. It keeps going when the link drops, and the app picks it up again when it reconnects. Nothing to add to your code.',
         table: [
           ['', 'Stored on the device', 'Run from the app'],
-          ['When', 'koebelt/link 1.6+, ArduPilot and PX4 (as a mission)', 'Older libraries, steps a mission cannot hold'],
+          ['When', 'koebelt/link, ArduPilot and PX4 (as a mission)', 'More steps than the device holds, steps a mission cannot hold'],
           ['Link drops', 'Carries on; the link-loss failsafe waits until it ends', 'Pauses; the failsafe takes over'],
           ['Stops on', 'STOP, Stop sequence, stick input in the app', 'STOP, stick input, disconnect'],
           ['Steps', 'Arduino: up to 32 (8 on AVR). Python: 64. Rust: 32', 'Any number'],

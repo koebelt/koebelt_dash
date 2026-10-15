@@ -4,6 +4,10 @@ No dependencies. The protocol core (`Link<T: Transport>`) is `no_std` and
 allocation-free; the default `std` feature adds a `Device` with callbacks,
 Wi-Fi (UDP), serial and radio links, and an MJPEG server for live video.
 
+```bash
+cargo add koebelt-link
+```
+
 ```rust
 use koebelt_link::{Device, Kind, Mode};
 use std::time::Duration;
@@ -37,7 +41,7 @@ let mut dev = Device::new("Mule", Kind::Rover)
 ### Bluetooth LE
 
 ```toml
-koebelt-link = { version = "1.6", features = ["ble"] }
+koebelt-link = { version = "1.0", features = ["ble"] }
 ```
 
 ```rust
@@ -66,7 +70,7 @@ cam.push(&jpeg_bytes);                           // whenever you have a frame
 ## Embedded (embassy, embedded-hal)
 
 ```toml
-koebelt-link = { version = "1.6", default-features = false, features = ["embassy"] }
+koebelt-link = { version = "1.0", default-features = false, features = ["embassy"] }
 ```
 
 Implement `Transport` (`recv`, `send`, and optionally `reply`, `announce`,

@@ -1,0 +1,68 @@
+# Publishes the koebelt/link libraries when a tag like link-v1.0.0 is pushed:
+# Python to PyPI, Rust to crates.io, Arduino to github.com/koebelt/KoebeltLink
+# (the Arduino Library Manager and PlatformIO read it from there).
+# Setup and steps: tools/release/RELEASING.md.
+name: release
+on:
+  push:
+    tags: ["link-v*"]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: v
+        run: echo "version=$(python3 tools/release/check_versions.py "${GITHUB_REF_NAME#link-v}")" >> "$GITHUB_OUTPUT"
+
+  pypi:
+    needs: check
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write # trusted publishing, no token stored
+    defaults: { run: { working-directory: libs/python } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install -e ".[dev]" build && pytest -q
+      - run: python -m build
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with: { packages-dir: libs/python/dist }
+
+  crates:
+    needs: check
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: libs/rust } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo test
+      - run: cargo publish
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+  arduino:
+    needs: check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: make -C libs/arduino/KoebeltLink/test
+      - uses: actions/checkout@v4
+        with:
+          repository: koebelt/KoebeltLink
+          ssh-key: ${{ secrets.KOEBELTLINK_DEPLOY_KEY }}
+          path: mirror
+      - run: |
+          git -C mirror config user.name "github-actions[bot]"
+          git -C mirror config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          tools/release/mirror_arduino.sh mirror "${{ needs.check.outputs.version }}"
+      - uses: arduino/arduino-lint-action@v2
+        with:
+          path: mirror
+          compliance: strict
+          library-manager: update
+      - run: git -C mirror push origin HEAD --tags

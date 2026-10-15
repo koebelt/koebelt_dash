@@ -4,6 +4,10 @@ For ESP32 (Wi-Fi, BLE, flash storage), RP2040 W and other Wi-Fi boards (UDP),
 and any board with a `Stream` (USB serial or UART radio). It depends on
 ArduinoJson 7.
 
+Install it from the Arduino IDE (Sketch > Include Library > Manage
+Libraries, search **KoebeltLink**), with `arduino-cli lib install KoebeltLink`,
+or in PlatformIO with `lib_deps = koebelt/KoebeltLink@^1.0.0`.
+
 ```cpp
 #include <KoebeltLink.h>
 
@@ -68,5 +72,12 @@ Examples: `Quickstart` (drone over Wi-Fi), `ThrustBench` (sequences and cutoffs)
 board has), `BluetoothModule` (HM-10 / HC-05 on a UART), `EthernetW5500`,
 `EspAtCoprocessor` (ESP-01 as Wi-Fi for boards without it), `NimBLE`.
 
-Host tests: `make -C test`. They cover the protocol core and compile every snippet from
-the app's Guides screen.
+Host tests: `make -C test` in [koebelt/dash](https://github.com/koebelt/koebelt_dash/tree/main/libs/arduino/KoebeltLink).
+They cover the protocol core and compile every snippet from the app's Guides screen.
+
+The library is developed in [koebelt/dash](https://github.com/koebelt/koebelt_dash),
+next to the app, the [protocol](https://github.com/koebelt/koebelt_dash/blob/main/protocol/PROTOCOL.md)
+and the Python, Rust and ROS 2 versions. The KoebeltLink repository is a copy
+made on each release: open issues and pull requests in koebelt/dash.
+
+MIT licence.

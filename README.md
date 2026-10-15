@@ -21,6 +21,16 @@ connects your hardware to it.
 | [`libs/python/`](libs/python/) | `koebelt-link` for Raspberry Pi, Jetson and any Linux/macOS computer, plus a network simulator. |
 | [`libs/rust/`](libs/rust/) | `koebelt-link` crate: `no_std` core with no dependencies, plus a `std` layer. |
 | [`libs/ros2/koebelt_link_ros/`](libs/ros2/koebelt_link_ros/) | ROS 2 bridge node that maps existing topics to the app. |
+| [`tools/`](tools/) | Autopilot simulators for the tests ([`sitl`](tools/sitl/)) and the library release ([`release`](tools/release/RELEASING.md)). |
+
+## Install koebelt/link
+
+| | |
+|---|---|
+| Arduino | Library Manager: search **KoebeltLink**. PlatformIO: `lib_deps = koebelt/KoebeltLink@^1.0.0` |
+| Python | `pip install koebelt-link` |
+| Rust | `cargo add koebelt-link` |
+| ROS 2 | `pip install koebelt-link`, then build `libs/ros2/koebelt_link_ros` in your workspace |
 
 ## Features
 

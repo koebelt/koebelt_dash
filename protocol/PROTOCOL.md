@@ -68,14 +68,14 @@ Rockets use flight phases: `PAD`, `COUNT`, `BOOST`, `COAST`, `DROGUE`,
 
 ### `announce`
 ```json
-{"t":"announce","v":1,"id":"kite-03","name":"Kite-03","kind":"drone","lib":"arduino/1.6.0","pair":"4F7-K2Q"}
+{"t":"announce","v":1,"id":"kite-03","name":"Kite-03","kind":"drone","lib":"arduino/1.0.0","pair":"4F7-K2Q"}
 ```
 `pair` is present only while the device is in pairing mode.
 
 ### `hello` (reply to the app's `hello`)
 ```json
 {"t":"hello","v":1,"id":"kite-03","name":"Kite-03","kind":"drone","model":"Quadcopter · 1.4 kg",
- "fw":"2.4.1","lib":"arduino/1.6.0","sensors":["GPS","IMU","BARO","LIDAR"],"ok":true}
+ "fw":"2.4.1","lib":"arduino/1.0.0","sensors":["GPS","IMU","BARO","LIDAR"],"ok":true}
 ```
 `ok:false` with `err:"key"` when the pairing key does not match.
 
