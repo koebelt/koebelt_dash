@@ -64,5 +64,6 @@ jobs:
         with:
           path: mirror
           compliance: strict
-          library-manager: update
+          # "submit" fails once KoebeltLink is in the index, "update" before.
+          library-manager: false
       - run: git -C mirror push origin HEAD --tags
