@@ -9,7 +9,8 @@ With an App Store Connect API key (Admin), it:
   4. keeps a copy of everything in ~/Documents/koebelt-release-keys;
   5. stores it as GitHub Actions secrets of koebelt/koebelt_dash (with gh).
 
-    python3 tools/release/setup_apple.py --key ~/Downloads/AuthKey_XXXXXXXXXX.p8 --issuer <issuer id>
+    python3 tools/release/setup_apple.py        # finds ~/Downloads/AuthKey_*.p8, asks for the Issuer ID
+    python3 tools/release/setup_apple.py --key <AuthKey_XXXX.p8> --issuer <issuer id>
 
 The private keys are made here and only leave this computer as GitHub secrets.
 Needs gh (logged in) and creates a small virtualenv for the `cryptography` package.
@@ -151,10 +152,21 @@ def secret(name, value):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--key", required=True, help="AuthKey_<KEYID>.p8 downloaded from App Store Connect")
-    ap.add_argument("--issuer", required=True, help="Issuer ID shown above the keys in App Store Connect")
+    ap.add_argument("--key", help="AuthKey_<KEYID>.p8 downloaded from App Store Connect (default: the one in ~/Downloads)")
+    ap.add_argument("--issuer", help="Issuer ID shown above the keys in App Store Connect (asked if missing)")
     ap.add_argument("--key-id", help="defaults to the id in the file name AuthKey_<KEYID>.p8")
     a = ap.parse_args()
+    if not a.key:
+        found = sorted((pathlib.Path.home() / "Downloads").glob("AuthKey_*.p8"), key=lambda f: f.stat().st_mtime)
+        if not found:
+            raise SystemExit(
+                "No AuthKey_*.p8 in ~/Downloads. Create one in App Store Connect > Users and Access > "
+                "Integrations > App Store Connect API > Team Keys (access: Admin), download it, or pass --key."
+            )
+        a.key = str(found[-1])
+        print(f"API key: {a.key}")
+    if not a.issuer:
+        a.issuer = input("Issuer ID (App Store Connect > Users and Access > Integrations, above the keys): ").strip()
     key_path = pathlib.Path(a.key).expanduser()
     key_id = a.key_id or key_path.stem.removeprefix("AuthKey_")
     api = Api(key_path, key_id, a.issuer)
