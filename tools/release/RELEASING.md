@@ -81,13 +81,15 @@ git tag app-v1.0.1 && git push origin main app-v1.0.1
 
 ## One-time setup
 
-- **Apple**: in App Store Connect, create the app (Apps > + > New App: iOS,
-  name "koebelt dash", bundle id `com.koebelt.dash`, SKU `koebelt-dash`).
-  Create an API key (Users and Access > Integrations > App Store Connect API >
-  Team Keys > +, access Admin) and download it, then run
+- **Apple**: in App Store Connect, create an API key (Users and Access >
+  Integrations > App Store Connect API > Team Keys > +, access Admin) and
+  download it, then run
   `python3 tools/release/setup_apple.py --key ~/Downloads/AuthKey_XXXX.p8 --issuer <Issuer ID>`.
-  It makes the certificates and profile and stores them as secrets.
-  Certificates last a year: rerun it when Apple's renewal email arrives.
+  It registers the bundle id `com.koebelt.dash`, makes the certificates and
+  profile and stores them as secrets. Then create the app (Apps > + > New App:
+  iOS, name "koebelt dash", bundle id `com.koebelt.dash`, SKU `koebelt-dash`);
+  the bundle id is in the list once registered.
+  Certificates last a year: rerun the script when Apple's renewal email arrives.
 - **Android**: run `tools/release/setup_android_key.sh` once. The key in
   `~/Documents/koebelt-release-keys` signs every APK; installed copies only
   update from APKs signed with it, so back it up.
