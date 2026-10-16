@@ -74,6 +74,14 @@ local builds do not, and never check. So the file names, the `app-v` tag and
 `lib/link/protocol.dart` must match `pubspec.yaml` (a test and the workflow
 check it). Version 1.0.0 had no updater: its users install 1.1.0 by hand once.
 
+The macOS disk image opens on a designed window: the background is
+[`dmg/background.html`](dmg/), rendered to `dmg/background.tiff` (1x and 2x)
+by `node tools/release/dmg/render-background.mjs` (needs Playwright), and
+`dmg/dmgbuild-settings.py` places the icons on it. Finder writes the file
+names itself, black in light mode and white in dark, so they sit on grey
+plates that read either way; moving an icon means moving its slot and plate
+in the HTML too. `background-preview.png` shows the result.
+
 Running the workflow by hand (Actions > app-release > Run workflow) builds
 everything without publishing, unsigned where secrets are missing, and keeps
 the files as workflow artifacts.

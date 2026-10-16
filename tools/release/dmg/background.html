@@ -1,0 +1,81 @@
+<!doctype html>
+<!--
+  The Finder window of the macOS .dmg, 660 × 400. Rendered to background.tiff
+  (1x and 2x) by render-background.mjs; dmgbuild-settings.py places the app
+  and Applications icons in the two slots. Colours, type and the mark are the
+  app's own (apps/dash/lib/theme/tokens.dart, lib/ui/mark.dart).
+-->
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  @font-face { font-family: Archivo; font-weight: 500; src: url(../../../apps/dash/assets/fonts/Archivo-500.ttf); }
+  @font-face { font-family: Archivo; font-weight: 600; src: url(../../../apps/dash/assets/fonts/Archivo-600.ttf); }
+  @font-face { font-family: Mono; font-weight: 500; src: url(../../../apps/dash/assets/fonts/JetBrainsMono-500.ttf); }
+  :root {
+    --ink-900: #0D0C0C; --ink-800: #161415; --ink-700: #1D1A1B; --ink-300: #625C5B; --ink-200: #8C8685; --ink-100: #B8B3B1;
+    --white: #FFFFFF; --lime: #DCFB47; --hair: rgba(255,255,255,.12); --subtle: rgba(255,255,255,.20);
+  }
+  html, body { margin: 0; width: 660px; height: 400px; overflow: hidden; background: var(--ink-800); }
+  body { position: relative; font-family: Archivo; color: var(--white); }
+  /* the app's 3D floor: a perspective grid fading towards the top */
+  .grid { position: absolute; inset: 0; perspective: 420px; overflow: hidden; }
+  .grid::before {
+    content: ""; position: absolute; left: -50%; right: -50%; top: 46%; height: 140%;
+    background-image: linear-gradient(var(--hair) 1px, transparent 1px), linear-gradient(90deg, var(--hair) 1px, transparent 1px);
+    background-size: 44px 44px; transform: rotateX(62deg); transform-origin: top;
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 22%, #000 60%, transparent 100%);
+  }
+  .brand { position: absolute; left: 28px; top: 24px; display: flex; align-items: center; gap: 10px;
+    font: 500 15px/1 Mono; letter-spacing: -.01em; }
+  .brand b { color: var(--lime); font-weight: 500; }
+  .tag { position: absolute; right: 28px; top: 29px; font: 500 10px/1 Mono; letter-spacing: .14em; color: var(--ink-300); text-transform: uppercase; }
+  /* the two places Finder draws the icons (centres at 170,190 and 490,190) */
+  .slot { position: absolute; top: 116px; width: 136px; height: 128px; border-radius: 22px;
+    border: 1px solid var(--hair); background: rgba(13,12,12,.55); }
+  .slot.app { left: 102px; } .slot.apps { left: 422px; }
+  /* Finder writes each file name under its icon, black in light mode and white
+     in dark mode, and the colour cannot be set. This grey gives both 4.5:1. */
+  .plate { position: absolute; top: 252px; width: 160px; height: 22px; border-radius: 11px; background: #7B7574; }
+  .plate.app { left: 90px; } .plate.apps { left: 410px; }
+  .arrow { position: absolute; left: 262px; top: 189px; width: 136px; height: 2px; background: var(--lime); }
+  .arrow::after { content: ""; position: absolute; right: -2px; top: -5px; border: 6px solid transparent; border-left: 9px solid var(--lime); border-right: 0; }
+  .arrow::before { content: ""; position: absolute; left: -4px; top: -3px; width: 8px; height: 8px; border-radius: 50%; background: var(--lime); }
+  .hint { position: absolute; left: 230px; width: 200px; top: 160px; text-align: center; font: 500 10px/1 Mono; letter-spacing: .16em; color: var(--lime); }
+  .hint2 { position: absolute; left: 230px; width: 200px; top: 206px; text-align: center; font: 500 10px/1.5 Mono; letter-spacing: .1em; color: var(--ink-200); }
+  .foot { position: absolute; left: 28px; right: 28px; bottom: 22px; display: flex; justify-content: space-between;
+    font: 500 10px/1 Mono; letter-spacing: .12em; color: var(--ink-300); text-transform: uppercase; border-top: 1px solid var(--hair); padding-top: 14px; }
+  .foot span:last-child { text-transform: none; letter-spacing: .04em; }
+</style>
+</head>
+<body>
+  <div class="grid"></div>
+  <div class="brand">
+    <svg width="24" height="24" viewBox="-100 -100 200 200">
+      <g fill="#FFFFFF">
+        <polygon points="8.08,-22 15,-33.98 15,-100 -15,-100 -15,-33.98 -8.08,-22"/>
+        <polygon points="15.01,18 21.93,29.98 79.1,62.99 94.1,37.01 36.93,4 23.09,4"/>
+        <polygon points="-23.09,4 -36.93,4 -94.1,37.01 -79.1,62.99 -21.93,29.98 -15.01,18"/>
+      </g>
+      <g fill="#B4AFB0">
+        <polygon points="23.09,-4 36.93,-4 94.1,-37.01 79.1,-62.99 21.93,-29.98 15.01,-18"/>
+        <polygon points="-8.08,22 -15,33.98 -15,100 15,100 15,33.98 8.08,22"/>
+        <polygon points="-15.01,-18 -21.93,-29.98 -79.1,-62.99 -94.1,-37.01 -36.93,-4 -23.09,-4"/>
+      </g>
+      <polygon fill="#DCFB47" points="8.08,-14 16.17,0 8.08,14 -8.08,14 -16.17,0 -8.08,-14"/>
+    </svg>
+    <span>koebelt<b>/</b>dash</span>
+  </div>
+  <div class="tag">Drones · Rovers · Arms · Benches</div>
+
+  <div class="slot app"></div>
+  <div class="slot apps"></div>
+  <div class="plate app"></div>
+  <div class="plate apps"></div>
+  <div class="hint">DRAG TO INSTALL</div>
+  <div class="arrow"></div>
+  <div class="hint2">INTO APPLICATIONS</div>
+
+  <div class="foot"><span>Signed and notarized · updates itself</span><span>github.com/koebelt/koebelt_dash</span></div>
+</body>
+</html>

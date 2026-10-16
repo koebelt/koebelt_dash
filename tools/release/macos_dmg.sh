@@ -6,6 +6,10 @@
 #
 #   tools/release/macos_dmg.sh "<koebelt dash.app>" <out.dmg>
 #
+# The window (background, icon places, disk icon) is in tools/release/dmg and
+# is laid out by dmgbuild (pip install dmgbuild; DMGBUILD points at it if it
+# is not on PATH).
+#
 # Environment for a signed build:
 #   MAC_SIGN_IDENTITY   e.g. "Developer ID Application: Thomas Koebel (TEAMID)"
 #   ASC_KEY_PATH, ASC_KEY_ID, ASC_ISSUER_ID   App Store Connect API key (notarization)
@@ -28,12 +32,10 @@ if [ -n "$identity" ]; then
   codesign --verify --deep --strict --verbose=2 "$app"
 fi
 
-stage=$(mktemp -d)
-trap 'rm -rf "$stage"' EXIT
-ditto "$app" "$stage/$(basename "$app")"
-ln -s /Applications "$stage/Applications"
+dmgbuild=${DMGBUILD:-dmgbuild}
+command -v "$dmgbuild" >/dev/null || { echo "dmgbuild not found: pip install dmgbuild (or set DMGBUILD)" >&2; exit 1; }
 rm -f "$out"
-hdiutil create -quiet -volname "koebelt dash" -srcfolder "$stage" -fs HFS+ -format UDZO "$out"
+"$dmgbuild" -s "$here/dmg/dmgbuild-settings.py" -D dir="$here/dmg" -D app="$app" "koebelt dash" "$out"
 
 if [ -n "$identity" ]; then
   codesign --force --timestamp --sign "$identity" "$out"

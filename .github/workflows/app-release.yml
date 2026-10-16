@@ -52,6 +52,8 @@ jobs:
           ASC_KEY_P8_BASE64: ${{ secrets.ASC_KEY_P8_BASE64 }}
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
         run: tools/release/ci_keychain.sh
+      - name: dmgbuild (lays out the disk image window)
+        run: python3 -m venv "$RUNNER_TEMP/dmgbuild" && "$RUNNER_TEMP/dmgbuild/bin/pip" install -q dmgbuild && echo "DMGBUILD=$RUNNER_TEMP/dmgbuild/bin/dmgbuild" >> "$GITHUB_ENV"
       - name: Sign, notarize and package
         env:
           MAC_SIGN_IDENTITY: ${{ secrets.APPLE_DEVELOPER_ID_NAME }}
