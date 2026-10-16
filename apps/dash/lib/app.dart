@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'core/alerts.dart';
 import 'core/dash.dart';
 import 'core/model.dart';
+import 'core/system_ui.dart';
 import 'core/updater.dart' show UpdateState;
 import 'screens/control.dart';
 import 'screens/device_menu.dart';
@@ -126,13 +127,22 @@ class _ShellState extends State<Shell> {
                 : 'desktop',
             phone = mode == 'phone';
         final pad = MediaQuery.paddingOf(context);
-        final navH = phone ? 60.0 : 0.0, topH = phone ? 100.0 : 64.0;
+        // With a home indicator below it, the tab bar's buttons sit partly in
+        // its strip: 44 pt of buttons, and only the bottom 14 pt of the strip
+        // left clear for the home swipe. Without one, 60.
+        // tabH: the buttons; navH: the whole bar, buttons and clear zone.
+        final homeClear = math.min(pad.bottom, 14.0);
+        final tabH = pad.bottom > 0 ? 44.0 : 60.0;
+        final navH = phone ? tabH + homeClear : 0.0, topH = phone ? 100.0 : 64.0;
         final bodyW = mode == 'desktop'
             ? W - 232
             : mode == 'tablet'
             ? W - 80
             : W;
-        final bodyH = H - topH - navH - pad.top - pad.bottom;
+        // In portrait the tab bar sits above the bottom inset; sideways the
+        // screens run down into it (the rail keeps its buttons above it).
+        final bodyH = H - topH - navH - pad.top;
+        setImmersive(!phone && pad.bottom > 0 && (screen == 'live' || screen == 'control'));
         final none = !d.hasDevice && d.replay == null && const ['live', 'control', 'program', 'params'].contains(screen);
         final Widget body;
         if (none) {
@@ -245,8 +255,10 @@ class _ShellState extends State<Shell> {
         return ColoredBox(
           color: K.surfacePage,
           // Only the top is inset here. The bottom inset (the home indicator on
-          // iPhone and iPad) is painted by the tab bar, the rail or sidebar and
-          // a strip in their colour, with every control kept above it.
+          // iPhone and iPad): in portrait the tab bar fills it, with its buttons
+          // above it; sideways the screens run into it, and on Live and Control
+          // the indicator dims and a first swipe from the edge stays in the app
+          // (setImmersive below), so a stick near the edge does not go home.
           child: Padding(
             padding: EdgeInsets.only(top: pad.top),
             child: Stack(
@@ -257,8 +269,8 @@ class _ShellState extends State<Shell> {
                           children: [
                             Expanded(child: main),
                             Container(
-                              height: navH + pad.bottom,
-                              padding: EdgeInsets.only(bottom: pad.bottom),
+                              height: navH,
+                              padding: EdgeInsets.only(bottom: homeClear),
                               decoration: const BoxDecoration(
                                 color: K.surfaceSunken,
                                 border: Border(top: BorderSide(color: K.borderHairline)),
@@ -267,7 +279,7 @@ class _ShellState extends State<Shell> {
                                 children: [
                                   for (final n in nav.where((n) => n[0] != 'devices' && n[0] != 'guides'))
                                     Expanded(
-                                      child: NavBtn(it: n, on: screen == n[0], go: go, variant: 'tab'),
+                                      child: NavBtn(it: n, on: screen == n[0], go: go, variant: 'tab', height: tabH),
                                     ),
                                 ],
                               ),
@@ -277,14 +289,7 @@ class _ShellState extends State<Shell> {
                       : Row(
                           children: [
                             if (mode == 'desktop') _sidebar(d, pad.bottom) else _rail(pad.bottom),
-                            Expanded(
-                              child: Column(
-                                children: [
-                                  Expanded(child: main),
-                                  if (pad.bottom > 0) Container(height: pad.bottom, color: K.surfaceSunken),
-                                ],
-                              ),
-                            ),
+                            Expanded(child: main),
                           ],
                         ),
                 ),
@@ -292,7 +297,7 @@ class _ShellState extends State<Shell> {
                   Positioned(
                     left: 0,
                     right: 0,
-                    bottom: navH + pad.bottom + 16,
+                    bottom: navH + (phone ? 0 : pad.bottom) + 16,
                     child: Center(
                       child: Container(
                         padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
@@ -329,7 +334,7 @@ class _ShellState extends State<Shell> {
                   Positioned(
                     left: 0,
                     right: 0,
-                    bottom: navH + pad.bottom + 16,
+                    bottom: navH + (phone ? 0 : pad.bottom) + 16,
                     child: Center(
                       child: Pressable(
                         onTap: d.unackStop,
@@ -495,7 +500,9 @@ class _ShellState extends State<Shell> {
         Expanded(
           child: SingleChildScrollView(
             padding: const EdgeInsets.only(top: 8),
-            child: Column(children: [for (final n in nav) NavBtn(it: n, on: screen == n[0], go: go, variant: 'rail')]),
+            child: Column(
+              children: [for (final n in nav) NavBtn(it: n, on: screen == n[0], go: go, variant: 'rail')],
+            ),
           ),
         ),
       ],
@@ -504,11 +511,14 @@ class _ShellState extends State<Shell> {
 }
 
 class NavBtn extends StatelessWidget {
-  const NavBtn({super.key, required this.it, required this.on, required this.go, this.variant = 'side'});
+  const NavBtn({super.key, required this.it, required this.on, required this.go, this.variant = 'side', this.height = 60});
   final List<String> it;
   final bool on;
   final ValueChanged<String> go;
   final String variant;
+
+  /// The tab bar's height (variant tab).
+  final double height;
   @override
   Widget build(BuildContext context) {
     final id = it[0], label = it[1], ic = it[2];
@@ -517,7 +527,7 @@ class NavBtn extends StatelessWidget {
       builder: (_, h, _) {
         if (variant == 'tab') {
           return Container(
-            height: 60,
+            height: height,
             decoration: BoxDecoration(
               border: Border(top: BorderSide(color: on ? K.accent : Colors.transparent, width: 2)),
             ),
@@ -525,7 +535,7 @@ class NavBtn extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 KIcon(ic, size: 20, color: on ? K.accent : K.textMuted),
-                const SizedBox(height: 6),
+                SizedBox(height: height < 56 ? 4 : 6),
                 Text(label.toUpperCase(), style: KText.mono(9, color: on ? K.textPrimary : K.textMuted, tracking: .1)),
               ],
             ),
