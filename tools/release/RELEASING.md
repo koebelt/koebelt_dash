@@ -104,8 +104,31 @@ the files as workflow artifacts.
 # 2. Commit, tag, push
 git tag app-v1.0.1 && git push origin main app-v1.0.1
 # 3. In App Store Connect > TestFlight, the build appears; add it to a group
-#    of testers, or submit it for App Store review.
+#    of testers, or prepare it for the App Store (below).
 ```
+
+## App Store
+
+The release workflow only uploads iOS builds to TestFlight; each App Store
+version is prepared and submitted separately, once Apple has processed the
+build (about 15 minutes) and the previous version is through review (Apple
+allows one in preparation at a time).
+
+```bash
+# Fresh screenshots (iPhone 6.9" and iPad 13", at the sizes Apple requires)
+cd apps/dash && STORE_SHOTS=/tmp/store flutter test test/store_screenshots_test.dart && cd -
+
+python3 tools/release/app_store.py 1.2.0                               # shows what it would do
+python3 tools/release/app_store.py 1.2.0 --apply --shots /tmp/store   # creates and fills the version
+python3 tools/release/app_store.py 1.2.0 --submit                      # sends it for review
+```
+
+"What's New" comes from `app-notes/X.Y.Z.store.md` and `X.Y.Z.store.fr.md`:
+iPhone and iPad have no in-app updater, so the GitHub notes (`X.Y.Z.md`, the
+fallback) often do not fit. French falls back to English. The description, keywords,
+categories, age rating, price and review contact carry over from the previous
+version. A version is released by hand after approval (App Store Connect >
+the version > Release).
 
 ## One-time setup
 
