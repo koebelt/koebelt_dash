@@ -20,11 +20,14 @@ class _Cam {
 /// the device model. Views: orbit, chase, top. Drag to orbit, scroll or
 /// pinch to zoom, double-tap to return to the automatic camera.
 class Scene3D extends StatefulWidget {
-  const Scene3D(this.dash, {super.key, this.view = 'orbit', this.layers, this.interactive = true, this.label = true});
+  const Scene3D(this.dash, {super.key, this.view = 'orbit', this.layers, this.interactive = true, this.label = true, this.gizmo = true});
   final Dash dash;
   final String view;
   final Map<String, bool>? layers;
   final bool interactive, label;
+
+  /// The orientation gizmo in the bottom-right corner; off where controls sit there.
+  final bool gizmo;
   @override
   State<Scene3D> createState() => _Scene3DState();
 }
@@ -44,7 +47,14 @@ class _Scene3DState extends State<Scene3D> {
     final paint = RepaintBoundary(
       child: CustomPaint(
         size: Size.infinite,
-        painter: _ScenePainter(widget.dash, cam, widget.view, widget.layers ?? const {'cloud': true, 'trail': true, 'grid': true, 'radar': true}, widget.label),
+        painter: _ScenePainter(
+          widget.dash,
+          cam,
+          widget.view,
+          widget.layers ?? const {'cloud': true, 'trail': true, 'grid': true, 'radar': true},
+          widget.label,
+          widget.gizmo,
+        ),
       ),
     );
     if (!widget.interactive) return paint;
@@ -74,11 +84,11 @@ class _Scene3DState extends State<Scene3D> {
 }
 
 class _ScenePainter extends FramePainter {
-  _ScenePainter(super.dash, this.cam, this.view, this.layers, this.label);
+  _ScenePainter(super.dash, this.cam, this.view, this.layers, this.label, [this.gizmo = true]);
   final _Cam cam;
   final String view;
   final Map<String, bool> layers;
-  final bool label;
+  final bool label, gizmo;
 
   @override
   void paint(Canvas c, Size s) {
@@ -439,7 +449,7 @@ class _ScenePainter extends FramePainter {
 
     // Orientation gizmo: the mark's six axes as world ±x, ±y, ±z, seen from
     // the camera. Screen right = x1, up = u, toward the viewer = -depth.
-    if (label && w > 160 && h > 120) {
+    if (label && gizmo && w > 160 && h > 120) {
       final axes = <(Offset, double)>[];
       for (final a in const [
         [1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0], //

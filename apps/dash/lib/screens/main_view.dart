@@ -9,7 +9,7 @@ import '../viz/scene3d.dart';
 /// The big picture behind the HUD: one of the 3D cameras, the map or a
 /// device camera. Views: chase, orbit, top, map, cam.
 class MainView extends StatelessWidget {
-  const MainView(this.d, {super.key, required this.view, this.interactive = true, this.attribution = true});
+  const MainView(this.d, {super.key, required this.view, this.interactive = true, this.attribution = true, this.gizmo = true});
   final Dash d;
   final String view;
   final bool interactive;
@@ -17,13 +17,16 @@ class MainView extends StatelessWidget {
   /// False when the host screen draws [MapOverlayAttribution] above its overlays.
   final bool attribution;
 
+  /// The 3D view's orientation gizmo (bottom-right).
+  final bool gizmo;
+
   @override
   Widget build(BuildContext context) {
     final v = available(d, view);
     return switch (v) {
       'map' => MapView(d, interactive: interactive, controls: interactive, attribution: attribution),
       'cam' => VideoView(d, fit: BoxFit.cover),
-      _ => Scene3D(d, view: v, layers: d.layers, interactive: interactive),
+      _ => Scene3D(d, view: v, layers: d.layers, interactive: interactive, gizmo: gizmo),
     };
   }
 

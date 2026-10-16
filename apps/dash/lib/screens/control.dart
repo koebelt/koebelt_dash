@@ -438,7 +438,13 @@ class MobileControl extends StatelessWidget {
       g();
     }
 
-    final js = stacked ? math.min(150.0, (w - 72) / 2) : math.min(180.0, math.max(130.0, h * .28));
+    // A phone held sideways: little height, so a game-controller layout.
+    final short = !stacked && h < 420;
+    final js = stacked
+        ? math.min(150.0, (w - 72) / 2)
+        : short
+        ? (h * .46).clamp(120.0, 170.0)
+        : math.min(180.0, math.max(130.0, h * .28));
     Widget L, R;
     void centre() => d.hapticTick();
     if (cs == 'sliders') {
@@ -574,6 +580,104 @@ class MobileControl extends StatelessWidget {
         Readout('Home', s.range.toStringAsFixed(0), 'm'),
       ],
     );
+    if (short) {
+      final view = viewItems(d, cameras3d: false).length > 1
+          ? ViewSeg(
+              d,
+              view: d.controlView,
+              cameras3d: false,
+              onChanged: (v) {
+                d.controlView = v;
+                d.emit();
+              },
+            )
+          : null;
+      Widget row(List<Widget> children, {bool end = false}) => Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        alignment: end ? WrapAlignment.end : WrapAlignment.start,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: children,
+      );
+      return Container(
+        color: K.surfaceDeep,
+        child: Stack(
+          children: [
+            // No gizmo: the right stick has that corner.
+            Positioned.fill(child: MainView(d, view: d.controlView, interactive: false, attribution: false, gizmo: false)),
+            // Two compact rows each side: what the vehicle does on the left,
+            // how it is shown and driven on the right.
+            Positioned(
+              top: 12,
+              left: 16,
+              right: 16,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Seg(items: const ['AUTO', 'MANUAL', 'HOLD'], value: special ? '' : s.mode, onChanged: d.setMode, small: true),
+                        const SizedBox(height: 8),
+                        row([
+                          if (drone) Seg(items: const ['TAKEOFF', 'LAND', 'RTH'], value: s.mode, onChanged: d.setMode, small: true),
+                          KButton(
+                            'Set home',
+                            size: KSize.sm,
+                            variant: KButtonVariant.secondary,
+                            onPressed: d.linkLost ? null : () => confirmSetHome(context, d),
+                          ),
+                        ]),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      row([?view, RecordButton(d), PadChip(d)], end: true),
+                      const SizedBox(height: 8),
+                      row([
+                        // Backed like the buttons, so its track reads over the grid.
+                        Container(
+                          width: 170,
+                          padding: const EdgeInsets.fromLTRB(10, 6, 10, 2),
+                          decoration: BoxDecoration(color: K.inkA60, borderRadius: BorderRadius.circular(K.radiusControl)),
+                          child: SpeedSlider(d),
+                        ),
+                        csSeg,
+                      ], end: true),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            // Thumbs rest in the bottom corners; the readouts sit between them.
+            Positioned(left: 20, bottom: 12, child: L),
+            Positioned(right: 20, bottom: 12, child: R),
+            Positioned(
+              left: js + 40,
+              right: js + 40,
+              bottom: 16,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Wrap(
+                  spacing: 20,
+                  children: [
+                    drone ? Readout('Alt', s.pos[2].toStringAsFixed(1), 'm') : Readout('Odom', s.range.toStringAsFixed(0), 'm'),
+                    Readout('Speed', s.speed.toStringAsFixed(1), 'm/s'),
+                    Readout('Hdg', s.heading.round().toString().padLeft(3, '0'), '°'),
+                    Readout('Home', s.range.toStringAsFixed(0), 'm'),
+                  ],
+                ),
+              ),
+            ),
+            Positioned(right: 4, bottom: 4, child: MapOverlayAttribution(d, view: d.controlView)),
+          ],
+        ),
+      );
+    }
     if (stacked) {
       return Column(
         children: [
