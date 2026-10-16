@@ -8,7 +8,7 @@ const udpAnnouncePort = 47801;
 const bleService = '6e400001-b5a3-f393-e0a9-e50e24dcca9e';
 const bleRx = '6e400002-b5a3-f393-e0a9-e50e24dcca9e';
 const bleTx = '6e400003-b5a3-f393-e0a9-e50e24dcca9e';
-const appVersion = '1.2.0';
+const appVersion = '1.2.1';
 
 typedef Msg = Map<String, dynamic>;
 
