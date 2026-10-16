@@ -244,8 +244,11 @@ class _ShellState extends State<Shell> {
         final showToast = toast != null && screen != 'replay';
         return ColoredBox(
           color: K.surfacePage,
+          // Only the top is inset here. The bottom inset (the home indicator on
+          // iPhone and iPad) is painted by the tab bar, the rail or sidebar and
+          // a strip in their colour, with every control kept above it.
           child: Padding(
-            padding: EdgeInsets.only(top: pad.top, bottom: pad.bottom),
+            padding: EdgeInsets.only(top: pad.top),
             child: Stack(
               children: [
                 Positioned.fill(
@@ -254,7 +257,8 @@ class _ShellState extends State<Shell> {
                           children: [
                             Expanded(child: main),
                             Container(
-                              height: navH,
+                              height: navH + pad.bottom,
+                              padding: EdgeInsets.only(bottom: pad.bottom),
                               decoration: const BoxDecoration(
                                 color: K.surfaceSunken,
                                 border: Border(top: BorderSide(color: K.borderHairline)),
@@ -272,8 +276,15 @@ class _ShellState extends State<Shell> {
                         )
                       : Row(
                           children: [
-                            if (mode == 'desktop') _sidebar(d) else _rail(),
-                            Expanded(child: main),
+                            if (mode == 'desktop') _sidebar(d, pad.bottom) else _rail(pad.bottom),
+                            Expanded(
+                              child: Column(
+                                children: [
+                                  Expanded(child: main),
+                                  if (pad.bottom > 0) Container(height: pad.bottom, color: K.surfaceSunken),
+                                ],
+                              ),
+                            ),
                           ],
                         ),
                 ),
@@ -281,7 +292,7 @@ class _ShellState extends State<Shell> {
                   Positioned(
                     left: 0,
                     right: 0,
-                    bottom: navH + 16,
+                    bottom: navH + pad.bottom + 16,
                     child: Center(
                       child: Container(
                         padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
@@ -318,7 +329,7 @@ class _ShellState extends State<Shell> {
                   Positioned(
                     left: 0,
                     right: 0,
-                    bottom: navH + 16,
+                    bottom: navH + pad.bottom + 16,
                     child: Center(
                       child: Pressable(
                         onTap: d.unackStop,
@@ -366,8 +377,10 @@ class _ShellState extends State<Shell> {
     );
   }
 
-  Widget _sidebar(Dash d) => Container(
+  /// [bottom]: the screen's bottom inset, which the sidebar's colour fills.
+  Widget _sidebar(Dash d, [double bottom = 0]) => Container(
     width: 232,
+    padding: EdgeInsets.only(bottom: bottom),
     decoration: const BoxDecoration(
       color: K.surfaceSunken,
       border: Border(right: BorderSide(color: K.borderHairline)),
@@ -461,8 +474,9 @@ class _ShellState extends State<Shell> {
     ),
   );
 
-  Widget _rail() => Container(
+  Widget _rail([double bottom = 0]) => Container(
     width: 80,
+    padding: EdgeInsets.only(bottom: bottom),
     decoration: const BoxDecoration(
       color: K.surfaceSunken,
       border: Border(right: BorderSide(color: K.borderHairline)),
@@ -477,8 +491,13 @@ class _ShellState extends State<Shell> {
           ),
           child: const Mark(size: 36),
         ),
-        const SizedBox(height: 8),
-        for (final n in nav) NavBtn(it: n, on: screen == n[0], go: go, variant: 'rail'),
+        // Eight buttons are taller than a phone held sideways: they scroll there.
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.only(top: 8),
+            child: Column(children: [for (final n in nav) NavBtn(it: n, on: screen == n[0], go: go, variant: 'rail')]),
+          ),
+        ),
       ],
     ),
   );
