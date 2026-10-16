@@ -60,6 +60,10 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
+  # Which koebelt/link versions this app works with (lib/core/compat.dart).
+  assets:
+    - compat.json
+
   fonts:
     - family: Archivo
       fonts:

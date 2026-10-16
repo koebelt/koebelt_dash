@@ -215,5 +215,8 @@ jobs:
           [ -f "$notes" ] || notes=/dev/null
           # The app checks every update it downloads against this list.
           (cd dist && sha256sum *.dmg *.exe *.apk *.tar.gz > SHA256SUMS && cat SHA256SUMS)
+          # Which koebelt/link versions this release works with: installed apps
+          # read it before updating (apps/dash/lib/core/compat.dart).
+          cp apps/dash/compat.json dist/compat.json
           gh release create "$GITHUB_REF_NAME" --title "koebelt dash $V" --notes-file "$notes" \
-            dist/*.dmg dist/*.exe dist/*.apk dist/*.tar.gz dist/SHA256SUMS
+            dist/*.dmg dist/*.exe dist/*.apk dist/*.tar.gz dist/SHA256SUMS dist/compat.json

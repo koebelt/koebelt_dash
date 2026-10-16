@@ -7,8 +7,11 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import '../link/protocol.dart' show appVersion;
+import 'compat.dart';
 import 'store.dart';
 import 'updater_install.dart';
+
+export 'compat.dart' show compareVersions;
 
 /// Which builds update themselves: the release workflow passes
 /// `--dart-define=KDASH_UPDATES=github` to the macOS, Windows, Linux and
@@ -30,17 +33,6 @@ String? assetFor(String version, String os) => switch (os) {
   _ => null,
 };
 
-/// Compares dotted versions numerically: 1.10.0 > 1.9.2.
-int compareVersions(String a, String b) {
-  List<int> parts(String v) => [for (final p in v.split('.')) int.tryParse(p) ?? 0];
-  final x = parts(a), y = parts(b);
-  for (var i = 0; i < x.length || i < y.length; i++) {
-    final d = (i < x.length ? x[i] : 0) - (i < y.length ? y[i] : 0);
-    if (d != 0) return d.sign;
-  }
-  return 0;
-}
-
 class AppRelease {
   AppRelease({required this.version, required this.notes, required this.url, required this.assets, this.date});
   final String version, notes, url;
@@ -48,6 +40,12 @@ class AppRelease {
   /// Asset file name to download URL.
   final Map<String, String> assets;
   final DateTime? date;
+
+  /// 1.0.0 published none, so the app cannot verify (or install) it.
+  bool get hasChecksums => assets.containsKey('SHA256SUMS');
+
+  /// Which libraries it works with (core/compat.dart); none before 1.2.0.
+  String? get compatUrl => assets['compat.json'];
 }
 
 enum UpdateState { idle, checking, upToDate, available, downloading, installing, failed }
@@ -73,7 +71,16 @@ class Updater extends ChangeNotifier {
   final Future<Directory> Function()? downloadDir;
 
   UpdateState state = UpdateState.idle;
+
+  /// The newest release newer than this one, with this platform's file.
   AppRelease? available;
+
+  /// Every app release, newest first, for choosing a version in Settings.
+  List<AppRelease> releases = const [];
+
+  /// The release being downloaded or installed (any version, not only [available]).
+  AppRelease? installing;
+  final Map<String, Future<Compat?>> _compat = {};
   double progress = 0;
   String? error;
   DateTime? lastCheck;
@@ -139,24 +146,25 @@ class Updater extends ChangeNotifier {
           )
           .timeout(const Duration(seconds: 15));
       if (r.statusCode != 200) throw HttpException('GitHub answered ${r.statusCode}');
-      AppRelease? best;
+      final all = <AppRelease>[];
       for (final j in (jsonDecode(r.body) as List).cast<Map<String, dynamic>>()) {
         final tag = j['tag_name'] as String? ?? '';
         if (!tag.startsWith(_tagPrefix) || j['draft'] == true || j['prerelease'] == true) continue;
-        final v = tag.substring(_tagPrefix.length);
-        if (best != null && compareVersions(v, best.version) <= 0) continue;
-        best = AppRelease(
-          version: v,
-          notes: j['body'] as String? ?? '',
-          url: j['html_url'] as String? ?? 'https://github.com/$_repo/releases',
-          date: DateTime.tryParse(j['published_at'] as String? ?? ''),
-          assets: {for (final a in (j['assets'] as List? ?? const []).cast<Map>()) '${a['name']}': '${a['browser_download_url']}'},
+        all.add(
+          AppRelease(
+            version: tag.substring(_tagPrefix.length),
+            notes: j['body'] as String? ?? '',
+            url: j['html_url'] as String? ?? 'https://github.com/$_repo/releases',
+            date: DateTime.tryParse(j['published_at'] as String? ?? ''),
+            assets: {for (final a in (j['assets'] as List? ?? const []).cast<Map>()) '${a['name']}': '${a['browser_download_url']}'},
+          ),
         );
       }
+      releases = all..sort((a, b) => compareVersions(b.version, a.version));
       lastCheck = DateTime.now();
       // Only a release that has this platform's file counts.
-      final file = best == null ? null : assetFor(best.version, os);
-      if (best != null && compareVersions(best.version, current) > 0 && best.assets.containsKey(file)) {
+      final best = latest;
+      if (best != null && compareVersions(best.version, current) > 0) {
         available = best;
         state = UpdateState.available;
       } else {
@@ -171,13 +179,48 @@ class Updater extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Downloads the update, checks it against the release's SHA256SUMS and
-  /// installs it. On the desktop the app quits and the new version starts;
-  /// on Android the system installer takes over.
-  Future<void> install() async {
-    final rel = available;
+  /// The newest release with this platform's file.
+  AppRelease? get latest => releases.where((r) => r.assets.containsKey(assetFor(r.version, os))).firstOrNull;
+
+  /// Which libraries [r] works with, from its compat.json; [Compat.legacy] for
+  /// releases from before it was published, null when it could not be read.
+  Future<Compat?> compatOf(AppRelease r) => _compat[r.version] ??= () async {
+    final url = r.compatUrl;
+    if (url == null) return Compat.legacy;
+    try {
+      return Compat.parse(await _getText(url));
+    } catch (_) {
+      _compat.remove(r.version);
+      return null;
+    }
+  }();
+
+  /// Why [r] cannot be installed from the app, or null when it can.
+  String? cannotInstall(AppRelease r) {
+    if (r.version == current) return 'This is the version you have.';
+    if (!r.assets.containsKey(assetFor(r.version, os))) return 'This release has no $os version.';
+    if (!r.hasChecksums) return 'It was published without checksums, so the app cannot check it. Download it from GitHub instead.';
+    if (os == 'android' && compareVersions(r.version, current) < 0) {
+      return 'Android does not install an older version over a newer one. To go back, uninstall koebelt dash (its data on this phone goes with it), then install the older APK from GitHub.';
+    }
+    return null;
+  }
+
+  /// Downloads a release ([available] by default, or any version chosen in
+  /// Settings), checks it against the release's SHA256SUMS and installs it.
+  /// On the desktop the app quits and that version starts; on Android the
+  /// system installer takes over.
+  Future<void> install([AppRelease? which]) async {
+    final rel = which ?? available;
     if (rel == null || state == UpdateState.downloading || state == UpdateState.installing) return;
+    if (cannotInstall(rel) case final why?) {
+      error = why;
+      state = UpdateState.failed;
+      notifyListeners();
+      return;
+    }
     final name = assetFor(rel.version, os)!;
+    installing = rel;
     state = UpdateState.downloading;
     progress = 0;
     error = null;
@@ -193,6 +236,12 @@ class Updater extends ChangeNotifier {
       if (digest != expected) {
         await file.delete();
         throw const UpdateError('The download does not match the release checksum. Nothing was installed.');
+      }
+      // Chosen on purpose: no reminder about a newer one until there is another.
+      final newest = latest;
+      if (newest != null && compareVersions(rel.version, newest.version) < 0) {
+        skipped = newest.version;
+        _save();
       }
       state = UpdateState.installing;
       notifyListeners();

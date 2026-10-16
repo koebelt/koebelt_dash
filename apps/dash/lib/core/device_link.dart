@@ -49,6 +49,9 @@ class DeviceLink {
 
   // what the device declared
   List<VideoStream> video = const [];
+
+  /// Why this app version does not support the device's koebelt/link, or null.
+  String? compatProblem;
   String? fwVersion;
   int seqCap = 0;
 

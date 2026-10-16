@@ -53,6 +53,8 @@ class DeviceInfo {
     this.baud,
     this.proto = 'koebelt',
     this.module,
+    this.lib,
+    this.protocol,
   });
 
   final String id;
@@ -89,6 +91,12 @@ class DeviceInfo {
   /// are slow, so sessions run at module rates.
   String? module;
 
+  /// The koebelt/link library ("arduino/1.4.2") and protocol version the
+  /// device reported when it last connected: what an app update is checked
+  /// against (core/compat.dart).
+  String? lib;
+  int? protocol;
+
   bool get simulated => transport == TransportKind.sim;
 
   Map<String, dynamic> toJson() => {
@@ -106,6 +114,8 @@ class DeviceInfo {
     'baud': ?baud,
     if (proto != 'koebelt') 'proto': proto,
     'module': ?module,
+    'lib': ?lib,
+    'protocol': ?protocol,
   };
 
   factory DeviceInfo.fromJson(Map<String, dynamic> j) => DeviceInfo(
@@ -123,6 +133,8 @@ class DeviceInfo {
     baud: j['baud'] as int?,
     proto: j['proto'] as String? ?? 'koebelt',
     module: j['module'] as String?,
+    lib: j['lib'] as String?,
+    protocol: (j['protocol'] as num?)?.toInt(),
     online: true, // reachability is only known when connecting
   );
 }

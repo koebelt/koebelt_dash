@@ -145,7 +145,7 @@ void main() {
       ]);
       await u.install();
       expect(installed, isEmpty);
-      expect(u.error, contains('no checksums'));
+      expect(u.error, contains('without checksums'));
     });
   });
 }

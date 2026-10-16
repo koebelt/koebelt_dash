@@ -24,6 +24,7 @@ import '../sim/sim_device.dart';
 import '../video/video_hub.dart';
 import '../video/video_rec.dart';
 import 'alerts.dart';
+import 'compat.dart';
 import 'device_link.dart';
 import 'gamepad.dart';
 import 'log_import.dart';
@@ -275,6 +276,9 @@ class Dash extends ChangeNotifier implements PadTarget {
   /// Updating restarts the app, which drops every link; not while armed.
   bool get updateBlocked => links.values.any((l) => l.tel.armed);
 
+  /// Which koebelt/link versions this app works with (compat.json).
+  Compat compat = Compat.legacy;
+
   /// Game controller mapping and the plugin listener.
   final pad = PadConfig();
   late final padMapper = PadMapper(pad, this);
@@ -429,6 +433,7 @@ class Dash extends ChangeNotifier implements PadTarget {
   // ------------------------------------------------------------ lifecycle
   Future<void> init() async {
     await store.init();
+    compat = await Compat.bundled();
     updater.addListener(notifyListeners);
     beforeUpdateQuit = disconnectAll;
     updater.start();
@@ -792,6 +797,10 @@ class Dash extends ChangeNotifier implements PadTarget {
       if (h['sensors'] is List && (h['sensors'] as List).isNotEmpty) d.sensors = List<String>.from(h['sensors']);
       l.fwVersion = h['fw'] as String?;
       l.seqCap = (h['seq'] as num?)?.toInt() ?? 0;
+      // Remembered so an app update can be checked against it (core/compat.dart).
+      if (h['lib'] is String) d.lib = h['lib'];
+      if (h['v'] is num) d.protocol = (h['v'] as num).toInt();
+      l.compatProblem = compat.problem(d.lib, d.protocol);
       l.video = [
         for (final v in (h['video'] as List? ?? const []))
           if (v is Map) VideoStream.fromJson(v),

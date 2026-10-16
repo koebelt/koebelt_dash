@@ -871,6 +871,21 @@ List<Issue> issuesOf(Dash d) {
       }
     }
   }
+  // Connected devices this app version does not support.
+  for (final l in d.links.values) {
+    final why = l.compatProblem;
+    if (why == null) continue;
+    final newer = why.contains('newer than this version');
+    out.add(
+      Issue(
+        'compat-${l.id}',
+        '${l.info.name} · ${newer ? 'Needs a newer app' : 'Library too old'}',
+        'Some features may not work: $why. ${newer ? 'Update koebelt dash.' : 'Update the koebelt/link library on the device, or install an older koebelt dash in Settings > Updates.'}',
+        tone: Tone.warning,
+        show: l.id == d.deviceId ? null : () => d.focusDevice(l.id),
+      ),
+    );
+  }
   // Most urgent first: critical, then warnings, then good news.
   int rank(Tone t) => t == Tone.negative ? 0 : (t == Tone.warning ? 1 : 2);
   return out..sort((a, b) => rank(a.tone) - rank(b.tone));
