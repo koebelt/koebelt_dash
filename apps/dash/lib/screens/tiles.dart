@@ -497,6 +497,19 @@ class PyroBody extends StatelessWidget {
 List<HudItem> hudDefault(DeviceKind type, String cls) {
   final p = cls == 'phone';
   HudItem h(String id, int x, int y, int w, int hh) => HudItem(id, x, y, w, hh);
+  // A phone held sideways: about 23 pt per grid row, so tiles are four rows
+  // tall (about 90 pt, what a title and a chart need), in the corners, with
+  // the middle left to the 3D view.
+  if (cls == 'short') {
+    return switch (type) {
+      DeviceKind.rocket => [h('readout', 0, 0, 5, 4), h('phase', 9, 0, 3, 4), h('alt', 0, 8, 4, 4), h('pyro', 9, 8, 3, 4)],
+      DeviceKind.bench => [h('readout', 0, 0, 5, 4), h('thrust', 0, 8, 5, 4), h('temp', 9, 8, 3, 4)],
+      DeviceKind.arm => [h('readout', 0, 0, 5, 4), h('joints', 8, 0, 4, 8), h('power', 0, 8, 4, 4)],
+      DeviceKind.rover => [h('readout', 0, 0, 5, 4), h('gps', 9, 0, 3, 4), h('attitude', 0, 8, 3, 4), h('lidar', 9, 8, 3, 4)],
+      DeviceKind.drone => [h('readout', 0, 0, 5, 4), h('gps', 9, 0, 3, 4), h('attitude', 0, 8, 3, 4), h('alt', 9, 8, 3, 4)],
+      DeviceKind.generic => [h('readout', 0, 0, 5, 4), h('attitude', 0, 8, 3, 4), h('power', 9, 8, 3, 4)],
+    };
+  }
   switch (type) {
     case DeviceKind.rocket:
       return p

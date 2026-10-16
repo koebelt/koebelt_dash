@@ -314,8 +314,12 @@ class _HudViewState extends State<HudView> {
   Offset _acc = Offset.zero;
   HudItem? _base;
 
+  /// Layout class: phone (portrait), short (a phone held sideways: wide but
+  /// little height), tablet or desktop. Each has its own default and saved layout.
   String get cls => widget.w < 600
       ? 'phone'
+      : MediaQuery.sizeOf(context).height < 500
+      ? 'short'
       : widget.w < 1100
       ? 'tablet'
       : 'desktop';
