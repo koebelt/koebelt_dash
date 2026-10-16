@@ -154,6 +154,7 @@ cd libs/python && python3 -m venv .venv && .venv/bin/pip install -e .
 | Python | `cd libs/python && .venv/bin/python -m pytest` | vectors, handshake, control, stop, failsafe, params, pairing, point cloud over real UDP; radio rates and telemetry-only rules; MJPEG server; the shared stored-sequence scenario |
 | Arduino core | `make -C libs/arduino/KoebeltLink/test` | same behaviours on the host with a fake transport, radio profiles, video declaration, the shared stored-sequence scenario, plus a compile check of every guide snippet |
 | Rust | `cd libs/rust && cargo test` | JSON codec, UDP device end to end, radio links over a stream, fallback on failsafe, saved parameters, MJPEG server, the shared stored-sequence scenario, BLE framing (`--features ble`), `no_std` build (`--no-default-features --features embassy`) |
+| Published libraries | `tools/compat/run.sh` | the current app against every koebelt/link release on PyPI and crates.io (not this repository's copies): handshake and version, parameters, telemetry, driving, the failsafe and its recovery, a stored sequence through a lost link, STOP. On every push in CI |
 | Autopilots in simulation | `cd apps/dash && SITL=1 flutter test test/sitl_test.dart` | the real ArduCopter, ArduRover (4.7) and PX4 (1.17) in Docker ([`tools/sitl`](tools/sitl/)): found on UDP 14550, telemetry and parameters, a sequence flown as a mission, the autopilot's own log imported. Weekly in CI |
 | ROS 2 | `pytest libs/ros2/koebelt_link_ros/test` | conversion helpers (the node itself needs a ROS install) |
 

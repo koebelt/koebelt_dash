@@ -1,0 +1,12 @@
+# A rover built only from a published koebelt-link crate, for the app's
+# compatibility check (tools/compat/run.sh sets the exact version).
+[package]
+name = "koebelt-compat-device"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+koebelt-link = "=1.0.0"
+
+[workspace]

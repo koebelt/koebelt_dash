@@ -64,6 +64,15 @@ and then:
 - uploads the iOS build to App Store Connect, where it appears in TestFlight
   after Apple's processing (about 15 minutes).
 
+`apps/dash/compat.json` says which koebelt/link versions the app works with:
+the protocol version it speaks and the oldest library version it supports, per
+library. It is bundled in the app and published with each release, so an
+installed app checks a release against the library versions your devices
+reported before installing it, and warns about the ones it would leave behind.
+Raise a minimum only when the app drops support for older devices, and say so
+in the release notes; `tools/compat/run.sh` (in CI) tests the app against every
+published library version from those minimums up.
+
 Installed copies from GitHub find the new release by themselves (at launch
 and once a day) and update in one click: the app downloads its file, checks
 it against `SHA256SUMS` (and on macOS the Developer ID team and Gatekeeper),
