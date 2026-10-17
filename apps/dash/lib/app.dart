@@ -128,10 +128,11 @@ class _ShellState extends State<Shell> {
             phone = mode == 'phone';
         final pad = MediaQuery.paddingOf(context);
         // With a home indicator below it, the tab bar's buttons sit partly in
-        // its strip: 44 pt of buttons, and only the bottom 14 pt of the strip
-        // left clear for the home swipe. Without one, 60.
+        // its strip: 44 pt of buttons, and the bottom 24 pt of the strip left
+        // clear for the home swipe and the screen's rounded corners, which
+        // would otherwise cut the outer labels. Without one, 60.
         // tabH: the buttons; navH: the whole bar, buttons and clear zone.
-        final homeClear = math.min(pad.bottom, 14.0);
+        final homeClear = math.min(pad.bottom, 24.0);
         final tabH = pad.bottom > 0 ? 44.0 : 60.0;
         final navH = phone ? tabH + homeClear : 0.0, topH = phone ? 100.0 : 64.0;
         final bodyW = mode == 'desktop'
