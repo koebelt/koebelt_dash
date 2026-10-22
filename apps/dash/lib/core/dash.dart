@@ -29,6 +29,7 @@ import 'device_link.dart';
 import 'gamepad.dart';
 import 'log_import.dart';
 import 'model.dart';
+import '../scripts/script_hub.dart';
 import 'sequence.dart';
 import 'store.dart';
 import 'telemetry.dart';
@@ -280,6 +281,9 @@ class Dash extends ChangeNotifier implements PadTarget {
   Compat compat = Compat.legacy;
 
   /// Game controller mapping and the plugin listener.
+  /// Python scripts and (later) MCP clients: see scripts/script_hub.dart.
+  late final scripts = ScriptHub(this);
+
   final pad = PadConfig();
   late final padMapper = PadMapper(pad, this);
   late final gamepads = GamepadInput(padMapper);
@@ -640,6 +644,7 @@ class Dash extends ChangeNotifier implements PadTarget {
     for (final l in links.values) {
       _tickLink(l, dt);
     }
+    scripts.tick(dt);
     // Frames come with telemetry; a quiet device still gets two a second,
     // so mode changes and gaps stay on the timeline.
     if (recording) {
@@ -782,7 +787,8 @@ class Dash extends ChangeNotifier implements PadTarget {
     // Fresh telemetry before the handshake: state and telemetry can arrive
     // right behind (or, over UDP, ahead of) the hello and must not be lost.
     final l = DeviceLink(d, s, Telemetry(d.kind));
-    s.axes = () => l.input;
+    // A script's sticks, unless the operator moves theirs (takeover).
+    s.axes = () => l.drive?.axes(l.input) ?? l.input;
     _opening[id] = l;
     try {
       final h = await s.open();
@@ -976,6 +982,12 @@ class Dash extends ChangeNotifier implements PadTarget {
     if (replay == null) l?.session.send(m);
   }
 
+  /// For scripts: a message to a given device, mode and arming through the
+  /// same paths as the screens, and an event on its recording's timeline.
+  void sendTo(DeviceLink l, Msg m) => _sendTo(l, m);
+  SequenceHost linkHost(DeviceLink l) => _LinkHost(this, l);
+  void scriptEvent(DeviceLink l, String text) => _event(l, 'script', text);
+
   void setMode(String m) => _setMode(focus, m);
 
   void _setMode(DeviceLink? l, String m) {
@@ -1006,6 +1018,7 @@ class Dash extends ChangeNotifier implements PadTarget {
 
   /// STOP: every connected device, at once.
   void emergencyStop() {
+    scripts.onStop();
     for (final l in links.values) {
       if (!l.tel.estop) _event(l, 'stop', 'STOP', critical: true);
       l.session.sendStop();
@@ -1788,6 +1801,7 @@ class Dash extends ChangeNotifier implements PadTarget {
 
   @override
   void dispose() {
+    scripts.dispose();
     gamepads.dispose();
     for (final l in links.values) {
       l.session.close();

@@ -1,9 +1,12 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'app.dart';
 import 'core/dash.dart';
 import 'core/macos_migrate.dart';
+import 'scripts/script_hub.dart';
 import 'theme/tokens.dart';
 import 'ui/mark.dart';
 import 'viz/map_view.dart';
@@ -16,6 +19,10 @@ Future<void> main() async {
   final dash = Dash();
   runApp(KoebeltDash(dash: dash));
   await dash.init();
+  // The script API, for Python scripts on this computer.
+  if (Platform.isMacOS || Platform.isWindows || Platform.isLinux) {
+    await dash.scripts.start(discovery: ScriptHub.defaultDiscovery());
+  }
 }
 
 class KoebeltDash extends StatelessWidget {

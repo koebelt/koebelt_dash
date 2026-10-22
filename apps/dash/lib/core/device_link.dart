@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import '../link/protocol.dart';
 import '../link/radio.dart';
 import '../link/session.dart';
+import '../scripts/script_hub.dart' show ScriptDrive;
 import '../video/video_hub.dart';
 import '../video/video_rec.dart';
 import 'alerts.dart';
@@ -27,6 +28,9 @@ class DeviceLink {
   /// Stick axes (lx ly rx ry) sent in the control heartbeat. Only the focused
   /// device's move; the others stay centred, so they hold.
   final List<double> input = [0, 0, 0, 0];
+
+  /// A Python script driving this device's sticks, or null.
+  ScriptDrive? drive;
   List<double> jog = List.filled(6, 0);
   double speed = .5;
 
