@@ -51,7 +51,7 @@ Messages with an `id` get a result:
 | `plot` | `name`, `v` | A value shown and recorded as channel `script:<name>`. |
 | `mark` | `text` | An event on the recording's timeline. |
 | `notify` | `text`, `level` | A message to the operator. |
-| `ka` | | Keep-alive. The client library sends it every 100 ms. |
+| `ka` | `hz` | Keep-alive. The client library sends it every 100 ms, with the script's loop rate when it uses `every()`. |
 
 ## dash → script
 
@@ -61,7 +61,8 @@ Messages with an `id` get a result:
 | `setting` | `name`, `value` | The operator changed a setting. |
 | `fire` | `name`, `value` | A trigger fired. |
 | `takeover` | `on` | The operator moved the sticks (`true`), or gave them back (`false`). While on, `sticks` are ignored. |
-| `released` | `why` | The script lost the sticks: watchdog, geofence, ceiling, STOP, disconnection. The device holds. |
+| `released` | `why` | The script lost the sticks: watchdog, geofence, ceiling, STOP, disconnection. The device holds, and `sticks` are refused until the operator resumes the script. |
+| `resumed` | | The operator resumed the script: it may drive again. |
 | `stop` | | STOP was pressed. |
 
 ## Safety
@@ -74,6 +75,7 @@ Messages with an `id` get a result:
   resumes.
 - A script that drives and sends nothing for 0.5 s, disconnects, takes the
   device beyond its geofence (horizontal distance from home) or, for drones,
-  above its ceiling, loses the sticks and the device switches to HOLD.
+  above its ceiling, loses the sticks and the device switches to HOLD. It
+  cannot take them again until the operator resumes it in dash.
 - STOP releases every script and refuses their commands until the operator
   clears it.

@@ -116,6 +116,7 @@ void main() {
     await run(.6);
     expect(l.drive, isNull);
     expect(l.tel.mode, 'HOLD');
+    expect((await s.call('sticks', {'a': {'throttle': 1}}))['err'], contains('stopped responding'));
     await Future<void>.delayed(const Duration(milliseconds: 50));
     expect(s.got.lastWhere((m) => m['t'] == 'released')['why'], contains('stopped responding'));
   });
@@ -168,6 +169,10 @@ void main() {
     }
     expect(l.drive, isNull);
     expect(s.got.lastWhere((m) => m['t'] == 'released')['why'], contains('geofence'));
+    // It cannot simply take the sticks again: the operator decides.
+    expect((await s.call('sticks', {'a': {'throttle': 1}}))['err'], contains('must resume'));
+    d.scripts.unblock(d.scripts.conns.single);
+    expect((await s.call('sticks', {'a': {'throttle': 0}}))['ok'], isTrue);
   });
 
   test('settings and triggers declared by the script, changed and fired from dash', () async {

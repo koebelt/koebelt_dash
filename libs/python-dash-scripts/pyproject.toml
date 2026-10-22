@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "koebelt-dash-scripts"
+version = "1.3.0"
+description = "Control drones, robots and test rigs connected in the koebelt/dash app from Python."
+readme = "README.md"
+requires-python = ">=3.9"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Thomas Koebel", email = "contact@koebelt.com" }]
+keywords = ["robotics", "drone", "rover", "automation", "computer-vision", "koebelt"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Education",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering",
+    "Topic :: System :: Hardware",
+    "Typing :: Typed",
+]
+dependencies = ["websockets>=12"]
+
+[project.urls]
+Homepage = "https://koebelt.com/work/koebelt-dash"
+Source = "https://github.com/koebelt/koebelt_dash/tree/main/libs/python-dash-scripts"
+Protocol = "https://github.com/koebelt/koebelt_dash/blob/main/protocol/SCRIPTS.md"
+Issues = "https://github.com/koebelt/koebelt_dash/issues"
+
+[project.optional-dependencies]
+dev = ["pytest>=7"]
+
+[tool.setuptools]
+packages = ["koebelt_dash_scripts"]
+
+[tool.setuptools.package-data]
+koebelt_dash_scripts = ["py.typed"]

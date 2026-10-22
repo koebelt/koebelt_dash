@@ -14,6 +14,8 @@ jobs:
       # Rust guide examples build with the `ble` feature (BlueZ needs D-Bus headers)
       - run: sudo apt-get update && sudo apt-get install -y libdbus-1-dev pkg-config
       - run: python -m venv ../../libs/python/.venv && ../../libs/python/.venv/bin/pip install -e "../../libs/python[dev]" pymavlink
+      # Scripts: dash runs Python with koebelt-dash-scripts (test/script_run_test.dart).
+      - run: python -m venv ../../libs/python-dash-scripts/.venv && ../../libs/python-dash-scripts/.venv/bin/pip install -e "../../libs/python-dash-scripts[dev]"
       - run: flutter pub get
       - run: flutter analyze
       - run: flutter test
@@ -40,6 +42,21 @@ jobs:
         with: { python-version: "3.12" }
       - run: pip install -e ".[dev]" && pytest -q
       - run: PYTHONPATH=../ros2/koebelt_link_ros pytest -q ../ros2/koebelt_link_ros/test
+
+  # koebelt-dash-scripts, on the oldest and newest Python and websockets it supports.
+  python-dash-scripts:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: libs/python-dash-scripts } }
+    strategy:
+      matrix:
+        include:
+          - { python: "3.9", websockets: "websockets==12.0" }
+          - { python: "3.13", websockets: "websockets" }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "${{ matrix.python }}" }
+      - run: pip install -e ".[dev]" "${{ matrix.websockets }}" && pytest -q
 
   arduino-core:
     runs-on: ubuntu-latest

@@ -7,6 +7,7 @@ import '../core/dash.dart';
 import '../core/device_link.dart';
 import '../core/model.dart';
 import '../link/protocol.dart';
+import 'script_runner.dart';
 
 /// The script API: Python scripts (koebelt-dash-scripts) connect here over a
 /// WebSocket, and every command they send passes the safety layer below
@@ -94,6 +95,13 @@ class ScriptConn {
   ScriptDrive? drive;
   double lastSeen = 0;
 
+  /// Why dash took the sticks away (watchdog, geofence, STOP…): the script
+  /// cannot take them again until the operator resumes it.
+  String? blocked;
+
+  /// The script's own loop rate, from its keep-alives (every()).
+  double? hz;
+
   /// Declared by the script: settings (name → value, bounds) and triggers.
   final Map<String, Map<String, dynamic>> settings = {};
   final Map<String, Map<String, dynamic>> triggers = {};
@@ -105,9 +113,13 @@ class ScriptConn {
     } catch (_) {}
   }
 
+  /// The process, when dash started the script.
+  ScriptRun? run;
+
   void log(String level, String text) {
     console.add((t: hub.d.t, level: level, text: text));
     if (console.length > 500) console.removeRange(0, console.length - 500);
+    run?.log(level, text);
   }
 }
 
@@ -116,6 +128,9 @@ class ScriptHub {
   final Dash d;
   HttpServer? _server;
   final List<ScriptConn> conns = [];
+
+  /// Scripts dash started, running or finished (the last few).
+  final List<ScriptRun> runs = [];
   String token = _newToken();
   double _tlmAcc = 0;
 
@@ -184,6 +199,7 @@ class ScriptHub {
             return;
           }
           c = ScriptConn(this, ws, (m['name'] as String?) ?? 'script')..pid = (m['pid'] as num?)?.toInt();
+          c!.run = runs.where((r) => r.pid == c!.pid && r.state == ScriptState.running).firstOrNull;
           c!.lastSeen = d.t;
           conns.add(c!);
           c!.log('info', 'Connected');
@@ -213,11 +229,14 @@ class ScriptHub {
     d.emit();
   }
 
-  /// Takes the sticks back from a script; a device it drove holds.
-  void _release(ScriptConn c, String why) {
+  /// Takes the sticks back from a script; a device it drove holds. Unless the
+  /// script asked for it, it stays [ScriptConn.blocked] until the operator
+  /// resumes it.
+  void _release(ScriptConn c, String why, {bool block = true}) {
     final dr = c.drive;
     if (dr == null) return;
     c.drive = null;
+    if (block) c.blocked = why;
     if (dr.link.drive == dr) {
       dr.link.drive = null;
       final t = dr.link.tel;
@@ -236,18 +255,20 @@ class ScriptHub {
     try {
       switch (m['t']) {
         case 'ka':
+          c.hz = (m['hz'] as num?)?.toDouble() ?? c.hz;
           return;
         case 'use':
           final want = m['device'] as String?;
           final l = want == null ? d.focus : d.links.values.where((x) => x.id == want || x.info.name.toLowerCase() == want.toLowerCase()).firstOrNull;
           if (l == null) return _res(c, id, err: want == null ? 'No device is connected in koebelt dash.' : 'No connected device called "$want".');
-          if (c.device != l.id) _release(c, 'Switched device.');
+          if (c.device != l.id) _release(c, 'Switched device.', block: false);
           c.device = l.id;
           return _res(c, id, value: {'id': l.id, 'name': l.info.name, 'kind': l.kind.name, 'sim': l.info.simulated, 'lib': l.info.lib, 'limits': c.limits.toJson()});
         case 'sticks':
           final l = _link(c);
           if (l == null) return _res(c, id, err: 'Call use() first.');
           if (l.tel.estop) return _res(c, id, err: 'STOP is on: the operator must clear it.');
+          if (c.blocked != null) return _res(c, id, err: '${c.blocked} The operator must resume the script in dash.');
           final other = l.drive;
           if (other != null && other.conn != c) return _res(c, id, err: 'Another script (${other.conn.name}) drives ${l.info.name}.');
           final dr = c.drive ??= ScriptDrive(c, l);
@@ -256,7 +277,7 @@ class ScriptHub {
           if (id != null) _res(c, id);
           return;
         case 'release':
-          _release(c, 'Released by the script.');
+          _release(c, 'Released by the script.', block: false);
           return _res(c, id);
         case 'cmd':
           return _cmd(c, id, m['c'] as String? ?? '', (m['a'] as Map?)?.cast<String, dynamic>() ?? const {});
@@ -348,13 +369,43 @@ class ScriptHub {
     d.emit();
   }
 
+  /// Lets a script drive again after dash took the sticks away.
+  void unblock(ScriptConn c) {
+    if (c.blocked == null) return;
+    c.blocked = null;
+    c.log('info', 'Resumed by the operator');
+    c.send({'t': 'resumed'});
+    d.emit();
+  }
+
   /// STOP: every script loses its device; scripts dash started are ended.
   void onStop() {
     for (final c in List.of(conns)) {
       _release(c, 'STOP');
       c.send({'t': 'stop'});
     }
+    for (final r in runs) {
+      if (r.state == ScriptState.running) {
+        r.log('warn', 'STOP');
+        r.stop(grace: const Duration(milliseconds: 300));
+      }
+    }
   }
+
+  /// Runs a script file. The interpreter: [python], else the one the script
+  /// names in its first lines (`# python: …`), else [fallback].
+  Future<ScriptRun> runFile(File file, {String? python, String fallback = 'python3'}) async {
+    if (_server == null) throw StateError('The script API is not running.');
+    final py = python ?? pythonFromHeader(await file.readAsString()) ?? fallback;
+    final r = await ScriptRun.start(file, py, url: 'ws://127.0.0.1:${_server!.port}/scripts', token: token, onChange: d.emit);
+    runs.add(r);
+    if (runs.length > 20) runs.removeAt(0);
+    d.emit();
+    return r;
+  }
+
+  /// The connection of a script dash started, once it has connected.
+  ScriptConn? connOf(ScriptRun r) => conns.where((c) => c.run == r).firstOrNull;
 
   /// A trigger fired by the operator or a condition.
   void fire(ScriptConn c, String name, [Object? value]) {
@@ -412,5 +463,10 @@ class ScriptHub {
     }
   }
 
-  void dispose() => stop();
+  void dispose() {
+    for (final r in runs) {
+      r.stop(grace: Duration.zero);
+    }
+    stop();
+  }
 }
