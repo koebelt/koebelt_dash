@@ -7,7 +7,9 @@ import '../core/dash.dart';
 import '../core/device_link.dart';
 import '../core/model.dart';
 import '../link/protocol.dart';
+import 'fields.dart';
 import 'script_runner.dart';
+import 'triggers.dart';
 
 /// The script API: Python scripts (koebelt-dash-scripts) connect here over a
 /// WebSocket, and every command they send passes the safety layer below
@@ -88,7 +90,15 @@ class ScriptConn {
   final WebSocket ws;
   String name;
   int? pid;
-  final limits = ScriptLimits();
+
+  /// The operator's setup for this script (limits, bindings), by its path.
+  ScriptConfig config = ScriptConfig();
+  ScriptLimits get limits => config.limits;
+  final triggerState = TriggerState();
+
+  /// The path that keys its configuration: its file, or its name for a
+  /// script started outside dash.
+  String get configKey => run?.file.path ?? 'name:$name';
 
   /// The device this script works with (a link id), and whether it holds its sticks.
   String? device;
@@ -131,6 +141,31 @@ class ScriptHub {
 
   /// Scripts dash started, running or finished (the last few).
   final List<ScriptRun> runs = [];
+
+  /// The operator's setup per script (by path), kept by the store.
+  final Map<String, ScriptConfig> configs = {};
+  static const _configKey = 'kdash-scripts-v1';
+  double _trigAcc = 0;
+
+  void load() {
+    final j = d.store.readJson(_configKey);
+    if (j is Map) {
+      for (final e in j.entries) {
+        if (e.value is Map) configs['${e.key}'] = ScriptConfig.fromJson(e.value as Map);
+      }
+    }
+  }
+
+  void saveConfigs() => d.store.writeJson(_configKey, {for (final e in configs.entries) e.key: e.value.toJson()});
+
+  ScriptConfig configFor(String key) => configs[key] ??= ScriptConfig();
+
+  /// Keeps a script's setup when its file is renamed.
+  void moveConfig(String from, String to) {
+    final c = configs.remove(from);
+    if (c != null) configs[to] = c;
+    saveConfigs();
+  }
   String token = _newToken();
   double _tlmAcc = 0;
 
@@ -200,6 +235,7 @@ class ScriptHub {
           }
           c = ScriptConn(this, ws, (m['name'] as String?) ?? 'script')..pid = (m['pid'] as num?)?.toInt();
           c!.run = runs.where((r) => r.pid == c!.pid && r.state == ScriptState.running).firstOrNull;
+          c!.config = configFor(c!.configKey);
           c!.lastSeen = d.t;
           conns.add(c!);
           c!.log('info', 'Connected');
@@ -259,7 +295,9 @@ class ScriptHub {
           return;
         case 'use':
           final want = m['device'] as String?;
-          final l = want == null ? d.focus : d.links.values.where((x) => x.id == want || x.info.name.toLowerCase() == want.toLowerCase()).firstOrNull;
+          DeviceLink? named(String n) => d.links.values.where((x) => x.id == n || x.info.name.toLowerCase() == n.toLowerCase()).firstOrNull;
+          // No name: the device chosen on the script's page, else the selected one.
+          final l = want != null ? named(want) : (c.config.device == null ? null : named(c.config.device!)) ?? d.focus;
           if (l == null) return _res(c, id, err: want == null ? 'No device is connected in koebelt dash.' : 'No connected device called "$want".');
           if (c.device != l.id) _release(c, 'Switched device.', block: false);
           c.device = l.id;
@@ -289,6 +327,7 @@ class ScriptHub {
           return _res(c, id, value: c.settings[name]!['value']);
         case 'trigger':
           c.triggers[m['name'] as String] = m;
+          if (c.config.adopt(m)) saveConfigs();
           d.emit();
           return _res(c, id);
         case 'print':
@@ -414,6 +453,99 @@ class ScriptHub {
     d.emit();
   }
 
+  /// The operator pressed a button, or a key or controller button bound to an
+  /// event: switches toggle, sliders send their value, buttons fire.
+  void press(ScriptConn c, String event) {
+    final decl = c.triggers[event];
+    final kind = '${decl?['kind'] ?? c.config.bindings.where((b) => b.event == event && b.onScreen).firstOrNull?.source.name ?? 'button'}';
+    if (kind == 'switch' || kind == 'toggle') {
+      final v = !(c.config.values[event] == true);
+      c.config.values[event] = v;
+      return fire(c, event, v);
+    }
+    if (kind == 'value' || kind == 'slider') return fire(c, event, c.config.values[event]);
+    fire(c, event);
+  }
+
+  void setToggle(ScriptConn c, String event, bool v) {
+    c.config.values[event] = v;
+    fire(c, event, v);
+  }
+
+  void setSlider(ScriptConn c, String event, double v) {
+    c.config.values[event] = v;
+    fire(c, event, v);
+  }
+
+  /// A key pressed in dash (outside text fields). True if a trigger took it.
+  bool onKey(String label) {
+    var used = false;
+    for (final c in List.of(conns)) {
+      for (final b in c.config.bindings.where((b) => b.source == TriggerSource.key && b.key == label).toList()) {
+        press(c, b.event);
+        used = true;
+      }
+    }
+    return used;
+  }
+
+  /// A controller button no built-in action uses.
+  void onPad(String src) {
+    for (final c in List.of(conns)) {
+      for (final b in c.config.bindings.where((b) => b.source == TriggerSource.pad && b.pad == src).toList()) {
+        press(c, b.event);
+      }
+    }
+  }
+
+  /// Conditions, device events and timers, 10 times a second.
+  void _stepTriggers(ScriptConn c, double dt) {
+    final l = _link(c);
+    final st = c.triggerState;
+    if (l == null) return;
+    final t = l.tel, lost = l.linkLostFor > 0;
+    final lookup = fieldsOf(l);
+    for (final b in c.config.bindings.toList()) {
+      switch (b.source) {
+        case TriggerSource.condition:
+          final r = st.watch(b)?.step(dt, lookup);
+          if (r == true) fire(c, b.event, true);
+          if (r == false && b.both) fire(c, b.event, false);
+        case TriggerSource.timer:
+          final acc = (st.timers[b] ?? 0) + dt;
+          st.timers[b] = acc;
+          if (acc >= b.seconds && b.seconds > 0) {
+            if (b.repeat) {
+              st.timers[b] = acc - b.seconds;
+              fire(c, b.event);
+            } else if (acc - dt < b.seconds) {
+              fire(c, b.event);
+            }
+          }
+        case TriggerSource.event:
+          final m = b.match?.trim() ?? '';
+          final hit = switch (b.deviceEvent) {
+            'mode' => st.lastMode != null && st.lastMode != t.mode && (m.isEmpty || t.mode.toUpperCase() == m.toUpperCase()),
+            'armed' => st.lastArmed == false && t.armed,
+            'disarmed' => st.lastArmed == true && !t.armed,
+            'failsafe' => st.lastFailsafe == false && t.failsafe,
+            'linklost' => st.lastLost == false && lost,
+            'seqdone' => st.lastRun != null && st.lastRun != l.runner?.state && '${l.runner?.state.name}' == 'done',
+            'log' => l.logs.length > st.logsSeen && l.logs.skip(st.logsSeen).any((x) => m.isEmpty || '${x['msg']}'.toLowerCase().contains(m.toLowerCase())),
+            _ => false,
+          };
+          if (hit) fire(c, b.event, b.deviceEvent == 'mode' ? t.mode : null);
+        default:
+      }
+    }
+    st.lastMode = t.mode;
+    st.lastArmed = t.armed;
+    st.lastFailsafe = t.failsafe;
+    st.lastLost = lost;
+    st.lastRun = l.runner?.state;
+    st.logsSeen = l.logs.length;
+  }
+
   /// A setting changed in dash.
   void setSetting(ScriptConn c, String name, Object value) {
     c.settings[name]?['value'] = value;
@@ -440,6 +572,13 @@ class ScriptHub {
       } else if (lim.ceiling > 0 && dr.link.kind == DeviceKind.drone && p[2] > lim.ceiling) {
         _release(c, '${dr.link.info.name} went above the ${lim.ceiling.round()} m ceiling: it holds.');
       }
+    }
+    _trigAcc += dt;
+    if (_trigAcc >= .1) {
+      for (final c in List.of(conns)) {
+        _stepTriggers(c, _trigAcc);
+      }
+      _trigAcc = 0;
     }
     _tlmAcc += dt;
     if (_tlmAcc < .05) return;

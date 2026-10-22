@@ -443,6 +443,8 @@ class Dash extends ChangeNotifier implements PadTarget {
     updater.start();
     settings.load(store.readJson('kdash-settings-v1'));
     pad.load(store.readJson('kdash-pad-v1') as Map?);
+    scripts.load();
+    padMapper.onFreeButton = scripts.onPad;
     alertPrefs.load(store.readJson('kdash-alerts-v1') as Map?);
     gamepads.addListener(notifyListeners);
     unawaited(gamepads.start());

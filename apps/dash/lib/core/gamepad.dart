@@ -143,8 +143,14 @@ class PadMapper {
   bool get driving => _wasActive;
 
   /// While set, the next deliberate input is bound to this slot instead of
-  /// acting: `axis:0`…`axis:3` or `btn:<action>`.
+  /// acting: `axis:0`…`axis:3`, `btn:<action>`, or `src` (just report the
+  /// button in [learned], for script triggers).
   String? learning;
+  String? learned;
+
+  /// A press on a button no built-in action uses: script triggers.
+  void Function(String src)? onFreeButton;
+  final Set<String> _freeDown = {};
   Map<String, double> _learnRest = {};
   VoidCallback? onLearned;
 
@@ -183,8 +189,16 @@ class PadMapper {
       return;
     }
     if (!cfg.enabled) return;
+    var bound = false;
     for (final e in cfg.buttons.entries) {
-      if (e.value == src) _button(e.key, v > .5);
+      if (e.value == src) {
+        bound = true;
+        _button(e.key, v > .5);
+      }
+    }
+    if (button && !bound) {
+      if (v > .5 && _freeDown.add(src)) onFreeButton?.call(src);
+      if (v <= .5) _freeDown.remove(src);
     }
     if (cfg.axes.any((a) => a.src == src)) _pushAxes();
   }
@@ -200,7 +214,7 @@ class PadMapper {
       _learnRest.putIfAbsent(src, () => v);
       return;
     }
-    if (slot.startsWith('axis:') && button) return;
+    if ((slot.startsWith('axis:') && button) || (slot == 'src' && !button)) return;
     // Known controllers report each input twice, raw and normalised. Wait a
     // moment and prefer the normalised name: it is the same on every OS.
     final c = _candidate;
@@ -214,7 +228,9 @@ class PadMapper {
     _candidate = null;
     if (c == null || learning != slot) return;
     final src = c.$1;
-    if (slot.startsWith('axis:')) {
+    if (slot == 'src') {
+      learned = src;
+    } else if (slot.startsWith('axis:')) {
       final i = int.parse(slot.substring(5));
       // Learn the direction too: pushing up / right should read positive.
       cfg.axes[i] = AxisBinding(src, invert: c.$2);

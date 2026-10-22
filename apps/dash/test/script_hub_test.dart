@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:koebelt_dash/core/dash.dart';
 import 'package:koebelt_dash/scripts/script_hub.dart';
+import 'package:koebelt_dash/scripts/triggers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// A script, as koebelt_dash_scripts talks to dash.
@@ -188,5 +189,92 @@ void main() {
     expect(s.got.firstWhere((m) => m['t'] == 'fire')['name'], 'Drop payload');
     // Declaring it again (the script restarted) keeps the operator's value.
     expect((await s.call('setting', {'name': 'speed', 'value': .4, 'min': 0, 'max': 1}))['value'], .7);
+  });
+
+  group('triggers', () {
+    Future<(_Script, ScriptConn)> declared() async {
+      final s = await _Script.open(d.scripts);
+      await s.call('use');
+      await s.call('trigger', {'name': 'Drop payload', 'kind': 'button', 'key': 'd', 'gamepad': 'LT'});
+      await s.call('trigger', {'name': 'Patrol', 'kind': 'switch'});
+      return (s, d.scripts.conns.single);
+    }
+
+    List<Map<String, dynamic>> fired(_Script s) => [for (final m in s.got) if (m['t'] == 'fire') m];
+
+    test('a declared trigger gets its on-screen control and suggested bindings, and the operator’s setup wins', () async {
+      final (_, c) = await declared();
+      expect([for (final b in c.config.bindings) '${b.event}/${b.source.name}/${b.key ?? b.pad ?? ''}'], [
+        'Drop payload/button/',
+        'Drop payload/key/D',
+        'Drop payload/pad/n:leftTrigger',
+        'Patrol/toggle/',
+      ]);
+      c.config.bindings.removeWhere((b) => b.source == TriggerSource.key);
+      expect(c.config.adopt({'name': 'Drop payload', 'key': 'D'}), isFalse, reason: 'already set up');
+      expect(c.config.bindings.where((b) => b.source == TriggerSource.key), isEmpty);
+    });
+
+    test('keys and controller buttons fire; switches toggle', () async {
+      final (s, _) = await declared();
+      expect(d.scripts.onKey('D'), isTrue);
+      expect(d.scripts.onKey('Q'), isFalse);
+      d.padMapper.input('n:leftTrigger', 1, button: true);
+      d.padMapper.input('n:leftTrigger', 0, button: true);
+      final c = d.scripts.conns.single;
+      c.config.bindings.add(TriggerBinding('Patrol', TriggerSource.key, key: 'P'));
+      d.scripts.onKey('P');
+      d.scripts.onKey('P');
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      expect([for (final m in fired(s)) '${m['name']}:${m['value']}'], ['Drop payload:null', 'Drop payload:null', 'Patrol:true', 'Patrol:false']);
+    });
+
+    test('a condition fires once it has held, and again only after it clears', () async {
+      final (s, c) = await declared();
+      c.config.bindings.add(TriggerBinding('Far', TriggerSource.condition, expr: 'script.x > 10 for 0.3s', both: true));
+      s.send('plot', {'name': 'x', 'v': 20});
+      for (var i = 0; i < 8; i++) {
+        s.send('ka');
+        await run(.1);
+      }
+      s.send('plot', {'name': 'x', 'v': 0});
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      await run(.2);
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      expect([for (final m in fired(s)) '${m['name']}:${m['value']}'], ['Far:true', 'Far:false']);
+    });
+
+    test('device events and timers', () async {
+      final (s, c) = await declared();
+      c.config.bindings
+        ..add(TriggerBinding('Holding', TriggerSource.event, deviceEvent: 'mode', match: 'hold'))
+        ..add(TriggerBinding('Tick', TriggerSource.timer, seconds: .3))
+        ..add(TriggerBinding('Once', TriggerSource.timer, seconds: .2, repeat: false));
+      final l = d.links.values.single;
+      await run(.15);
+      d.linkHost(l).seqSetMode('MANUAL');
+      await run(.15);
+      d.linkHost(l).seqSetMode('HOLD');
+      for (var i = 0; i < 7; i++) {
+        s.send('ka');
+        await run(.1);
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      final names = [for (final m in fired(s)) m['name']];
+      expect(names.where((n) => n == 'Holding'), hasLength(1), reason: 'MANUAL does not match');
+      expect(names.where((n) => n == 'Once'), hasLength(1));
+      expect(names.where((n) => n == 'Tick').length, inInclusiveRange(2, 4));
+    });
+
+    test('setups are kept per script and survive a restart of dash', () async {
+      final (_, c) = await declared();
+      c.limits.maxSpeed = .3;
+      d.scripts.saveConfigs();
+      final again = Dash(store: d.store);
+      again.scripts.load();
+      final k = again.scripts.configs['name:test.py']!;
+      expect(k.limits.maxSpeed, .3);
+      expect(k.bindings.map((b) => b.source.name), ['button', 'key', 'pad', 'toggle']);
+    });
   });
 }
