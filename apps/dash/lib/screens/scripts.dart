@@ -129,6 +129,7 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
       _diskText = text;
       code.text = text;
       code.errorLine = null;
+      code.errorMessage = null;
       _message = null;
       dirty = false;
       if (show && phone) phoneView = 'run';
@@ -141,6 +142,7 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
   void _edited() {
     if (!dirty) setState(() => dirty = true);
     code.errorLine = null;
+    code.errorMessage = null;
     _autosave?.cancel();
     _autosave = Timer(const Duration(milliseconds: 800), _saveNow);
   }
@@ -163,6 +165,7 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
     if (!mounted) return;
     setState(() {
       code.errorLine = r?.line;
+      code.errorMessage = r?.message;
       _message = r == null ? 'No syntax errors.' : 'Line ${r.line}: ${r.message}';
     });
   }
@@ -315,6 +318,7 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
 
     final common = (
       members: intro == null ? null : (String p) => intro.membersOf(p),
+      doc: intro == null ? null : (String p) => intro.docOf(p),
       installed: intro == null
           ? null
           : () {
@@ -322,12 +326,13 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
               return intro.installed;
             },
     );
-    if (l == null) return CompletionContext(members: common.members, installed: common.installed, files: files);
+    if (l == null) return CompletionContext(members: common.members, installed: common.installed, files: files, doc: common.doc);
     final snap = l.tel.snapshot()..remove('seen');
     return CompletionContext(
       members: common.members,
       installed: common.installed,
       files: files,
+      doc: common.doc,
       kind: l.kind.name,
       sticks: [...?stickAxes[l.kind]?.keys],
       tlm: [...snap.keys, 'alt', 'speed', 'heading', if (l.tel.hasGps) 'gps'],
@@ -500,7 +505,10 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
       off += lines[i].length + 1;
     }
     code.selection = TextSelection.collapsed(offset: off.clamp(0, code.text.length));
-    setState(() => code.errorLine = line);
+    setState(() {
+      code.errorLine = line;
+      code.errorMessage = null;
+    });
   }
 
   @override

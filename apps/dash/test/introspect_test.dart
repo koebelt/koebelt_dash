@@ -46,4 +46,21 @@ void main() {
     // editor always offers koebelt_dash_scripts itself.)
     expect(p.installed, containsAll(['json', 'websockets']));
   }, skip: python == null ? 'no Python' : false, timeout: const Timeout(Duration(seconds: 60)));
+
+  test('a whole docstring, for the hover card', () async {
+    final p = PythonIntrospector(python!);
+    Member? d;
+    for (var i = 0; i < 200 && !p.docs.containsKey('json.dumps'); i++) {
+      d = p.docOf('json.dumps');
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+    }
+    d = p.docOf('json.dumps');
+    expect(d!.kind, 'function');
+    expect(d.doc.split('\n').length, greaterThan(5), reason: 'more than the first line');
+    for (var i = 0; i < 200 && !p.docs.containsKey('builtins.nope_kdash'); i++) {
+      p.docOf('builtins.nope_kdash');
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+    }
+    expect(p.docOf('builtins.nope_kdash'), isNull);
+  }, skip: python == null ? 'no Python' : false, timeout: const Timeout(Duration(seconds: 60)));
 }

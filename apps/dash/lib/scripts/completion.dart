@@ -39,6 +39,7 @@ class CompletionContext {
     this.members,
     this.installed,
     this.files,
+    this.doc,
   });
   final String? kind;
   final List<String> sticks, tlm, programs, steps, channels;
@@ -53,6 +54,9 @@ class CompletionContext {
 
   /// The entries of a folder relative to the script's: (name, is a folder).
   final List<(String, bool)> Function(String dir)? files;
+
+  /// A library name's whole docstring and signature, null until known.
+  final Member? Function(String path)? doc;
 }
 
 /// Calls that take a file, for path completion without a "/" typed yet.
@@ -528,5 +532,196 @@ List<String> _rankMap(Map<String, Signature?> m, String typed) => _rank(m.keys, 
     }
     if (ch == ',' && depth == 0) args++;
   }
+  return null;
+}
+
+/// What the hover card says about a name.
+class HoverInfo {
+  const HoverInfo(this.title, {this.kind = '', this.params = const [], this.doc = '', required this.start, required this.end});
+
+  /// "dev.goto(x, y, z=None, wait=True)", "numpy", "speed".
+  final String title;
+
+  /// What it is: "method of the device", "module", "variable · line 4"…
+  final String kind;
+
+  /// Parameters with what each does, when the API says.
+  final List<(String, String)> params;
+  final String doc;
+
+  /// The hovered name's range in the text.
+  final int start, end;
+}
+
+const _builtinDocs = {
+  'print': 'Prints to the script\'s console in dash.',
+  'range': 'range(stop) or range(start, stop, step): the integers in it.',
+  'len': 'The number of items.',
+  'abs': 'The absolute value.',
+  'min': 'The smallest item.',
+  'max': 'The largest item.',
+  'round': 'Rounds to ndigits decimals (0: an int).',
+  'int': 'An integer from a number or text.',
+  'float': 'A float from a number or text.',
+  'str': 'Text from any value.',
+  'list': 'A new list.',
+  'dict': 'A new dictionary.',
+  'enumerate': 'Pairs (index, item).',
+  'zip': 'Tuples of items taken in step from each iterable.',
+  'sorted': 'A new sorted list.',
+  'sum': 'The sum of the items.',
+  'isinstance': 'Whether a value is of a type.',
+};
+
+/// A docstring without its source indentation, as Python's inspect.cleandoc.
+String _cleanDoc(String doc) {
+  final lines = doc.trim().split('\n');
+  final rest = lines.skip(1).where((l) => l.trim().isNotEmpty);
+  final indent = rest.isEmpty ? 0 : rest.map((l) => l.length - l.trimLeft().length).reduce((a, b) => a < b ? a : b);
+  return [lines.first, for (final l in lines.skip(1)) l.length >= indent ? l.substring(indent) : l.trimLeft()].join('\n');
+}
+
+/// What is known about the name at [offset]: the API, the script's own
+/// definitions, its libraries. Null on a keyword, a comment, a string, or a
+/// name nothing is known about.
+HoverInfo? hoverAt(String text, int offset, [CompletionContext ctx = const CompletionContext()]) {
+  if (offset < 0 || offset >= text.length || !RegExp(r'\w').hasMatch(text[offset])) return null;
+  var start = offset, end = offset;
+  while (start > 0 && RegExp(r'\w').hasMatch(text[start - 1])) {
+    start--;
+  }
+  while (end < text.length && RegExp(r'\w').hasMatch(text[end])) {
+    end++;
+  }
+  final name = text.substring(start, end);
+  if (RegExp(r'^\d').hasMatch(name) || _keywords.contains(name)) return null;
+  final lineStart = text.lastIndexOf('\n', start - 1) + 1;
+  final lineBefore = text.substring(lineStart, start);
+  // In a comment or a string: nothing to say.
+  final code = lineBefore.replaceAll(RegExp(r"""("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')"""), '');
+  if (code.contains('#') || code.contains('"') || code.contains("'")) return null;
+
+  // What it hangs from: dev.tlm.alt → owner chain "dev.tlm".
+  final ownerM = RegExp(r'((?:\w+(?:\(\))?\.)+)$').firstMatch(lineBefore);
+  final ownerChain = ownerM?[1]?.replaceAll('()', '');
+  final owner = ownerChain?.substring(0, ownerChain.length - 1);
+  final types = _types(text);
+  HoverInfo api(String prefix, String kind, Signature? s, String? doc) => s == null
+      ? HoverInfo('$prefix$name', kind: kind, doc: doc ?? '', start: start, end: end)
+      : HoverInfo('$prefix${s.text}', kind: kind, params: s.params, doc: s.doc, start: start, end: end);
+  HoverInfo? library(String path) {
+    final dot = path.lastIndexOf('.');
+    final full = ctx.doc?.call(path);
+    final brief = dot < 0 ? null : ctx.members?.call(path.substring(0, dot))?[path.substring(dot + 1)];
+    final m = full ?? brief;
+    if (m == null) return dot < 0 && ctx.members != null ? HoverInfo(path, kind: 'module', start: start, end: end) : null;
+    final params = m.kind == 'function' || m.kind == 'class' ? _paramsOf(m.sig) : const <(String, String)>[];
+    return HoverInfo(
+      m.kind == 'function' || m.kind == 'class' ? '$path(${params.map((p) => p.$1).join(', ')})' : path,
+      kind: m.kind,
+      doc: m.doc,
+      start: start,
+      end: end,
+    );
+  }
+
+  if (owner != null) {
+    final parts = owner.split('.');
+    var type = types[owner];
+    if (parts.length == 2 && types[parts[0]] == 'device') {
+      type = switch (parts[1]) {
+        'tlm' || 'next_tlm' => 'tlm',
+        'camera' => 'camera',
+        'params' => 'params',
+        _ => null,
+      };
+    }
+    switch (type) {
+      case 'device':
+        if (deviceApi.containsKey(name)) return api('$owner.', deviceApi[name] == null ? 'device property' : 'device method', deviceApi[name], _deviceDocs[name]);
+      case 'tlm':
+        final d =
+            tlmFields[name] ??
+            (ctx.tlm.contains(name)
+                ? 'sent by this device'
+                : ctx.channels.contains(name)
+                ? 'this device\'s channel'
+                : null);
+        if (d != null) return HoverInfo('$owner.$name', kind: 'telemetry', doc: d, start: start, end: end);
+      case 'camera':
+        if (cameraApi.containsKey(name)) return api('$owner.', cameraApi[name] == null ? 'camera property' : 'camera method', cameraApi[name], null);
+      case 'params':
+        if (paramsApi.containsKey(name)) return api('$owner.', 'parameters method', paramsApi[name], null);
+      case 'setting':
+        if (name == 'value') return HoverInfo('$owner.value', kind: 'setting', doc: 'The operator\'s current value.', start: start, end: end);
+    }
+    final path = resolvePath('$owner.$name', importsOf(text, ctx.members));
+    return path == null ? null : library(path);
+  }
+
+  // A name of its own.
+  if (topLevel.containsKey(name) && RegExp(r'koebelt_dash_scripts').hasMatch(text)) {
+    return api('', topLevel[name] == null ? 'koebelt_dash_scripts' : 'function · koebelt_dash_scripts', topLevel[name], name == 'ScriptError' ? 'What the library raises, with a code (E0001…) and how to fix it.' : null);
+  }
+  int lineOf(int i) => '\n'.allMatches(text.substring(0, i)).length + 1;
+  final def = RegExp('^([ \\t]*)(def|class)\\s+${RegExp.escape(name)}\\s*(\\([^)]*\\))?\\s*(?:->[^:]*)?:', multiLine: true).firstMatch(text);
+  if (def != null) {
+    final after = text.substring(def.end);
+    final doc = RegExp(r'''^[^\n]*\n\s*(?:"""([\s\S]*?)"""|'\'\'([\s\S]*?)'\'\'|"([^"\n]*)")''').firstMatch(after);
+    final params = def[3] == null ? const <(String, String)>[] : _paramsOf(def[3]!);
+    return HoverInfo(
+      def[2] == 'def' ? '$name(${params.map((p) => p.$1).join(', ')})' : name,
+      kind: '${def[2] == 'def' ? 'function' : 'class'} in this script · line ${lineOf(def.start + def[1]!.length)}',
+      doc: _cleanDoc(doc?[1] ?? doc?[2] ?? doc?[3] ?? ''),
+      start: start,
+      end: end,
+    );
+  }
+  final imports = importsOf(text, ctx.members);
+  if (imports.containsKey(name)) {
+    final path = imports[name]!;
+    // An instance of a library class: say what it is.
+    final inst = RegExp('^\\s*${RegExp.escape(name)}\\s*=\\s*([\\w.]+)\\(', multiLine: true).firstMatch(text);
+    final info = library(path);
+    if (inst != null && !RegExp('import[^\\n]*\\b${RegExp.escape(name)}\\b').hasMatch(text)) {
+      return HoverInfo(name, kind: 'variable · ${info?.title.split('(').first ?? path}', doc: info?.doc ?? '', start: start, end: end);
+    }
+    return info ?? HoverInfo(path, kind: 'import', start: start, end: end);
+  }
+  final assign = RegExp('^\\s*${RegExp.escape(name)}\\s*=(?!=)\\s*([^\\n]*)', multiLine: true).firstMatch(text);
+  final loop = RegExp('^\\s*for\\s+${RegExp.escape(name)}\\s+in\\s+([^\\n]*?):?\\s*\$', multiLine: true).firstMatch(text);
+  final bound = assign ?? loop;
+  if (bound != null) {
+    final type = types[name];
+    final what = switch (type) {
+      'device' => 'The device, from koebelt dash: its telemetry, sticks, commands.',
+      'tlm' => 'Telemetry: .alt, .pos, .battery…',
+      'camera' => 'A camera: .frame() for the newest image.',
+      'params' => 'The device\'s parameters.',
+      'setting' => 'A setting in dash: read .value.',
+      _ => '',
+    };
+    final rhs = bound[1]!.trim();
+    return HoverInfo(
+      name,
+      kind: '${type ?? (loop != null && assign == null ? 'loop variable' : 'variable')} · line ${lineOf(bound.start + bound[0]!.indexOf(name))}',
+      doc: [what, '${assign != null ? '=' : 'in'} ${rhs.length > 120 ? '${rhs.substring(0, 120)}…' : rhs}'].where((s) => s.isNotEmpty).join('\n'),
+      start: start,
+      end: end,
+    );
+  }
+  final param = RegExp('def\\s+(\\w+)\\s*\\([^)]*\\b${RegExp.escape(name)}\\b').allMatches(text.substring(0, start)).lastOrNull;
+  if (param != null) return HoverInfo(name, kind: 'parameter of ${param[1]}()', start: start, end: end);
+  final b = ctx.doc?.call('builtins.$name');
+  if (b != null) {
+    return HoverInfo(
+      b.kind == 'function' || b.kind == 'class' ? '$name${b.sig.isEmpty ? '()' : b.sig}' : name,
+      kind: 'built-in',
+      doc: b.doc,
+      start: start,
+      end: end,
+    );
+  }
+  if (_builtinDocs.containsKey(name)) return HoverInfo('$name()', kind: 'built-in', doc: _builtinDocs[name]!, start: start, end: end);
   return null;
 }

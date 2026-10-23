@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -41,8 +42,10 @@ List<(int, int, Color)> pythonRuns(String src) {
 class PythonController extends TextEditingController {
   PythonController({super.text});
 
-  /// 1-based line with a syntax error, underlined.
+  /// 1-based line with a syntax error, underlined, and what is wrong there
+  /// (shown when the line is hovered).
   int? errorLine;
+  String? errorMessage;
 
   @override
   TextSpan buildTextSpan({required BuildContext context, TextStyle? style, required bool withComposing}) {
@@ -127,6 +130,11 @@ class CodeEditorState extends State<CodeEditor> {
   bool _dismissed = false;
   String _lastText = '';
 
+  // Hover: where the pointer rested, the card it shows, and the wait first.
+  Offset? _hoverPos;
+  Timer? _hoverTimer;
+  final _hoverCard = GlobalKey();
+
   ({List<Completion> items, int replace}) get completions {
     final at = c.selection.isValid && c.selection.isCollapsed ? c.selection.start : -1;
     return completeAt(c.text, at, widget.context?.call() ?? const CompletionContext());
@@ -157,6 +165,7 @@ class CodeEditorState extends State<CodeEditor> {
   @override
   void dispose() {
     c.removeListener(_changed);
+    _hoverTimer?.cancel();
     if (widget.focusNode == null) _focus.dispose();
     _v.dispose();
     _h.dispose();
@@ -168,6 +177,7 @@ class CodeEditorState extends State<CodeEditor> {
       _lastText = c.text;
       _dismissed = false;
       _sel = 0;
+      _hoverPos = null;
     }
     setState(() {});
   }
@@ -284,14 +294,100 @@ class CodeEditorState extends State<CodeEditor> {
     return ColoredBox(
       color: K.surfaceSunken,
       child: LayoutBuilder(
-        builder: (context, box) => Stack(
-          children: [
-            Positioned.fill(child: _scroller(box, fs, lh, style, lines, contentW, at)),
-            if (widget.popup && _focus.hasFocus) ..._overlays(box, fs, lh, gutter),
-          ],
+        builder: (context, box) => MouseRegion(
+          onHover: (e) => _pointer(e, fs, lh, gutter),
+          onExit: (_) => _hideHover(),
+          child: Stack(
+            children: [
+              Positioned.fill(child: _scroller(box, fs, lh, style, lines, contentW, at)),
+              if (widget.popup && _focus.hasFocus) ..._overlays(box, fs, lh, gutter),
+              if (_hoverPos != null) ..._hoverOverlay(box, fs, lh, gutter),
+            ],
+          ),
         ),
       ),
     );
+  }
+
+  /// The text under a point of the editor: its line (0-based) and the offset
+  /// of the character there (null past the line's end).
+  (int, int?) _textAt(Offset p, double fs, double lh, double gutter) {
+    final v = _v.hasClients ? _v.offset : 0.0, h = _h.hasClients ? _h.offset : 0.0;
+    final line = ((p.dy - 12 + v) / lh).floor(), col = ((p.dx - gutter + h) / (fs * .6)).floor();
+    final lines = c.text.split('\n');
+    if (line < 0 || line >= lines.length) return (-1, null);
+    if (col < 0 || col >= lines[line].length) return (line, null);
+    var off = 0;
+    for (var i = 0; i < line; i++) {
+      off += lines[i].length + 1;
+    }
+    return (line, off + col);
+  }
+
+  /// What a point is on, to tell when the pointer leaves it: a word, or the
+  /// error line.
+  Object? _hoverTarget(Offset p, double fs, double lh, double gutter) {
+    final (line, off) = _textAt(p, fs, lh, gutter);
+    if (off != null && RegExp(r'\w').hasMatch(c.text[off])) {
+      var start = off;
+      while (start > 0 && RegExp(r'\w').hasMatch(c.text[start - 1])) {
+        start--;
+      }
+      return start;
+    }
+    return line + 1 == c.errorLine ? 'error' : null;
+  }
+
+  void _pointer(PointerHoverEvent e, double fs, double lh, double gutter) {
+    // On the card: it stays (to read it, scroll it).
+    final card = _hoverCard.currentContext?.findRenderObject() as RenderBox?;
+    if (card != null && card.hasSize && (card.localToGlobal(Offset.zero) & card.size).contains(e.position)) return;
+    final now = _hoverTarget(e.localPosition, fs, lh, gutter);
+    if (_hoverPos != null) {
+      if (now != null && now == _hoverTarget(_hoverPos!, fs, lh, gutter)) return;
+      setState(() => _hoverPos = null);
+    }
+    _hoverTimer?.cancel();
+    if (now == null) return;
+    final p = e.localPosition;
+    _hoverTimer = Timer(const Duration(milliseconds: 400), () {
+      if (mounted) setState(() => _hoverPos = p);
+    });
+  }
+
+  void _hideHover() {
+    _hoverTimer?.cancel();
+    if (_hoverPos != null) setState(() => _hoverPos = null);
+  }
+
+  /// The card about what the pointer rests on: the API's documentation, the
+  /// script's own definitions, a library's docstring, the syntax error.
+  List<Widget> _hoverOverlay(BoxConstraints box, double fs, double lh, double gutter) {
+    final p = _hoverPos!;
+    final (line, off) = _textAt(p, fs, lh, gutter);
+    if (line < 0) return const [];
+    final info = off == null ? null : hoverAt(c.text, off, widget.context?.call() ?? const CompletionContext());
+    final error = line + 1 == c.errorLine ? c.errorMessage : null;
+    if (info == null && error == null) return const [];
+    final v = _v.hasClients ? _v.offset : 0.0, h = _h.hasClients ? _h.offset : 0.0;
+    final lineStart = c.text.lastIndexOf('\n', math.max(0, (info?.start ?? 0) - 1)) + 1;
+    final col = info == null ? ((p.dx - gutter + h) / (fs * .6)).floor() : info.start - lineStart;
+    // Room for a docstring's 79 columns.
+    final width = math.min(580.0, box.maxWidth - 16);
+    final x = (gutter + col * fs * .6 - h).clamp(8.0, math.max(8.0, box.maxWidth - width - 8)).toDouble();
+    final top = 12 + line * lh - v, bottom = top + lh;
+    final above = top > box.maxHeight - bottom;
+    return [
+      Positioned(
+        left: x,
+        top: above ? null : bottom + 2,
+        bottom: above ? box.maxHeight - top + 2 : null,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: width, maxHeight: math.max(60, (above ? top : box.maxHeight - bottom) - 10)),
+          child: _HoverCard(key: _hoverCard, info: info, error: error),
+        ),
+      ),
+    ];
   }
 
   /// The completion list and the signature hint, placed at the cursor (the
@@ -332,7 +428,7 @@ class CodeEditorState extends State<CodeEditor> {
   Widget _scroller(BoxConstraints box, double fs, double lh, TextStyle style, int lines, double contentW, int at) => NotificationListener<ScrollNotification>(
     // The overlays follow the text as it scrolls.
     onNotification: (_) {
-      if (widget.popup) setState(() {});
+      if (widget.popup || _hoverPos != null) setState(() => _hoverPos = null);
       return false;
     },
     child: Scrollbar(
@@ -500,6 +596,77 @@ class _SignatureHint extends StatelessWidget {
       ],
     ),
   );
+}
+
+/// What the pointer rests on: its signature, what it is, its documentation;
+/// on the error line, the error.
+class _HoverCard extends StatelessWidget {
+  const _HoverCard({super.key, this.info, this.error});
+  final HoverInfo? info;
+  final String? error;
+  @override
+  Widget build(BuildContext context) {
+    final i = info;
+    final described = [
+      for (final p in i?.params ?? const <(String, String)>[])
+        if (p.$2.isNotEmpty) p,
+    ];
+    return Container(
+      decoration: BoxDecoration(
+        color: K.surfaceRaised,
+        border: Border.all(color: error != null ? K.negative : K.borderSubtle),
+        borderRadius: BorderRadius.circular(K.radiusCard),
+        boxShadow: _popupShadow,
+      ),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (error != null) Text(error!, style: KText.mono(12, color: K.negative)),
+            if (error != null && i != null) const SizedBox(height: 8),
+            if (i != null) ...[
+              Text(
+                i.title,
+                style: KText.mono(12, color: K.textPrimary, w: FontWeight.w600),
+              ),
+              if (i.kind.isNotEmpty) Text(i.kind, style: KText.mono(11, color: K.textAccent)),
+              if (described.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                for (final p in described)
+                  Text.rich(
+                    TextSpan(
+                      children: [
+                        TextSpan(
+                          text: p.$1,
+                          style: KText.mono(12, color: K.textSecondary),
+                        ),
+                        TextSpan(
+                          text: '  ${p.$2}',
+                          style: KText.bodySm.copyWith(fontSize: 12, color: K.textMuted),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+              if (i.doc.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                // Docstrings with several lines are laid out in plain text (numpy's
+                // Parameters tables): monospace keeps them aligned.
+                Text(
+                  i.doc,
+                  style: i.doc.contains('\n')
+                      ? KText.mono(11.5, color: K.textSecondary, height: 1.45, w: FontWeight.w400)
+                      : KText.bodySm.copyWith(fontSize: 12, color: K.textSecondary, height: 1.45),
+                ),
+              ],
+            ],
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 /// Completion as a strip of chips above the keyboard (phones), with the same

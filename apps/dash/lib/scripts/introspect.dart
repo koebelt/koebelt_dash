@@ -19,6 +19,7 @@ class PythonIntrospector {
   List<String>? installed;
   final Map<String, Map<String, Member>> members = {};
   final Map<String, String> errors = {};
+  final Map<String, Member?> docs = {};
   final Set<String> _asking = {};
   bool _askingModules = false;
 
@@ -32,21 +33,38 @@ if sys.argv[1] == "modules":
         names.add(m.name)
     out = sorted(n for n in names if not n.startswith("_"))
 else:
+    def resolve(path):
+        with contextlib.redirect_stdout(quiet), contextlib.redirect_stderr(quiet):
+            parts = path.split(".")
+            obj, i = None, len(parts)
+            while i > 0:
+                try:
+                    obj = importlib.import_module(".".join(parts[:i]))
+                    break
+                except ImportError:
+                    i -= 1
+            if obj is None:
+                raise ImportError("no module " + parts[0])
+            for p in parts[i:]:
+                obj = getattr(obj, p)
+            return obj
+    def kind_of(v):
+        return "module" if inspect.ismodule(v) else "class" if inspect.isclass(v) else "function" if callable(v) else "value"
     for path in sys.argv[2:]:
         try:
-            with contextlib.redirect_stdout(quiet), contextlib.redirect_stderr(quiet):
-                parts = path.split(".")
-                obj, i = None, len(parts)
-                while i > 0:
+            obj = resolve(path)
+            if sys.argv[1] == "doc":
+                kind, sig = kind_of(obj), ""
+                if kind in ("function", "class"):
                     try:
-                        obj = importlib.import_module(".".join(parts[:i]))
-                        break
-                    except ImportError:
-                        i -= 1
-                if obj is None:
-                    raise ImportError("no module " + parts[0])
-                for p in parts[i:]:
-                    obj = getattr(obj, p)
+                        sig = str(inspect.signature(obj))
+                    except Exception:
+                        pass
+                doc = inspect.getdoc(obj) or ""
+                if kind == "value":
+                    doc = type(obj).__name__ + " = " + repr(obj)[:200]
+                out[path] = {"doc": [kind, sig, doc[:4000]]}
+                continue
             members = {}
             for name in dir(obj)[:3000]:
                 if name.startswith("_"):
@@ -55,7 +73,7 @@ else:
                     v = getattr(obj, name)
                 except Exception:
                     continue
-                kind = "module" if inspect.ismodule(v) else "class" if inspect.isclass(v) else "function" if callable(v) else "value"
+                kind = kind_of(v)
                 sig = ""
                 if kind in ("function", "class"):
                     try:
@@ -115,6 +133,21 @@ print("\n@@koebelt@@" + json.dumps(out))
       } else {
         errors[path] = info is Map ? '${info['error']}' : 'no answer from Python';
       }
+      onChange?.call();
+    });
+    return null;
+  }
+
+  /// [path]'s whole docstring and signature (asked once; null until known,
+  /// or if Python could not find it).
+  Member? docOf(String path) {
+    if (docs.containsKey(path) || _asking.contains('doc:$path')) return docs[path];
+    _asking.add('doc:$path');
+    _run(['doc', path]).then((r) {
+      _asking.remove('doc:$path');
+      final info = r is Map ? r[path] : null;
+      final d = info is Map ? info['doc'] : null;
+      docs[path] = d is List ? (kind: '${d[0]}', sig: '${d[1]}', doc: '${d[2]}') : null;
       onChange?.call();
     });
     return null;

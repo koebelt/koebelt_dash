@@ -140,4 +140,64 @@ def go_home():
       expect(r.replace, 2, reason: 'only the file name part is replaced');
     });
   });
+
+  group('hover', () {
+    HoverInfo? at(String src, String word, [CompletionContext ctx = const CompletionContext()]) => hoverAt(src, src.lastIndexOf(word) + 1, ctx);
+    const script = '''from koebelt_dash_scripts import connect, every
+import numpy as np
+
+dev = connect()
+speed = dev.setting("speed", 0.5)
+
+def climb(to, rate=1.0):
+    """Climbs to a height, then holds."""
+    dev.goto(0, 0, to)
+
+for t in every(0.05):
+    climb(dev.tlm.alt + 1)
+    x = np.linalg.norm([1, 2])
+''';
+    final ctx = CompletionContext(
+      members: (p) => switch (p) {
+        'numpy' => {'linalg': (kind: 'module', sig: '', doc: 'Linear algebra.')},
+        'numpy.linalg' => {'norm': (kind: 'function', sig: '(x, ord=None, axis=None)', doc: 'Matrix or vector norm.')},
+        _ => null,
+      },
+      doc: (p) => p == 'numpy.linalg.norm' ? (kind: 'function', sig: '(x, ord=None, axis=None)', doc: 'Matrix or vector norm.\n\nThis function returns one of eight norms.') : null,
+    );
+
+    test('the API, with what each parameter does', () {
+      final h = at(script, 'goto')!;
+      expect(h.title, startsWith('dev.goto(x, y'));
+      expect(h.params.first.$2, contains('east'));
+      expect(h.doc, isNotEmpty);
+      expect(at(script, 'every')!.doc, contains('steady loop'));
+      expect(at(script, 'alt')!.kind, 'telemetry');
+    });
+
+    test('the script\'s own functions, variables and parameters', () {
+      final f = at(script, 'climb(dev')!;
+      expect(f.title, 'climb(to, rate=1.0)');
+      expect(f.kind, contains('line 7'));
+      expect(f.doc, 'Climbs to a height, then holds.');
+      expect(at(script, 'dev.goto')!.kind, startsWith('device'));
+      expect(at(script, 'speed =')!.kind, startsWith('setting'));
+      expect(at(script, 'to)')!.kind, contains('climb'));
+      expect(hoverAt(script, script.indexOf('for t') + 4)!.kind, startsWith('loop variable'));
+    });
+
+    test('libraries: the whole docstring once Python has it', () {
+      final h = at(script, 'norm', ctx)!;
+      expect(h.title, 'numpy.linalg.norm(x, ord=None, axis=None)');
+      expect(h.doc, contains('eight norms'));
+      expect(at(script, 'np.', ctx)!.title, 'numpy');
+    });
+
+    test('nothing on keywords, comments and strings', () {
+      expect(at(script, 'def'), isNull);
+      expect(at(script, 'Climbs'), isNull);
+      expect(at(script, '"speed"'), isNull);
+      expect(hoverAt('# connect()', 3), isNull);
+    });
+  });
 }
