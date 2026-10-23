@@ -16,6 +16,12 @@ class _Cam {
   bool user = false;
 }
 
+
+/// The camera yaw that puts the chase camera behind a device heading [yaw]
+/// (radians, counter-clockwise from east): the device's forward is the
+/// camera's depth, so it turns with the device, not against it.
+double chaseYaw(double yaw) => yaw - math.pi / 2;
+
 /// Wireframe 3D view: grid, lidar point cloud, trajectory, radar tracks and
 /// the device model. Views: orbit, chase, top. Drag to orbit, scroll or
 /// pinch to zoom, double-tap to return to the automatic camera.
@@ -109,7 +115,7 @@ class _ScenePainter extends FramePainter {
         tp = 1.5;
         td = arm ? 5 : 70;
       } else if (view == 'chase') {
-        ty = arm || kind == DeviceKind.rocket ? -.6 : -S.rYaw + math.pi / 2;
+        ty = arm || kind == DeviceKind.rocket ? -.6 : chaseYaw(S.rYaw);
         tp = .35;
         td = arm ? 4 : 22;
       } else {
