@@ -334,7 +334,7 @@ if (startCamera()) {                        // esp_camera_init + httpd on port 8
         bullets: [
           'On a computer, dash runs it with the Python you choose (Scripts > a script > Python). The first time, Set up Python creates a Python environment in the scripts folder with the koebelt-dash-scripts package.',
           'On a phone or tablet, it runs on a script host: a computer on the same network running koebelt-dash-scripts host. The phone keeps the device link, the sticks and STOP.',
-          'Scripts live in Documents/koebelt/dash scripts on computers, in the app\'s documents on phones. Edit them in dash, or in any editor.',
+          'Scripts live in Documents/koebelt/dash-scripts on computers, in the app\'s documents on phones. Edit them in dash, or in any editor.',
         ],
       ),
       Step(

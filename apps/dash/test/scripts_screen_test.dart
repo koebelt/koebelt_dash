@@ -84,7 +84,7 @@ void main() {
       await d.connect(mule.id);
       await d.scripts.start(port: 0);
       final dir = await Directory.systemTemp.createTemp('kdash-screen');
-      lib = ScriptLibrary(Directory('${dir.path}/koebelt/dash scripts'));
+      lib = ScriptLibrary(Directory('${dir.path}/koebelt/dash-scripts'));
       file = await lib.create('Follow the line', _follow);
       await lib.create('Hold altitude', scriptTemplate('loop', d.kind, 'Hold altitude'));
       await lib.create('Survey and photos', scriptTemplate('button', d.kind, 'Survey and photos'));

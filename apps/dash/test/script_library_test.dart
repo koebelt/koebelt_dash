@@ -12,7 +12,7 @@ void main() {
   late ScriptLibrary lib;
   setUp(() async {
     dir = await Directory.systemTemp.createTemp('kdash-lib');
-    lib = ScriptLibrary(Directory('${dir.path}/dash scripts'));
+    lib = ScriptLibrary(Directory('${dir.path}/dash-scripts'));
   });
   tearDown(() => dir.delete(recursive: true));
 

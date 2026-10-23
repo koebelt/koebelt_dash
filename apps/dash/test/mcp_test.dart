@@ -56,7 +56,7 @@ void main() {
     await d.scripts.start(port: 0);
     d.mcp.enabled = true;
     dir = await Directory.systemTemp.createTemp('kdash-mcp');
-    d.mcp.library = ScriptLibrary(Directory('${dir.path}/dash scripts'));
+    d.mcp.library = ScriptLibrary(Directory('${dir.path}/dash-scripts'));
     c = _Client('http://127.0.0.1:${d.scripts.port}/mcp');
     ticker = Timer.periodic(const Duration(milliseconds: 20), (_) => d.tick(.02));
   });

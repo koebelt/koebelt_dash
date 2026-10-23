@@ -229,7 +229,7 @@ bar stays at five).
 - Duplicate, rename, delete, **export / share** (the `.py`, or a `.zip`
   with its bindings and limits).
 - Storage: a folder on disk on desktop (default
-  `~/Documents/koebelt/dash scripts`, so an external editor and git work too);
+  `~/Documents/koebelt/dash-scripts`, so an external editor and git work too);
   the app's documents on phones, visible in the Files app (iOS) and the file
   manager (Android).
 
@@ -420,6 +420,6 @@ so, and the settings page says it too.
 - Phones and tablets run scripts on a script host only.
 - The package is `koebelt-dash-scripts`.
 - Conditions: picker and short expressions, kept in sync.
-- Default scripts folder: `~/Documents/koebelt/dash scripts`.
+- Default scripts folder: `~/Documents/koebelt/dash-scripts`.
 - MCP: packaged with the app; it can act on real hardware with approval, and
   also learn the docs, write scripts and use the app.

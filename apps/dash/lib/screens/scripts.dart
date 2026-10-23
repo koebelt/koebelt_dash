@@ -525,7 +525,7 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
     );
   }
 
-  /// The scripts folder as its last two parts: `koebelt/dash scripts`.
+  /// The scripts folder as its last two parts: `koebelt/dash-scripts`.
   static String _folderLabel(String p) {
     final parts = p.split(RegExp(r'[/\\]')).where((x) => x.isNotEmpty).toList();
     return parts.length <= 2 ? p : '…/${parts.sublist(parts.length - 2).join('/')}';

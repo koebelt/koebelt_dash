@@ -31,7 +31,7 @@ class ScriptFile {
   FileSystemEntity get entry => _isFolderScript ? file.parent : file;
 }
 
-/// The scripts folder: `~/Documents/koebelt/dash scripts` on computers, the
+/// The scripts folder: `~/Documents/koebelt/dash-scripts` on computers, the
 /// app's documents on phones and tablets (visible in Files / the file manager).
 class ScriptLibrary {
   ScriptLibrary(this.dir);
@@ -40,9 +40,9 @@ class ScriptLibrary {
   static Future<Directory> defaultDir() async {
     if (Platform.isMacOS || Platform.isLinux || Platform.isWindows) {
       final home = Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'] ?? '.';
-      return Directory('$home${Platform.pathSeparator}Documents${Platform.pathSeparator}koebelt${Platform.pathSeparator}dash scripts');
+      return Directory('$home${Platform.pathSeparator}Documents${Platform.pathSeparator}koebelt${Platform.pathSeparator}dash-scripts');
     }
-    return Directory('${(await getApplicationDocumentsDirectory()).path}/dash scripts');
+    return Directory('${(await getApplicationDocumentsDirectory()).path}/dash-scripts');
   }
 
   Directory get trash => Directory('${dir.path}/.trash');
