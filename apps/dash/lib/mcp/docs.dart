@@ -1,6 +1,25 @@
+import 'dart:convert';
+
+import 'package:archive/archive.dart';
 import 'package:flutter/services.dart';
 
 import '../screens/guides_data.dart';
+
+/// A bundled text, gzip-compressed (tools/assets/sync_app_assets.py): App
+/// Store Connect refuses an iOS app holding readable Python as unsigned code.
+Future<String> loadBundledText(AssetBundle bundle, String asset) async {
+  final data = await bundle.load(asset);
+  return utf8.decode(const GZipDecoder().decodeBytes(data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes)));
+}
+
+/// The bundled examples' assets, sorted.
+Future<List<String>> bundledExamples(AssetBundle bundle) async {
+  final manifest = await AssetManifest.loadFromAssetBundle(bundle);
+  return manifest.listAssets().where((a) => a.startsWith('assets/script_examples/') && a.endsWith('.py.gz')).toList()..sort();
+}
+
+/// An example's file name: drive_square.py.
+String exampleName(String asset) => asset.split('/').last.replaceAll(RegExp(r'\.gz$'), '');
 
 /// A document an assistant can read: a guide, a reference, an example.
 class Doc {
@@ -37,20 +56,19 @@ Future<List<Doc>> loadDocs(AssetBundle bundle) async {
     for (final g in [quickstart('<pairing code from the app>'), ...guides]) Doc('guide:${g.id}', g.title, guideMarkdown(g)),
   ];
   const refs = {
-    'assets/docs/SCRIPTS_API.md': ('ref:scripts-api', 'Python script API (koebelt-dash-scripts)'),
-    'assets/docs/SCRIPTS.md': ('ref:scripts-protocol', 'Script API messages and script hosts'),
-    'assets/docs/PROTOCOL.md': ('ref:protocol', 'koebelt/link device protocol'),
+    'assets/docs/SCRIPTS_API.md.gz': ('ref:scripts-api', 'Python script API (koebelt-dash-scripts)'),
+    'assets/docs/SCRIPTS.md.gz': ('ref:scripts-protocol', 'Script API messages and script hosts'),
+    'assets/docs/PROTOCOL.md.gz': ('ref:protocol', 'koebelt/link device protocol'),
   };
   for (final e in refs.entries) {
     try {
-      docs.add(Doc(e.value.$1, e.value.$2, await bundle.loadString(e.key)));
+      docs.add(Doc(e.value.$1, e.value.$2, await loadBundledText(bundle, e.key)));
     } catch (_) {}
   }
   try {
-    final manifest = await AssetManifest.loadFromAssetBundle(bundle);
-    for (final a in manifest.listAssets().where((a) => a.startsWith('assets/script_examples/') && a.endsWith('.py.txt'))) {
-      final name = a.split('/').last.replaceAll(RegExp(r'\.txt$'), '');
-      docs.add(Doc('example:$name', 'Example script: $name', await bundle.loadString(a)));
+    for (final a in await bundledExamples(bundle)) {
+      final name = exampleName(a);
+      docs.add(Doc('example:$name', 'Example script: $name', await loadBundledText(bundle, a)));
     }
   } catch (_) {}
   return docs;

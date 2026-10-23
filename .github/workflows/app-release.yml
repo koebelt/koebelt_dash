@@ -152,6 +152,14 @@ jobs:
         if: env.HAS_SIGNING == 'true'
         run: flutter build ipa --release --build-number=${{ needs.version.outputs.build }} --export-options-plist="$RUNNER_TEMP/ExportOptions.plist"
         working-directory: apps/dash
+      # App Store Connect's checks, without uploading: a build-only run finds
+      # what it would refuse (unsigned code, a .py inside the app…) before a tag.
+      - name: Validate with App Store Connect
+        if: env.HAS_SIGNING == 'true'
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: xcrun altool --validate-app --type ios --file apps/dash/build/ios/ipa/*.ipa --apiKey "$ASC_KEY_ID" --apiIssuer "$ASC_ISSUER_ID"
       - name: Upload to TestFlight
         if: env.HAS_SIGNING == 'true' && env.PUBLISH == 'true'
         env:

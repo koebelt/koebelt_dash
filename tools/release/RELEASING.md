@@ -83,6 +83,12 @@ for any package with the app's script API (`>=1.3.0b1,<2` in a beta,
 `>=1.3.0,<2` in a release), so a beta app accepts beta packages and a
 release app does not.
 
+The docs and example scripts the app bundles are gzip-compressed copies,
+made by `tools/assets/sync_app_assets.py` (a test checks they match):
+App Store Connect refuses an iOS app holding readable Python as unsigned
+code. The iOS job validates every signed build with App Store Connect, so a
+build-only run catches that kind of refusal before a tag.
+
 `apps/dash/compat.json` says which koebelt/link versions the app works with:
 the protocol version it speaks and the oldest library version it supports, per
 library. It is bundled in the app and published with each release, so an

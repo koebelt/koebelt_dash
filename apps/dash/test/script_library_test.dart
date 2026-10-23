@@ -87,27 +87,28 @@ void main() {
     expect(pythonFromHeader('import x\n'), isNull);
   });
 
-  test('the examples in the app are the package’s examples', () {
-    // name.py.txt in the app: the App Store refuses .py files in an iOS app as unsigned code.
+  test('the examples in the app are the package’s examples, compressed', () {
+    // name.py.gz: App Store Connect refuses an iOS app holding readable Python as unsigned code.
     final app = Directory('assets/script_examples').listSync().whereType<File>().toList();
-    expect(app.where((f) => f.path.endsWith('.py')), isEmpty, reason: 'no .py in the app bundle');
+    expect(app.where((f) => !f.path.endsWith('.py.gz')), isEmpty, reason: 'only .py.gz in the app bundle');
     final pkg = Directory('../../libs/python-dash-scripts/examples').listSync().whereType<File>().where((f) => f.path.endsWith('.py')).toList();
-    String names(List<File> l) => (l.map((f) => f.uri.pathSegments.last.replaceAll(RegExp(r'\.txt$'), '')).toList()..sort()).join(', ');
-    expect(names(app), names(pkg), reason: 'copy libs/python-dash-scripts/examples/X.py to assets/script_examples/X.py.txt');
+    String names(List<File> l) => (l.map((f) => f.uri.pathSegments.last.replaceAll(RegExp(r'\.gz$'), '')).toList()..sort()).join(', ');
+    expect(names(app), names(pkg), reason: 'run tools/assets/sync_app_assets.py');
     for (final f in app) {
-      final src = f.uri.pathSegments.last.replaceAll(RegExp(r'\.txt$'), '');
-      expect(f.readAsStringSync(), File('../../libs/python-dash-scripts/examples/$src').readAsStringSync(), reason: f.path);
+      final src = f.uri.pathSegments.last.replaceAll(RegExp(r'\.gz$'), '');
+      expect(utf8.decode(gzip.decode(f.readAsBytesSync())), File('../../libs/python-dash-scripts/examples/$src').readAsStringSync(), reason: 'run tools/assets/sync_app_assets.py');
     }
   });
 
-  test('the docs assistants read are the repository’s', () {
+  test('the docs assistants read are the repository’s, compressed', () {
     const pairs = {
-      'assets/docs/PROTOCOL.md': '../../protocol/PROTOCOL.md',
-      'assets/docs/SCRIPTS.md': '../../protocol/SCRIPTS.md',
-      'assets/docs/SCRIPTS_API.md': '../../libs/python-dash-scripts/README.md',
+      'assets/docs/PROTOCOL.md.gz': '../../protocol/PROTOCOL.md',
+      'assets/docs/SCRIPTS.md.gz': '../../protocol/SCRIPTS.md',
+      'assets/docs/SCRIPTS_API.md.gz': '../../libs/python-dash-scripts/README.md',
     };
     for (final e in pairs.entries) {
-      expect(File(e.key).readAsStringSync(), File(e.value).readAsStringSync(), reason: 'copy ${e.value} to ${e.key}');
+      expect(utf8.decode(gzip.decode(File(e.key).readAsBytesSync())), File(e.value).readAsStringSync(), reason: 'run tools/assets/sync_app_assets.py');
     }
   });
+
 }

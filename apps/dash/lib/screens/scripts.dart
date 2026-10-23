@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 
 import '../core/dash.dart';
 import '../core/save_io.dart';
+import '../mcp/docs.dart' show bundledExamples, exampleName, loadBundledText;
 import '../scripts/hosts.dart';
 import '../scripts/library.dart';
 import '../scripts/script_hub.dart';
@@ -68,9 +69,7 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
     await l.dir.create(recursive: true);
     lib = l;
     try {
-      final manifest = await AssetManifest.loadFromAssetBundle(rootBundle);
-      // Bundled as .py.txt: the App Store takes a .py in an app for unsigned code.
-      examples = manifest.listAssets().where((a) => a.startsWith('assets/script_examples/') && a.endsWith('.py.txt')).toList()..sort();
+      examples = await bundledExamples(rootBundle);
     } catch (_) {}
     await _reload();
     if (FileSystemEntity.isWatchSupported) {
@@ -211,8 +210,8 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
     final l = lib;
     if (l == null) return;
     try {
-      final text = await rootBundle.loadString(asset);
-      final name = asset.split('/').last.replaceAll(RegExp(r'\.txt$'), '');
+      final text = await loadBundledText(rootBundle, asset);
+      final name = exampleName(asset);
       for (final f in files) {
         if (f.entry is File && await f.file.readAsString() == text) return await _open(f);
       }
@@ -349,7 +348,7 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
           for (final e in examples)
             Pressable(
               onTap: () => _useExample(e),
-              builder: (_, _, _) => KTag(ScriptLibrary.titleOf(e.split('/').last.replaceAll('.py.txt', '')), height: 28),
+              builder: (_, _, _) => KTag(ScriptLibrary.titleOf(exampleName(e).replaceAll('.py', '')), height: 28),
             ),
         ],
       ),
