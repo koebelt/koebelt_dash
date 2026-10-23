@@ -18,21 +18,28 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.v.outputs.version }}
+      prerelease: ${{ steps.v.outputs.prerelease }}
       build: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
       - id: v
+        # The version is appVersion (lib/link/protocol.dart), with an optional
+        # pre-release: 1.3.0-beta.1. The pubspec keeps the numbers only, as
+        # iOS and macOS want them (1.3.0), and Python writes it 1.3.0b1.
         run: |
-          v=$(sed -n 's/^version: \([0-9.]*\)+.*/\1/p' apps/dash/pubspec.yaml)
+          v=$(sed -n "s/^const appVersion = '\(.*\)';/\1/p" apps/dash/lib/link/protocol.dart)
+          base=${v%%-*}
           if [ "$PUBLISH" = true ] && [ "${GITHUB_REF_NAME#app-v}" != "$v" ]; then
-            echo "Tag $GITHUB_REF_NAME does not match pubspec version $v" >&2; exit 1
+            echo "Tag $GITHUB_REF_NAME does not match appVersion $v" >&2; exit 1
           fi
-          grep -q "^const appVersion = '$v';" apps/dash/lib/link/protocol.dart || { echo "appVersion in lib/link/protocol.dart is not $v" >&2; exit 1; }
+          grep -q "^version: $base+" apps/dash/pubspec.yaml || { echo "apps/dash/pubspec.yaml is not $base" >&2; exit 1; }
+          py=$(echo "$v" | sed -E 's/-alpha\.?/a/; s/-beta\.?/b/; s/-rc\.?/rc/')
           # koebelt-dash-scripts and the MCP bridge are released with the app, at its version.
-          grep -q "^version = \"$v\"" libs/python-dash-scripts/pyproject.toml || { echo "libs/python-dash-scripts/pyproject.toml is not $v" >&2; exit 1; }
-          grep -q "^__version__ = \"$v\"" libs/python-dash-scripts/koebelt_dash_scripts/__init__.py || { echo "koebelt_dash_scripts.__version__ is not $v" >&2; exit 1; }
+          grep -q "^version = \"$py\"" libs/python-dash-scripts/pyproject.toml || { echo "libs/python-dash-scripts/pyproject.toml is not $py" >&2; exit 1; }
+          grep -q "^__version__ = \"$py\"" libs/python-dash-scripts/koebelt_dash_scripts/__init__.py || { echo "koebelt_dash_scripts.__version__ is not $py" >&2; exit 1; }
           grep -q "^const version = '$v';" tools/mcp_bridge/bin/koebelt_dash_mcp.dart || { echo "the MCP bridge's version is not $v" >&2; exit 1; }
           echo "version=$v" >> "$GITHUB_OUTPUT"
+          [ "$v" != "$base" ] && echo "prerelease=true" >> "$GITHUB_OUTPUT" || echo "prerelease=false" >> "$GITHUB_OUTPUT"
 
   # The Python package scripts import, on PyPI (trusted publishing: a
   # publisher for this workflow and the pypi environment, set up once).
@@ -256,5 +263,7 @@ jobs:
           # Which koebelt/link versions this release works with: installed apps
           # read it before updating (apps/dash/lib/core/compat.dart).
           cp apps/dash/compat.json dist/compat.json
-          gh release create "$GITHUB_REF_NAME" --title "koebelt dash $V" --notes-file "$notes" \
+          # Betas are pre-releases: only apps that opted into betas are offered them.
+          pre=; [ "${{ needs.version.outputs.prerelease }}" = true ] && pre=--prerelease
+          gh release create "$GITHUB_REF_NAME" $pre --title "koebelt dash $V" --notes-file "$notes" \
             dist/*.dmg dist/*.exe dist/*.apk dist/*.tar.gz dist/SHA256SUMS dist/compat.json

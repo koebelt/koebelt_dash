@@ -70,11 +70,39 @@ class Compat {
 
 /// Compares dotted versions numerically: 1.10.0 > 1.9.2.
 int compareVersions(String a, String b) {
+  // 1.3.0-beta.1: the numbers, then the pre-release, which comes before the
+  // release itself (beta.1 < beta.2 < rc.1 < none).
+  final (ca, pa) = _split(a);
+  final (cb, pb) = _split(b);
   List<int> parts(String v) => [for (final p in v.split('.')) int.tryParse(p) ?? 0];
-  final x = parts(a), y = parts(b);
+  final x = parts(ca), y = parts(cb);
   for (var i = 0; i < x.length || i < y.length; i++) {
     final d = (i < x.length ? x[i] : 0) - (i < y.length ? y[i] : 0);
     if (d != 0) return d.sign;
   }
-  return 0;
+  if (pa == pb) return 0;
+  if (pa == null) return 1;
+  if (pb == null) return -1;
+  final xs = pa.split('.'), ys = pb.split('.');
+  for (var i = 0; i < xs.length && i < ys.length; i++) {
+    final n = int.tryParse(xs[i]), m = int.tryParse(ys[i]);
+    final d = n != null && m != null ? n - m : xs[i].compareTo(ys[i]);
+    if (d != 0) return d.sign;
+  }
+  return (xs.length - ys.length).sign;
+}
+
+(String, String?) _split(String v) {
+  final i = v.indexOf('-');
+  return i < 0 ? (v, null) : (v.substring(0, i), v.substring(i + 1));
+}
+
+/// Whether a version is a beta or release candidate (1.3.0-beta.1).
+bool isPrerelease(String v) => v.contains('-');
+
+/// The same version as Python packages write it: 1.3.0-beta.1 → 1.3.0b1, rc → rc.
+String pep440(String v) {
+  final m = RegExp(r'^(\d+\.\d+\.\d+)(?:-(alpha|beta|rc)\.?(\d+))?$').firstMatch(v);
+  if (m == null || m[2] == null) return v;
+  return '${m[1]}${const {'alpha': 'a', 'beta': 'b', 'rc': 'rc'}[m[2]]}${m[3]}';
 }

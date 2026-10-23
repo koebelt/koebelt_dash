@@ -378,6 +378,12 @@ class UpdatesSection extends StatelessWidget {
         ),
         SetRow(
           phone: phone,
+          title: 'Betas',
+          desc: 'Also offer beta versions and release candidates: the next features before they are released, with more chances of a bug.',
+          child: KSwitch(checked: u.betas, onChanged: u.setBetas),
+        ),
+        SetRow(
+          phone: phone,
           title: 'Check for updates automatically',
           desc: 'At launch and once a day, koebelt dash asks GitHub for the latest release. Nothing else is sent.',
           child: KSwitch(checked: u.auto, onChanged: u.setAuto),

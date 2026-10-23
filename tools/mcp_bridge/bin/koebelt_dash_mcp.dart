@@ -9,7 +9,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-const version = '1.3.0';
+const version = '1.3.0-beta.1';
 
 Uri findDash() {
   final env = Platform.environment['KOEBELT_DASH_MCP_URL'];

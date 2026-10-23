@@ -2,6 +2,9 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import '../core/compat.dart' show pep440;
+import '../link/protocol.dart' show appVersion;
+
 /// A Python interpreter scripts can run with.
 class PythonEnv {
   const PythonEnv(this.path, this.version, {required this.hasPackage});
@@ -114,10 +117,12 @@ Future<String> createScriptsVenv(String base, Directory dir, void Function(Strin
   return py;
 }
 
-/// pip install --upgrade koebelt-dash-scripts into [python].
+/// Installs koebelt-dash-scripts into [python], at this app's version (it is
+/// released with the app; a beta app gets the beta package).
 Future<void> installScriptsPackage(String python, void Function(String) log) async {
-  log('Installing koebelt-dash-scripts');
-  final p = await Process.start(python, ['-m', 'pip', 'install', '--upgrade', 'koebelt-dash-scripts']);
+  final spec = 'koebelt-dash-scripts==${pep440(appVersion)}';
+  log('Installing $spec');
+  final p = await Process.start(python, ['-m', 'pip', 'install', spec]);
   p.stdout.transform(utf8.decoder).transform(const LineSplitter()).listen(log);
   p.stderr.transform(utf8.decoder).transform(const LineSplitter()).listen(log);
   final code = await p.exitCode;

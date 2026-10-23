@@ -59,4 +59,16 @@ void main() {
     expect(d.lib, 'arduino/1.0.0');
     expect(d.protocol, 1);
   });
+
+  test('pre-releases come before their release, in order', () {
+    const order = ['1.2.3', '1.3.0-alpha.1', '1.3.0-beta.1', '1.3.0-beta.2', '1.3.0-beta.10', '1.3.0-rc.1', '1.3.0', '1.3.1'];
+    for (var i = 0; i < order.length - 1; i++) {
+      expect(compareVersions(order[i], order[i + 1]), -1, reason: '${order[i]} < ${order[i + 1]}');
+      expect(compareVersions(order[i + 1], order[i]), 1);
+    }
+    expect(compareVersions('1.3.0-beta.1', '1.3.0-beta.1'), 0);
+    expect(isPrerelease('1.3.0-rc.1'), isTrue);
+    expect(isPrerelease('1.3.0'), isFalse);
+    expect([pep440('1.3.0-beta.1'), pep440('1.3.0-rc.2'), pep440('1.3.0-alpha.3'), pep440('1.3.0')], ['1.3.0b1', '1.3.0rc2', '1.3.0a3', '1.3.0']);
+  });
 }

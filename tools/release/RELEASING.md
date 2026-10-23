@@ -69,6 +69,18 @@ and then:
   version, and the MCP bridge's (tools/mcp_bridge), must be the app's: the
   version job checks.
 
+### Betas and release candidates
+
+Set `appVersion` (apps/dash/lib/link/protocol.dart) to `X.Y.Z-beta.N` or
+`X.Y.Z-rc.N`, keep `X.Y.Z` in pubspec.yaml (iOS and macOS take numbers only),
+give koebelt-dash-scripts `X.Y.ZbN` / `X.Y.ZrcN` and the MCP bridge the app's
+version, write `app-notes/X.Y.Z-beta.N.md`, and tag `app-vX.Y.Z-beta.N`. The
+GitHub Release is marked as a pre-release: the in-app updater offers it only
+to apps with Settings > Updates > Betas on (on by itself in a beta). iOS gets
+build X.Y.Z on TestFlight; do not prepare an App Store version for a beta.
+PyPI keeps it out of `pip install` without `--pre`; dash's Python setup asks
+for the exact version, so a beta app gets the beta package.
+
 `apps/dash/compat.json` says which koebelt/link versions the app works with:
 the protocol version it speaks and the oldest library version it supports, per
 library. It is bundled in the app and published with each release, so an

@@ -69,6 +69,28 @@ void main() {
     expect(u.nudge, isFalse, reason: 'a skipped version stops reminding');
   });
 
+  test('betas: offered only after opting in, or to someone running one; the release always wins', () async {
+    List<Map<String, dynamic>> rel(List<String> vs) => [
+      for (final v in vs) _release('app-v$v', files: ['koebelt-dash-$v-macos.dmg'], pre: v.contains('-')),
+    ];
+    final stable = Updater(await _store(), current: '1.2.3', os: 'macos', enabled: true, client: _github(releases: rel(['1.3.0-beta.1', '1.2.3'])));
+    await stable.check();
+    expect(stable.state, UpdateState.upToDate, reason: 'a stable user is not offered a beta');
+    expect(stable.betas, isFalse);
+    stable.setBetas(true);
+    await stable.check();
+    expect(stable.available!.version, '1.3.0-beta.1');
+
+    final tester = Updater(await _store(), current: '1.3.0-beta.1', os: 'macos', enabled: true, client: _github(releases: rel(['1.3.0-beta.2', '1.3.0-beta.1'])));
+    expect(tester.betas, isTrue, reason: 'running a beta');
+    await tester.check();
+    expect(tester.available!.version, '1.3.0-beta.2');
+
+    final done = Updater(await _store(), current: '1.3.0-beta.2', os: 'macos', enabled: true, client: _github(releases: rel(['1.3.0', '1.3.0-beta.2'])));
+    await done.check();
+    expect(done.available!.version, '1.3.0', reason: 'the release after its betas');
+  });
+
   test('up to date when the newest release is this one, or lacks this platform', () async {
     final u = Updater(
       await _store(),

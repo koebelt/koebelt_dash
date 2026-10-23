@@ -91,6 +91,17 @@ class Updater extends ChangeNotifier {
   /// A version the user chose to skip: no reminder until a newer one.
   String? skipped;
 
+  /// Whether betas and release candidates are offered too. Unset: only to
+  /// someone already running one.
+  bool? _betas;
+  bool get betas => _betas ?? isPrerelease(current);
+
+  void setBetas(bool v) {
+    _betas = v;
+    _save();
+    check();
+  }
+
   Timer? _timer;
 
   void load() {
@@ -98,10 +109,11 @@ class Updater extends ChangeNotifier {
     if (j is Map) {
       auto = j['auto'] as bool? ?? true;
       skipped = j['skipped'] as String?;
+      _betas = j['betas'] as bool?;
     }
   }
 
-  void _save() => store.writeJson('kdash-updates-v1', {'auto': auto, 'skipped': ?skipped});
+  void _save() => store.writeJson('kdash-updates-v1', {'auto': auto, 'skipped': ?skipped, 'betas': ?_betas});
 
   void setAuto(bool v) {
     auto = v;
@@ -149,7 +161,7 @@ class Updater extends ChangeNotifier {
       final all = <AppRelease>[];
       for (final j in (jsonDecode(r.body) as List).cast<Map<String, dynamic>>()) {
         final tag = j['tag_name'] as String? ?? '';
-        if (!tag.startsWith(_tagPrefix) || j['draft'] == true || j['prerelease'] == true) continue;
+        if (!tag.startsWith(_tagPrefix) || j['draft'] == true || (j['prerelease'] == true && !betas)) continue;
         all.add(
           AppRelease(
             version: tag.substring(_tagPrefix.length),
