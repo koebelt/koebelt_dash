@@ -29,10 +29,16 @@ import 'ui/components.dart';
 import 'ui/icons.dart';
 import 'ui/mark.dart';
 
+/// What Automate opens: always shown under it in the sidebar.
+const automateItems = [
+  ['program', 'Sequences'],
+  ['scripts', 'Scripts'],
+];
+
 const nav = [
   ['live', 'Live', 'activity'],
   ['control', 'Control', 'gamepad'],
-  // Sequences and Scripts, as two tabs (automateTabs).
+  // A landing page, and Sequences and Scripts below it (automateItems).
   ['automate', 'Automate', 'list-checks'],
   ['params', 'Tune', 'tune'],
   ['replay', 'Replay', 'replay'],
@@ -120,17 +126,12 @@ class _ShellState extends State<Shell> {
   String? _seen;
   Timer? _toastT;
 
-  // The Automate tab last shown, to come back to it.
-  String _automate = 'program';
-
   void go(String s) => setState(() {
     detail = null;
-    if (s == 'automate') s = _automate;
-    if (s == 'program' || s == 'scripts') _automate = s;
     screen = s;
   });
 
-  /// Whether nav item [id] is the screen shown.
+  /// Whether nav item [id] is the screen shown (Automate: or one under it).
   bool _on(String id) => screen == id || (id == 'automate' && (screen == 'program' || screen == 'scripts'));
 
   @override
@@ -198,6 +199,7 @@ class _ShellState extends State<Shell> {
             'guides' => GuidesScreen(d, w: bodyW, go: go),
             'devices' => DevicesScreen(d, w: bodyW, go: go),
             'scripts' => ScriptsScreen(d, w: bodyW, go: go),
+            'automate' => AutomateHome(d, w: bodyW, go: go),
             _ => SettingsScreen(d, w: bodyW, go: go),
           };
         }
@@ -283,12 +285,13 @@ class _ShellState extends State<Shell> {
                   ],
                 ),
               );
-        // Automate: Sequences and Scripts, two ways to do one job.
-        final tabbed = screen == 'program' || screen == 'scripts';
+        // Under Automate on phones and tablets (the sidebar lists both on
+        // desktops): back to Automate, and the other one a tap away.
+        final tabbed = mode != 'desktop' && (screen == 'program' || screen == 'scripts');
         final main = Column(
           children: [
             top,
-            if (tabbed) AutomateTabs(screen: screen, phone: phone, go: go),
+            if (tabbed) AutomateBar(screen: screen, phone: phone, go: go),
             Expanded(child: ClipRect(child: body)),
           ],
         );
@@ -462,11 +465,18 @@ class _ShellState extends State<Shell> {
           padding: const EdgeInsets.symmetric(vertical: 16),
           child: Column(
             children: [
-              for (final n in nav)
+              for (final n in nav) ...[
                 Padding(
                   padding: const EdgeInsets.only(bottom: 2),
-                  child: NavBtn(it: n, on: _on(n[0]), go: go),
+                  child: NavBtn(it: n, on: n[0] == 'automate' ? screen == 'automate' : _on(n[0]), go: go),
                 ),
+                if (n[0] == 'automate')
+                  for (final a in automateItems)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 2),
+                      child: NavSub(id: a[0], label: a[1], on: screen == a[0], go: go),
+                    ),
+              ],
             ],
           ),
         ),
@@ -653,6 +663,35 @@ class NavBtn extends StatelessWidget {
       },
     );
   }
+}
+
+/// A screen under a sidebar item (Automate's Sequences and Scripts),
+/// indented under its label, on a line that ties them to it.
+class NavSub extends StatelessWidget {
+  const NavSub({super.key, required this.id, required this.label, required this.on, required this.go});
+  final String id, label;
+  final bool on;
+  final ValueChanged<String> go;
+  @override
+  Widget build(BuildContext context) => Pressable(
+    onTap: () => go(id),
+    builder: (_, h, _) => AnimatedContainer(
+      duration: K.durFast,
+      height: 34,
+      margin: const EdgeInsets.only(left: 24),
+      padding: const EdgeInsets.only(left: 21),
+      alignment: Alignment.centerLeft,
+      decoration: BoxDecoration(
+        color: on
+            ? K.whiteA08
+            : h
+            ? K.surfaceHover
+            : Colors.transparent,
+        border: Border(left: BorderSide(color: on ? K.accent : K.borderHairline, width: on ? 2 : 1)),
+      ),
+      child: Text(label, style: KText.bodySm.copyWith(color: on ? K.textPrimary : (h ? K.textPrimary : K.textSecondary))),
+    ),
+  );
 }
 
 class LinkBars extends StatelessWidget {

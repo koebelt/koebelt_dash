@@ -407,11 +407,11 @@ class McpServer {
     _tool(
       'open',
       'Open a screen',
-      'Shows a screen in dash.',
+      'Shows a screen in dash. program is Automate > Sequences, scripts is Automate > Scripts.',
       {
         'screen': {
           'type': 'string',
-          'enum': ['live', 'control', 'program', 'scripts', 'params', 'replay', 'devices', 'guides', 'settings'],
+          'enum': ['live', 'control', 'automate', 'program', 'scripts', 'params', 'replay', 'devices', 'guides', 'settings'],
         },
       },
       required: ['screen'],
