@@ -78,8 +78,10 @@ version, write `app-notes/X.Y.Z-beta.N.md`, and tag `app-vX.Y.Z-beta.N`. The
 GitHub Release is marked as a pre-release: the in-app updater offers it only
 to apps with Settings > Updates > Betas on (on by itself in a beta). iOS gets
 build X.Y.Z on TestFlight; do not prepare an App Store version for a beta.
-PyPI keeps it out of `pip install` without `--pre`; dash's Python setup asks
-for the exact version, so a beta app gets the beta package.
+PyPI keeps it out of `pip install` without `--pre`. dash's Python setup asks
+for any package with the app's script API (`>=1.3.0b1,<2` in a beta,
+`>=1.3.0,<2` in a release), so a beta app accepts beta packages and a
+release app does not.
 
 `apps/dash/compat.json` says which koebelt/link versions the app works with:
 the protocol version it speaks and the oldest library version it supports, per

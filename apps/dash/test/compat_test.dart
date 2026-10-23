@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:koebelt_dash/core/compat.dart';
 import 'package:koebelt_dash/core/model.dart';
+import 'package:koebelt_dash/scripts/script_runner.dart';
 
 DeviceInfo _dev(String name, String? lib, [int? protocol]) => DeviceInfo(
   id: name,
@@ -70,5 +71,11 @@ void main() {
     expect(isPrerelease('1.3.0-rc.1'), isTrue);
     expect(isPrerelease('1.3.0'), isFalse);
     expect([pep440('1.3.0-beta.1'), pep440('1.3.0-rc.2'), pep440('1.3.0-alpha.3'), pep440('1.3.0')], ['1.3.0b1', '1.3.0rc2', '1.3.0a3', '1.3.0']);
+  });
+
+  test('the Python package dash installs: any with this script API, betas only for a beta', () {
+    expect(scriptsPackageSpec('1.3.0-beta.2'), 'koebelt-dash-scripts>=1.3.0b1,<2');
+    expect(scriptsPackageSpec('1.3.0'), 'koebelt-dash-scripts>=1.3.0,<2');
+    expect(scriptsPackageSpec('1.4.2'), 'koebelt-dash-scripts>=1.3.0,<2');
   });
 }

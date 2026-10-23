@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import '../core/compat.dart' show pep440;
+import '../core/compat.dart' show isPrerelease;
 import '../link/protocol.dart' show appVersion;
 
 /// A Python interpreter scripts can run with.
@@ -117,10 +117,14 @@ Future<String> createScriptsVenv(String base, Directory dir, void Function(Strin
   return py;
 }
 
-/// Installs koebelt-dash-scripts into [python], at this app's version (it is
-/// released with the app; a beta app gets the beta package).
+/// What dash asks pip for: any koebelt-dash-scripts that speaks this app's
+/// script API (version 1, from 1.3.0b1), up to the next major version. A
+/// beta app accepts betas; a release app only releases.
+String scriptsPackageSpec([String app = appVersion]) => 'koebelt-dash-scripts>=${isPrerelease(app) ? '1.3.0b1' : '1.3.0'},<2';
+
+/// Installs koebelt-dash-scripts into [python].
 Future<void> installScriptsPackage(String python, void Function(String) log) async {
-  final spec = 'koebelt-dash-scripts==${pep440(appVersion)}';
+  final spec = scriptsPackageSpec();
   log('Installing $spec');
   final p = await Process.start(python, ['-m', 'pip', 'install', spec]);
   p.stdout.transform(utf8.decoder).transform(const LineSplitter()).listen(log);
