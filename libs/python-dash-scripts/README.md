@@ -26,6 +26,19 @@ for _ in every(0.05):                # 20 Hz
     dev.sticks(throttle=speed.value, steer=hold.update(error))
 ```
 
+A script can say what it needs, and dash only runs it on a device that
+fits:
+
+```python
+# requires: drone, rover     # a kind: any one of them
+# requires: gps, camera      # capabilities: all of them
+```
+
+Capabilities are the sensors the device announces (`gps`, `imu`, `lidar`,
+`camera`, `baro`…) and what dash sees on it (`battery`, `joints`, its own
+channels such as `motor_temp`, `sequences`). `connect(requires=[...])` adds
+more from the code.
+
 Run it from koebelt dash (Scripts), or from a terminal while dash is open on
 the same computer: it finds dash by itself.
 

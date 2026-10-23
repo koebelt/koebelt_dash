@@ -2,6 +2,7 @@
 
 Try it on the simulated rover: Devices > Pair > Simulated > Mule.
 """
+# requires: rover
 from koebelt_dash_scripts import angle_diff, bearing, clamp, connect, distance, every
 
 dev = connect()

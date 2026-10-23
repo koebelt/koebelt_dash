@@ -3,6 +3,7 @@
 A drone takes off, flies a circle around home through eight points, and
 lands. Allow arming and take-off in the script's Limits first.
 """
+# requires: drone
 import math
 
 from koebelt_dash_scripts import connect

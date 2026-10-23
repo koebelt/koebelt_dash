@@ -3,6 +3,7 @@
 A rover (or a flying drone) drives between waypoints, round and round, until
 you switch Patrol off in dash or on Control.
 """
+# requires: drone, rover
 from koebelt_dash_scripts import connect, wait
 
 dev = connect()

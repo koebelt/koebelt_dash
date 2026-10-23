@@ -14,6 +14,7 @@ import '../link/protocol.dart';
 import '../video/video_hub.dart' show resolveVideoUrl;
 import 'fields.dart';
 import 'hosts.dart';
+import 'requirements.dart';
 import 'script_runner.dart';
 import 'triggers.dart';
 
@@ -586,6 +587,19 @@ class ScriptHub {
             return want == null
                 ? _res(c, id, err: 'No device is connected in koebelt dash.', code: 'E0001')
                 : _res(c, id, err: 'No connected device called "$want".', code: 'E0002', data: {'name': want, 'names': names});
+          }
+          // What the script needs: its # requires: lines, and connect(requires=…).
+          final source = c.run?.file.existsSync() ?? false ? c.run!.file.readAsStringSync() : '';
+          final req = ScriptRequirements.parse(source, extra: [for (final r in (m['requires'] as List?) ?? const []) '$r']);
+          final missing = req.missing(l.info, l);
+          if (missing.isNotEmpty) {
+            return _res(
+              c,
+              id,
+              err: '${l.info.name} cannot run this script: it needs ${req.describe()}; it lacks ${missing.join(', ')}.',
+              code: 'E0004',
+              data: {'device': l.info.name, 'needs': req.describe(), 'missing': missing},
+            );
           }
           if (c.device != l.id) _release(c, 'Switched device.', block: false);
           c.device = l.id;

@@ -4,6 +4,7 @@ A test bench steps the throttle from 10 to 100 %, holds each step, and
 prints the average thrust and current at each one, as a table to paste into
 a spreadsheet. Allow arming in the script's Limits first.
 """
+# requires: bench
 from koebelt_dash_scripts import connect, wait
 
 dev = connect()

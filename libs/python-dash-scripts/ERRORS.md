@@ -58,6 +58,18 @@ Why: commands need a device, and connect() did not get one.
 
 Fix: use the Device returned by connect().
 
+## E0004
+
+**<device> cannot run this script**
+
+```python
+dev = connect(requires=["drone", "gps"])   # Mule is a rover
+```
+
+Why: the script needs <needs>; <device> lacks <missing_list>.
+
+Fix: choose another device in dash (the script's Device), or change its # requires: line or connect(requires=…).
+
 ## E0010
 
 **koebelt dash is not running on this computer**

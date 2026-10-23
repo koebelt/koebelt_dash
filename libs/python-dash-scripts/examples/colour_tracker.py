@@ -5,6 +5,8 @@ OpenCV, and shows what it tracks over the camera in dash.
 
     pip install opencv-python numpy
 """
+# requires: rover
+# requires: camera
 import cv2
 import numpy as np
 

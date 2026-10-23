@@ -3,6 +3,7 @@
 A drone holds a height set in dash, with a PID on the throttle stick, while
 you steer it with the other stick. Needs the drone armed and flying.
 """
+# requires: drone
 from koebelt_dash_scripts import connect, every, pid
 
 dev = connect()

@@ -5,6 +5,8 @@ detections over the camera in dash. Runs on a GPU when there is one.
 
     pip install ultralytics
 """
+# requires: rover
+# requires: camera
 from ultralytics import YOLO
 
 from koebelt_dash_scripts import connect, pid

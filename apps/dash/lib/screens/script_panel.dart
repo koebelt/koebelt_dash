@@ -9,6 +9,7 @@ import '../core/compat.dart' show fromPep440;
 import '../core/model.dart';
 import '../scripts/hosts.dart';
 import '../scripts/library.dart';
+import '../scripts/requirements.dart';
 import '../scripts/script_hub.dart';
 import '../scripts/script_runner.dart';
 import '../scripts/triggers.dart';
@@ -20,7 +21,10 @@ import 'script_dialogs.dart';
 /// The run side of a script's page: where and with what it runs, Run/Stop,
 /// its state, settings, triggers and limits.
 class ScriptRunPanel extends StatelessWidget {
-  const ScriptRunPanel({super.key, required this.d, required this.script, required this.scriptsDir, required this.onRun, required this.phone});
+  const ScriptRunPanel({super.key, required this.d, required this.script, required this.scriptsDir, required this.onRun, required this.phone, this.requires = const ScriptRequirements()});
+
+  /// What the script needs, from its code as it is in the editor.
+  final ScriptRequirements requires;
   final Dash d;
   final ScriptFile script;
   final Directory scriptsDir;
@@ -43,6 +47,7 @@ class ScriptRunPanel extends StatelessWidget {
         _status(context, run, conn),
         const SizedBox(height: 16),
         _kv('Device', _deviceChoice(cfg)),
+        if (!requires.isEmpty) _kv('Needs', Text(requires.describe(), style: KText.mono(12, color: K.textSecondary))),
         _kv('Runs on', _hostChoice(context, cfg)),
         if (local) _kv('Python', _pythonChoice(context, cfg)),
         const SizedBox(height: 14),
@@ -151,12 +156,20 @@ class ScriptRunPanel extends StatelessWidget {
     );
   }
 
+  /// The device the script would run on now, and what it lacks for it.
+  ({String? name, String? why}) _target(ScriptConfig cfg) {
+    final l = (cfg.device == null ? null : d.links.values.where((x) => x.info.name == cfg.device).firstOrNull) ?? d.focus;
+    return (name: l?.info.name, why: l == null ? null : requires.whyNot(l.info, l));
+  }
+
   Widget _deviceChoice(ScriptConfig cfg) {
-    final names = [for (final l in d.links.values) l.info.name];
+    final links = d.links.values.toList();
+    final names = [for (final l in links) l.info.name];
     final value = cfg.device != null && names.contains(cfg.device) ? cfg.device : null;
+    String fit(dynamic l) => requires.isEmpty || l == null || requires.missing(l.info, l).isEmpty ? '' : ' · does not fit';
     return _Dropdown<String?>(
       value: value,
-      items: {null: 'Selected in dash${d.focus == null ? '' : ' (${d.focus!.info.name})'}', for (final n in names) n: n},
+      items: {null: 'Selected in dash${d.focus == null ? '' : ' (${d.focus!.info.name}${fit(d.focus)})'}', for (final l in links) l.info.name: '${l.info.name}${fit(l)}'},
       onChanged: (v) {
         cfg.device = v;
         hub.saveConfigs();
@@ -322,8 +335,10 @@ class ScriptRunPanel extends StatelessWidget {
 
   Widget _runButtons(BuildContext context, ScriptConfig cfg, ScriptRun? run, bool running) {
     // Here: a Python dash checked has koebelt-dash-scripts.
-    final canRun = hub.hostFor(cfg) != null || (ScriptHub.canRunHere && hub.port != null && (hub.envOf(hub.pythonFor(cfg))?.hasPackage ?? false));
-    return Row(
+    final where = hub.hostFor(cfg) != null || (ScriptHub.canRunHere && hub.port != null && (hub.envOf(hub.pythonFor(cfg))?.hasPackage ?? false));
+    final t = _target(cfg);
+    final canRun = where && t.why == null;
+    final button = Row(
       children: [
         Expanded(
           child: running
@@ -341,6 +356,19 @@ class ScriptRunPanel extends StatelessWidget {
             },
           ),
         ],
+      ],
+    );
+    if (t.why == null || running) return button;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        button,
+        const SizedBox(height: 12),
+        KNotice(
+          tone: Tone.warning,
+          title: '${t.name} does not fit this script',
+          child: Text('${t.why} Choose another device above, or change the # requires: line.'),
+        ),
       ],
     );
   }

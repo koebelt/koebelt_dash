@@ -40,6 +40,9 @@ CATALOG: Dict[str, Tuple[str, str, str]] = {
     "E0003": ("this script has no device yet",
               "commands need a device, and connect() did not get one",
               "use the Device returned by connect()"),
+    "E0004": ("{device} cannot run this script",
+              "the script needs {needs}; {device} lacks {missing_list}",
+              "choose another device in dash (the script's Device), or change its # requires: line or connect(requires=…)"),
     "E0010": ("koebelt dash is not running on this computer",
               "connect() looks for ~/.koebelt/dash-api.json, which dash writes when it starts",
               "open koebelt dash, or run the script from it (Scripts); on another computer, set KOEBELT_DASH_URL and KOEBELT_DASH_TOKEN"),
@@ -167,6 +170,8 @@ class ScriptError(RuntimeError):
     def __init__(self, code: str, data: Optional[Dict[str, Any]] = None, message: Optional[str] = None):
         self.code = code
         self.data = dict(data or {})
+        if isinstance(self.data.get("missing"), list):
+            self.data.setdefault("missing_list", ", ".join(str(m) for m in self.data["missing"]))
         names = self.data.get("names")
         if names is not None:
             self.data.setdefault("names_list", ", ".join(str(n) for n in names) or "none")

@@ -5,11 +5,15 @@ import 'package:archive/archive.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../core/model.dart';
+import 'requirements.dart';
 
 /// A script in the library: a `.py` file, or a folder with a `main.py` and
 /// the files it needs (a model, a config…), as a `.zip` import makes.
 class ScriptFile {
-  ScriptFile(this.file, this.name);
+  ScriptFile(this.file, this.name, [this.requires = const ScriptRequirements()]);
+
+  /// What it needs from a device (its # requires: lines).
+  final ScriptRequirements requires;
 
   /// The file dash runs.
   final File file;
@@ -54,26 +58,34 @@ class ScriptLibrary {
       final base = e.uri.pathSegments.where((s) => s.isNotEmpty).last;
       if (base.startsWith('.') || base.startsWith('_')) continue;
       if (e is File && base.endsWith('.py')) {
-        out.add(ScriptFile(e, await _title(e)));
+        out.add(await _read(e));
       } else if (e is Directory) {
         final main = File('${e.path}/main.py');
-        if (await main.exists()) out.add(ScriptFile(main, await _title(main, fallback: base)));
+        if (await main.exists()) out.add(await _read(main, fallback: base));
       }
     }
     out.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
     return out;
   }
 
-  /// The first line of the module docstring, or a title made from the name.
-  static Future<String> _title(File f, {String? fallback}) async {
+  /// A script with its title and requirements, from one read of its file.
+  static Future<ScriptFile> _read(File f, {String? fallback}) async {
+    String src;
     try {
-      final src = await f.readAsString();
-      final m = RegExp(r'^\s*(?:#[^\n]*\n\s*)*[rbuRBU]?("""|' "'''" r')\s*([^\n]+)').firstMatch(src);
-      if (m != null) {
-        final line = m[2]!.split(m[1]!).first.trim().replaceAll(RegExp(r'[.\s]+$'), '');
-        if (line.isNotEmpty) return line;
-      }
-    } catch (_) {}
+      src = await f.readAsString();
+    } catch (_) {
+      src = '';
+    }
+    return ScriptFile(f, _title(f, src, fallback: fallback), ScriptRequirements.parse(src));
+  }
+
+  /// The first line of the module docstring, or a title made from the name.
+  static String _title(File f, String src, {String? fallback}) {
+    final m = RegExp(r'^\s*(?:#[^\n]*\n\s*)*[rbuRBU]?("""|' "'''" r')\s*([^\n]+)').firstMatch(src);
+    if (m != null) {
+      final line = m[2]!.split(m[1]!).first.trim().replaceAll(RegExp(r'[.\s]+$'), '');
+      if (line.isNotEmpty) return line;
+    }
     return titleOf(fallback ?? f.uri.pathSegments.last.replaceAll(RegExp(r'\.py$'), ''));
   }
 
@@ -193,7 +205,8 @@ String scriptTemplate(String template, DeviceKind kind, String title) {
     DeviceKind.rover => 'dev.sticks(throttle=0, steer=0)',
     _ => '# dev.cmd(...)',
   };
-  final head = '"""$title.\n\nRuns in your Python, driven by koebelt dash: STOP and the sticks always win.\n"""\n';
+  final head = '"""$title.\n\nRuns in your Python, driven by koebelt dash: STOP and the sticks always win.\n"""\n'
+      '${kind == DeviceKind.generic ? '' : '# requires: ${kind.name}\n# (dash runs it only on a ${kind.name}; add what else it needs to that line: gps, camera…)\n'}';
   switch (template) {
     case 'button':
       return '''${head}from koebelt_dash_scripts import connect

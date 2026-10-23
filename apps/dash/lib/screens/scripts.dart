@@ -10,6 +10,7 @@ import '../core/save_io.dart';
 import '../mcp/docs.dart' show bundledExamples, exampleName, loadBundledText;
 import '../scripts/hosts.dart';
 import '../scripts/library.dart';
+import '../scripts/requirements.dart';
 import '../scripts/script_hub.dart';
 import '../scripts/script_runner.dart';
 import '../theme/tokens.dart';
@@ -327,7 +328,12 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
                 children: [
                   Text(f.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: KText.bodySm.copyWith(color: K.textPrimary, height: 1.3)),
                   const SizedBox(height: 4),
-                  Text(f.label, maxLines: 1, overflow: TextOverflow.ellipsis, style: KText.mono(11, color: K.textMuted)),
+                  Text(
+                    f.requires.isEmpty ? f.label : '${f.label} · ${[...f.requires.kinds.map((k) => k.name), ...f.requires.needs].join(', ')}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: KText.mono(11, color: K.textMuted),
+                  ),
                 ],
               ),
             ),
@@ -528,7 +534,7 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
       decoration: const BoxDecoration(border: Border(left: BorderSide(color: K.borderHairline))),
       child: ListView(
         padding: const EdgeInsets.all(20),
-        children: [ScriptRunPanel(d: d, script: f, scriptsDir: lib!.dir, onRun: _run, phone: false)],
+        children: [ScriptRunPanel(d: d, script: f, scriptsDir: lib!.dir, onRun: _run, phone: false, requires: ScriptRequirements.parse(code.text))],
       ),
     );
     return Row(
@@ -576,7 +582,7 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
             ],
           ),
           const SizedBox(height: 20),
-          Panel(child: ScriptRunPanel(d: d, script: f, scriptsDir: lib!.dir, onRun: _run, phone: true)),
+          Panel(child: ScriptRunPanel(d: d, script: f, scriptsDir: lib!.dir, onRun: _run, phone: true, requires: ScriptRequirements.parse(code.text))),
           const SizedBox(height: 24),
           SizedBox(height: 220, child: ScriptConsole(lines: _consoleOf(f), phone: true)),
           const SizedBox(height: 16),

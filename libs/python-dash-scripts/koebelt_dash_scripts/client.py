@@ -275,8 +275,8 @@ class Device:
             except Exception:
                 return
 
-    def _use(self, device: Optional[str]) -> None:
-        self.info = self._call("use", device=device)
+    def _use(self, device: Optional[str], requires: Optional[List[str]] = None) -> None:
+        self.info = self._call("use", device=device, **({"requires": list(requires)} if requires else {}))
         self.cameras = [Camera(c) for c in self.info.get("cameras", [])]
         with self._tlm_ready:
             self._tlm_ready.wait_for(lambda: self._tlm is not None, timeout=3)
@@ -508,10 +508,14 @@ class Device:
 _current: Optional[Device] = None
 
 
-def connect(device: Optional[str] = None, *, url: Optional[str] = None, token: Optional[str] = None,
-            name: Optional[str] = None) -> Device:
+def connect(device: Optional[str] = None, *, requires: Optional[List[str]] = None, url: Optional[str] = None,
+            token: Optional[str] = None, name: Optional[str] = None) -> Device:
     """Connects to koebelt dash and returns a device: the one selected in dash,
-    or the one called ``device``. dash on this computer is found by itself."""
+    or the one called ``device``. dash on this computer is found by itself.
+
+    ``requires``: what the device must be or have, as in a script's
+    ``# requires:`` lines: kinds (any one: ``"drone"``, ``"rover"``…) and
+    capabilities (all: ``"gps"``, ``"camera"``, ``"lidar"``…)."""
     global _current
     url, token = _find_dash(url, token)
     name = name or os.path.basename(sys.argv[0] or "") or "python"
@@ -527,7 +531,7 @@ def connect(device: Optional[str] = None, *, url: Optional[str] = None, token: O
         raise ScriptError("E0012", {"reason": welcome.get("why") or "no reason given"})
     dev = Device(ws, welcome, name)
     _check_version(welcome.get("app"))
-    dev._use(device)
+    dev._use(device, requires)
     _current = dev
     return dev
 

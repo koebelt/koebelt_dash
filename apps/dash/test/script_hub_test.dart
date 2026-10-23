@@ -72,6 +72,14 @@ void main() {
     expect(d.scripts.conns, isEmpty);
   });
 
+  test('a device that does not fit the script is refused, with what it lacks', () async {
+    final s = await _Script.open(d.scripts);
+    final r = await s.call('use', {'requires': ['drone', 'gps']});
+    expect(r['code'], 'E0004');
+    expect(r['data']['missing'], ['a drone (Mule is a rover)']);
+    expect((await s.call('use', {'requires': ['rover', 'lidar']}))['ok'], isTrue);
+  });
+
   test('a script drives with named sticks, scaled by its speed limit, and gets telemetry', () async {
     final s = await _Script.open(d.scripts);
     expect(s.got.first['t'], 'welcome');
