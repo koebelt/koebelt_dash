@@ -142,9 +142,11 @@ Future<void> installScriptsPackage(String python, void Function(String) log, {bo
   final spec = scriptsPackageSpec();
   log('${upgrade ? 'Updating' : 'Installing'} $spec');
   final p = await Process.start(python, ['-m', 'pip', 'install', if (upgrade) '--upgrade', spec]);
-  p.stdout.transform(utf8.decoder).transform(const LineSplitter()).listen(log);
-  p.stderr.transform(utf8.decoder).transform(const LineSplitter()).listen(log);
+  // All of pip's output first: its last lines say why it failed.
+  final out = p.stdout.transform(utf8.decoder).transform(const LineSplitter()).listen(log).asFuture<void>();
+  final err = p.stderr.transform(utf8.decoder).transform(const LineSplitter()).listen(log).asFuture<void>();
   final code = await p.exitCode;
+  await Future.wait([out, err]);
   if (code != 0) throw ProcessException(python, ['-m', 'pip', 'install'], 'pip failed ($code)', code);
 }
 
