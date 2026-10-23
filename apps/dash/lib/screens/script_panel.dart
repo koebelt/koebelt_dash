@@ -47,6 +47,7 @@ class ScriptRunPanel extends StatelessWidget {
         if (local) _kv('Python', _pythonChoice(context, cfg)),
         const SizedBox(height: 14),
         _runButtons(context, cfg, run, running),
+        if (local && hub.setupResult != null) ...[const SizedBox(height: 12), _setupResult(hub.setupResult!)],
         if (local) ..._pythonSetup(context, cfg),
         if (!ScriptHub.canRunHere && hub.hosts.isEmpty) ...[
           const SizedBox(height: 12),
@@ -306,6 +307,18 @@ class ScriptRunPanel extends StatelessWidget {
       ),
     ];
   }
+
+  /// What the last install, update or setup did: a success fades after a few
+  /// seconds, a failure stays until dismissed or tried again.
+  Widget _setupResult(({bool ok, String text}) r) => KNotice(
+    tone: r.ok ? Tone.positive : Tone.negative,
+    child: Row(
+      children: [
+        Expanded(child: Text(r.text)),
+        if (!r.ok) KIconButton('x', label: 'Dismiss', size: KSize.sm, variant: KIconButtonVariant.bare, onPressed: hub.dismissResult),
+      ],
+    ),
+  );
 
   Widget _runButtons(BuildContext context, ScriptConfig cfg, ScriptRun? run, bool running) {
     // Here: a Python dash checked has koebelt-dash-scripts.

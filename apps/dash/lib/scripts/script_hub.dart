@@ -320,7 +320,9 @@ class ScriptHub {
     if (settingUp) return;
     settingUp = true;
     setupLog.clear();
+    setupResult = null;
     d.emit();
+    String? failed;
     try {
       await installScriptsPackage(python, (l) {
         setupLog.add(l);
@@ -329,13 +331,42 @@ class ScriptHub {
       setupLog.add('Ready.');
     } catch (e) {
       final why = setupLog.where((l) => l.contains('externally-managed') || l.toLowerCase().contains('error')).firstOrNull;
-      setupLog.add(why != null && why.contains('externally-managed')
+      failed = why != null && why.contains('externally-managed')
           ? 'This Python is managed by the system and refuses packages: use a scripts environment instead.'
-          : 'Failed: ${why ?? e}');
+          : 'Failed: ${why ?? e}';
+      setupLog.add(failed);
     } finally {
       settingUp = false;
       await recheckPython(python);
     }
+    final v = envOf(python)?.packageVersion;
+    _result(
+      failed == null && v != null,
+      failed ?? (v == null ? 'pip finished, but koebelt-dash-scripts is still not in this Python.' : 'koebelt-dash-scripts ${fromPep440(v)} is ${upgrade ? 'up to date' : 'installed'} in this Python.'),
+    );
+  }
+
+  /// The outcome of the last install, update or setup, shown on the panel: a
+  /// success for a few seconds, a failure until the next attempt.
+  ({bool ok, String text})? setupResult;
+  Timer? _resultTimer;
+  static const resultShown = Duration(seconds: 6);
+
+  void _result(bool ok, String text) {
+    setupResult = (ok: ok, text: text);
+    _resultTimer?.cancel();
+    if (ok) {
+      _resultTimer = Timer(resultShown, () {
+        if (setupResult?.text == text) setupResult = null;
+        d.emit();
+      });
+    }
+    d.emit();
+  }
+
+  void dismissResult() {
+    setupResult = null;
+    d.emit();
   }
 
   /// Creates `<scripts folder>/.venv` with koebelt-dash-scripts, and makes it
@@ -345,7 +376,9 @@ class ScriptHub {
     if (base == null || settingUp) return;
     settingUp = true;
     setupLog.clear();
+    setupResult = null;
     d.emit();
+    String? venvPath, failed;
     try {
       final venv = await createScriptsVenv(base, Directory('${scripts.path}${Platform.pathSeparator}.venv'), (l) {
         setupLog.add(l);
@@ -355,13 +388,17 @@ class ScriptHub {
         cfg.python = venv;
         saveConfigs();
       }
+      venvPath = venv;
       setupLog.add('Ready.');
     } catch (e) {
-      setupLog.add('Failed: $e');
+      failed = 'Failed: $e';
+      setupLog.add(failed);
     } finally {
       settingUp = false;
       await refreshPythons(near: scripts);
     }
+    final v = envOf(venvPath)?.packageVersion;
+    _result(failed == null && v != null, failed ?? 'The scripts environment is ready, with koebelt-dash-scripts ${fromPep440(v ?? '?')}.');
   }
 
   /// The operator's setup per script (by path), kept by the store.
