@@ -384,7 +384,7 @@ class CodeEditorState extends State<CodeEditor> {
         bottom: above ? box.maxHeight - top + 2 : null,
         child: ConstrainedBox(
           constraints: BoxConstraints(maxWidth: width, maxHeight: math.max(60, (above ? top : box.maxHeight - bottom) - 10)),
-          child: _HoverCard(key: _hoverCard, info: info, error: error),
+          child: _HoverCard(key: _hoverCard, info: info, error: error, errorLine: c.errorLine),
         ),
       ),
     ];
@@ -598,74 +598,304 @@ class _SignatureHint extends StatelessWidget {
   );
 }
 
-/// What the pointer rests on: its signature, what it is, its documentation;
-/// on the error line, the error.
+/// What the pointer rests on: a header (what it is, where from), its
+/// signature in the editor's colours, then its documentation laid out (prose
+/// reflowed, sections, parameter tables, examples); on the error line, the
+/// error first.
 class _HoverCard extends StatelessWidget {
-  const _HoverCard({super.key, this.info, this.error});
+  const _HoverCard({super.key, this.info, this.error, this.errorLine});
   final HoverInfo? info;
   final String? error;
+  final int? errorLine;
+
+  static String _letter(String kind) => switch (kind) {
+    'function' || 'built-in function' => 'f',
+    'class' => 'C',
+    'module' => 'M',
+    'telemetry' || 'value' || 'setting value' => 'p',
+    _ when kind.endsWith('method') => 'm',
+    _ when kind.endsWith('property') => 'p',
+    _ => 'v',
+  };
+
   @override
   Widget build(BuildContext context) {
     final i = info;
-    final described = [
-      for (final p in i?.params ?? const <(String, String)>[])
-        if (p.$2.isNotEmpty) p,
+    final described = [for (final p in i?.params ?? const <(String, String)>[]) if (p.$2.isNotEmpty) p];
+    final sections = <List<Widget>>[
+      if (error != null) _error(error!),
+      if (i != null) _head(i),
+      if (i != null && (i.doc.isNotEmpty || described.isNotEmpty)) [
+        if (i.doc.isNotEmpty) ..._docBlocks(i.doc),
+        if (described.isNotEmpty) ...[
+          if (i.doc.isNotEmpty) const SizedBox(height: 10),
+          _heading('Parameters'),
+          for (final p in described) _entry(p.$1, '', p.$2),
+        ],
+      ],
     ];
-    return Container(
-      decoration: BoxDecoration(
-        color: K.surfaceRaised,
-        border: Border.all(color: error != null ? K.negative : K.borderSubtle),
-        borderRadius: BorderRadius.circular(K.radiusCard),
-        boxShadow: _popupShadow,
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: K.durFast,
+      curve: K.easeStandard,
+      builder: (_, t, child) => Opacity(
+        opacity: t,
+        child: Transform.translate(offset: Offset(0, (1 - t) * 4), child: child),
       ),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (error != null) Text(error!, style: KText.mono(12, color: K.negative)),
-            if (error != null && i != null) const SizedBox(height: 8),
-            if (i != null) ...[
-              Text(
-                i.title,
-                style: KText.mono(12, color: K.textPrimary, w: FontWeight.w600),
-              ),
-              if (i.kind.isNotEmpty) Text(i.kind, style: KText.mono(11, color: K.textAccent)),
-              if (described.isNotEmpty) ...[
-                const SizedBox(height: 6),
-                for (final p in described)
-                  Text.rich(
-                    TextSpan(
-                      children: [
-                        TextSpan(
-                          text: p.$1,
-                          style: KText.mono(12, color: K.textSecondary),
-                        ),
-                        TextSpan(
-                          text: '  ${p.$2}',
-                          style: KText.bodySm.copyWith(fontSize: 12, color: K.textMuted),
-                        ),
-                      ],
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minWidth: 260),
+        child: IntrinsicWidth(
+          child: Container(
+            decoration: BoxDecoration(
+              color: K.surfaceRaised,
+              border: Border.all(color: error != null ? K.negative.withValues(alpha: .6) : K.borderSubtle),
+              borderRadius: BorderRadius.circular(K.radiusCard),
+              boxShadow: _popupShadow,
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (var k = 0; k < sections.length; k++) ...[
+                    if (k > 0) Container(height: 1, color: K.borderHairline),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(12, 10, 12, 11),
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: sections[k]),
                     ),
-                  ),
-              ],
-              if (i.doc.isNotEmpty) ...[
-                const SizedBox(height: 6),
-                // Docstrings with several lines are laid out in plain text (numpy's
-                // Parameters tables): monospace keeps them aligned.
-                Text(
-                  i.doc,
-                  style: i.doc.contains('\n')
-                      ? KText.mono(11.5, color: K.textSecondary, height: 1.45, w: FontWeight.w400)
-                      : KText.bodySm.copyWith(fontSize: 12, color: K.textSecondary, height: 1.45),
-                ),
-              ],
-            ],
-          ],
+                  ],
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     );
+  }
+
+  /// A kind's letter in a tinted square, its name, and where it comes from.
+  static Widget _badgeRow(String letter, String kind, String source, Color tint) => Row(
+    children: [
+      Container(
+        width: 16,
+        height: 16,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(color: tint.withValues(alpha: .16), borderRadius: BorderRadius.circular(K.radiusControl)),
+        child: Text(letter, style: KText.mono(10.5, color: tint, w: FontWeight.w600)),
+      ),
+      const SizedBox(width: 8),
+      tint == K.negative
+          ? Text(kind, style: KText.mono(11, color: K.negative, w: FontWeight.w600))
+          : Text(kind.toUpperCase(), style: KText.label(size: 10, color: K.textMuted)),
+      const SizedBox(width: 16),
+      Expanded(
+        child: Text(
+          source,
+          textAlign: TextAlign.right,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: KText.mono(10.5, color: K.textFaint, w: FontWeight.w400),
+        ),
+      ),
+    ],
+  );
+
+  List<Widget> _head(HoverInfo i) => [
+    _badgeRow(_letter(i.kind), i.kind, i.source, K.accent),
+    const SizedBox(height: 8),
+    Text.rich(
+      TextSpan(
+        children: [
+          _python(i.title, KText.mono(12.5, color: K.textPrimary, height: 1.45)),
+          // What a variable was set to, after its name.
+          if (i.code.isNotEmpty) _python(' ${i.code}', KText.mono(12.5, color: K.textMuted, height: 1.45, w: FontWeight.w400)),
+        ],
+      ),
+      maxLines: 4,
+      overflow: TextOverflow.ellipsis,
+    ),
+  ];
+
+  /// "NameError: name 'x' is not defined" → its kind, then the message.
+  List<Widget> _error(String e) {
+    final m = RegExp(r'^(\w*(?:Error|Exception|Warning))\s*:\s*([\s\S]*)$').firstMatch(e);
+    return [
+      _badgeRow('!', m?[1] ?? 'Error', errorLine == null ? '' : 'line $errorLine', K.negative),
+      const SizedBox(height: 8),
+      Text.rich(_inline(m?[2] ?? e, KText.bodySm.copyWith(fontSize: 13, color: K.textPrimary, height: 1.45))),
+    ];
+  }
+
+  static Widget _heading(String text) => Padding(
+    padding: const EdgeInsets.only(bottom: 6),
+    child: Text(text.toUpperCase(), style: KText.label(size: 10, color: K.textAccent)),
+  );
+
+  /// A parameter: its name (and type), what it is below; without a type, on
+  /// the same line.
+  static Widget _entry(String name, String type, String desc) => type.isEmpty
+      ? Padding(
+          padding: const EdgeInsets.only(bottom: 4),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // A column for the names, so short ones line up.
+              ConstrainedBox(
+                constraints: const BoxConstraints(minWidth: 64),
+                child: Text.rich(_python(name, KText.mono(12, color: K.textPrimary, height: 1.6))),
+              ),
+              const SizedBox(width: 12),
+              Flexible(child: Text.rich(_inline(desc, _prose.copyWith(color: K.textMuted)))),
+            ],
+          ),
+        )
+      : _typedEntry(name, type, desc);
+
+  static Widget _typedEntry(String name, String type, String desc) => Padding(
+    padding: const EdgeInsets.only(bottom: 6),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text.rich(
+          TextSpan(
+            children: [
+              _python(name, KText.mono(12, color: K.textPrimary, height: 1.4)),
+              if (type.isNotEmpty) TextSpan(text: '  $type', style: KText.mono(11.5, color: K.info, height: 1.4, w: FontWeight.w400)),
+            ],
+          ),
+        ),
+        if (desc.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(left: 12, top: 1),
+            child: Text.rich(_inline(desc, _prose.copyWith(color: K.textMuted))),
+          ),
+      ],
+    ),
+  );
+
+  static final _prose = KText.bodySm.copyWith(fontSize: 13, color: K.textSecondary, height: 1.5);
+
+  /// Code in the editor's colours.
+  static TextSpan _python(String code, TextStyle base) {
+    final spans = <TextSpan>[];
+    var at = 0;
+    for (final (a, b, c) in pythonRuns(code)) {
+      if (a > at) spans.add(TextSpan(text: code.substring(at, a)));
+      spans.add(TextSpan(text: code.substring(a, b), style: TextStyle(color: c)));
+      at = b;
+    }
+    if (at < code.length) spans.add(TextSpan(text: code.substring(at)));
+    return TextSpan(style: base, children: spans);
+  }
+
+  /// Prose with ``code`` and `code` (and Sphinx's :func:`code`) in monospace.
+  static TextSpan _inline(String text, TextStyle base) {
+    final spans = <InlineSpan>[];
+    var at = 0;
+    for (final m in RegExp(r'(?::\w+:)?``?([^`]+)``?').allMatches(text)) {
+      if (m.start > at) spans.add(TextSpan(text: text.substring(at, m.start)));
+      spans.add(TextSpan(text: m[1], style: KText.mono(base.fontSize! - 1, color: K.textPrimary, w: FontWeight.w400, height: base.height ?? 1)));
+      at = m.end;
+    }
+    if (at < text.length) spans.add(TextSpan(text: text.substring(at)));
+    return TextSpan(style: base, children: spans);
+  }
+
+  /// A docstring as blocks: paragraphs (their lines joined, so they flow),
+  /// section headings (numpy's underlined ones, Google's "Args:"), parameter
+  /// entries, examples and indented code in monospace, list items.
+  static List<Widget> _docBlocks(String doc) {
+    final lines = doc.replaceAll('\t', '    ').split('\n');
+    final out = <Widget>[];
+    final para = <String>[];
+    var inEntries = false;
+    void gap() {
+      if (out.isNotEmpty && out.last is! SizedBox) out.add(const SizedBox(height: 8));
+    }
+
+    void flush() {
+      if (para.isEmpty) return;
+      gap();
+      out.add(Text.rich(_inline(para.join(' '), _prose)));
+      para.clear();
+    }
+
+    const sections = r'Args|Arguments|Parameters|Params|Other Parameters|Keyword Args|Returns|Return|Yields|Raises|Warns|Attributes|Example|Examples|Note|Notes|See Also|Warning|Warnings|References|Methods';
+    for (var n = 0; n < lines.length; n++) {
+      final l = lines[n], t = l.trim();
+      final next = n + 1 < lines.length ? lines[n + 1].trim() : '';
+      if (t.isEmpty) {
+        flush();
+        continue;
+      }
+      // Parameters\n----------  /  Args:
+      final underlined = t.isNotEmpty && RegExp(r'^[-=~]{3,}$').hasMatch(next);
+      final google = RegExp('^($sections):\$').firstMatch(t);
+      if (underlined || google != null) {
+        flush();
+        if (out.isNotEmpty) out.add(const SizedBox(height: 12));
+        out.add(_heading(google?[1] ?? t));
+        inEntries = RegExp('^(Args|Arguments|Parameters|Params|Other Parameters|Keyword Args|Returns|Return|Yields|Raises|Warns|Attributes)\$').hasMatch(google?[1] ?? t);
+        if (underlined) n++;
+        continue;
+      }
+      // Examples and indented code.
+      if (t.startsWith('>>>') || t.startsWith('... ')) {
+        flush();
+        final code = <String>[];
+        while (n < lines.length && lines[n].trim().isNotEmpty) {
+          code.add(lines[n].trim());
+          n++;
+        }
+        gap();
+        out.add(
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            decoration: BoxDecoration(color: K.surfaceSunken, borderRadius: BorderRadius.circular(K.radiusControl)),
+            child: Text.rich(_python(code.join('\n'), KText.mono(11.5, color: K.textSecondary, height: 1.5, w: FontWeight.w400))),
+          ),
+        );
+        continue;
+      }
+      if (inEntries) {
+        // numpy: "x : array_like" then its indented description;
+        // Google: "x (int): what it is".
+        final numpy = RegExp(r'^(\*{0,2}[\w.]+(?:\s*,\s*\*{0,2}[\w.]+)*)(?:\s+:\s*(.*))?$').firstMatch(t);
+        final google = numpy != null ? null : RegExp(r'^(\*{0,2}\w+)\s*(?:\(([^)]*)\))?:\s+(.+)$').firstMatch(t);
+        final indent = l.length - l.trimLeft().length;
+        final baseIndent = lines.where((x) => x.trim().isNotEmpty).map((x) => x.length - x.trimLeft().length).fold(99, (a, b) => a < b ? a : b);
+        if (indent <= baseIndent && numpy != null) {
+          flush();
+          final desc = <String>[];
+          while (n + 1 < lines.length && lines[n + 1].trim().isNotEmpty && lines[n + 1].length - lines[n + 1].trimLeft().length > indent) {
+            desc.add(lines[++n].trim());
+          }
+          out.add(_entry(numpy[1]!, numpy[2] ?? '', desc.join(' ')));
+          continue;
+        }
+        if (google != null) {
+          flush();
+          final desc = [google[3]!];
+          while (n + 1 < lines.length && lines[n + 1].trim().isNotEmpty && lines[n + 1].length - lines[n + 1].trimLeft().length > indent) {
+            desc.add(lines[++n].trim());
+          }
+          out.add(_entry(google[1]!, google[2] ?? '', desc.join(' ')));
+          continue;
+        }
+      }
+      // List items start their own line.
+      if (RegExp(r'^[-*•]\s').hasMatch(t)) {
+        flush();
+        para.add('•  ${t.substring(1).trim()}');
+        flush();
+        continue;
+      }
+      para.add(t);
+    }
+    flush();
+    return out;
   }
 }
 

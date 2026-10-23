@@ -173,16 +173,19 @@ for t in every(0.05):
       expect(h.doc, isNotEmpty);
       expect(at(script, 'every')!.doc, contains('steady loop'));
       expect(at(script, 'alt')!.kind, 'telemetry');
+      expect(at(script, 'every')!.source, 'koebelt_dash_scripts');
     });
 
     test('the script\'s own functions, variables and parameters', () {
       final f = at(script, 'climb(dev')!;
       expect(f.title, 'climb(to, rate=1.0)');
-      expect(f.kind, contains('line 7'));
+      expect(f.kind, 'function');
+      expect(f.source, 'line 7');
       expect(f.doc, 'Climbs to a height, then holds.');
       expect(at(script, 'dev.goto')!.kind, startsWith('device'));
-      expect(at(script, 'speed =')!.kind, startsWith('setting'));
-      expect(at(script, 'to)')!.kind, contains('climb'));
+      expect(at(script, 'speed =')!.kind, 'setting');
+      expect(at(script, 'speed =')!.code, '= dev.setting("speed", 0.5)');
+      expect(at(script, 'to)')!.source, 'climb()');
       expect(hoverAt(script, script.indexOf('for t') + 4)!.kind, startsWith('loop variable'));
     });
 
@@ -190,6 +193,7 @@ for t in every(0.05):
       final h = at(script, 'norm', ctx)!;
       expect(h.title, 'numpy.linalg.norm(x, ord=None, axis=None)');
       expect(h.doc, contains('eight norms'));
+      expect(h.source, 'numpy.linalg');
       expect(at(script, 'np.', ctx)!.title, 'numpy');
     });
 
