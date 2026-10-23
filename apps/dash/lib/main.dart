@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'app.dart';
 import 'core/dash.dart';
 import 'core/macos_migrate.dart';
+import 'screens/assistant_ui.dart';
 import 'scripts/script_hub.dart';
 import 'theme/tokens.dart';
 import 'ui/mark.dart';
@@ -24,6 +25,8 @@ Future<void> main() async {
   if (Platform.isMacOS || Platform.isWindows || Platform.isLinux) {
     await dash.scripts.start(discovery: ScriptHub.defaultDiscovery());
   }
+  // AI assistants from the network (phones and tablets: only from there).
+  await applyMcpListening(dash);
 }
 
 class KoebeltDash extends StatelessWidget {

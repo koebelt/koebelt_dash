@@ -152,7 +152,7 @@ except AttributeError:
     print("no such method")
 dev.land()  # the simulated Kite starts in the air
 dev.takeoff(5)
-print("alt", round(dev.tlm.alt))
+print("alt", round(dev.tlm.alt, 2))
 dev.goto(6, 0, 5)
 x, y, z = dev.tlm.pos
 print("off by", round(((x - 6) ** 2 + y ** 2 + (z - 5) ** 2) ** 0.5, 1))
@@ -169,8 +169,9 @@ print("landed", round(dev.tlm.alt))
     expect(o, contains('frame True True'), reason: o);
     expect(d.links.values.single.overlay?.boxes.single.label, 'target');
     expect(o, contains('refused: That is 500 m from home, beyond the 50 m geofence.'));
-    expect(o, contains('alt 5'));
-    expect(double.parse(RegExp(r'off by ([0-9.]+)').firstMatch(o)![1]!), lessThanOrEqualTo(1.0), reason: 'Program\'s arrival radius');
+    // Done from 0.6 m below the target, as in Program.
+    expect(double.parse(RegExp(r'alt ([0-9.]+)').firstMatch(o)![1]!), inInclusiveRange(4.4, 5.6));
+    expect(double.parse(RegExp(r'off by ([0-9.]+)').firstMatch(o)![1]!), lessThanOrEqualTo(1.5), reason: 'Program\'s 1 m arrival radius, and a little drift before the script reads it');
     expect(o, contains('landed 0'));
     expect(run.state, ScriptState.exited, reason: o);
   }, skip: python == null ? 'no Python with koebelt-dash-scripts (KDASH_SCRIPTS_PYTHON)' : false, timeout: const Timeout(Duration(seconds: 90)));

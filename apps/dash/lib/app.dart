@@ -10,6 +10,7 @@ import 'core/dash.dart';
 import 'core/model.dart';
 import 'core/system_ui.dart';
 import 'core/updater.dart' show UpdateState;
+import 'screens/assistant_ui.dart';
 import 'screens/control.dart';
 import 'screens/device_menu.dart';
 import 'screens/devices.dart';
@@ -211,6 +212,7 @@ class _ShellState extends State<Shell> {
                               const SizedBox(width: 10),
                               UpdateChip(d: d, compact: true),
                             ],
+                            if (d.mcp.enabled && d.mcp.connected != null) ...[const SizedBox(width: 10), AssistantChip(d, compact: true)],
                             const SizedBox(width: 10),
                             ConstrainedBox(
                               constraints: const BoxConstraints(maxWidth: 120),
@@ -254,6 +256,7 @@ class _ShellState extends State<Shell> {
                       constraints: const BoxConstraints(maxWidth: 340),
                       child: AlertChip(d: d),
                     ),
+                    if (d.mcp.enabled && d.mcp.connected != null) ...[const SizedBox(width: 12), AssistantChip(d)],
                     const SizedBox(width: 20),
                     Expanded(
                       child: Align(
@@ -329,6 +332,21 @@ class _ShellState extends State<Shell> {
                           ],
                         ),
                 ),
+                // An assistant's action on real hardware, waiting for the operator.
+                if (d.mcp.approvals.isNotEmpty)
+                  phone
+                      ? Positioned.fill(
+                          child: ColoredBox(
+                            color: K.scrim,
+                            child: Center(
+                              child: Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: ApprovalCard(d, d.mcp.approvals.first, key: ValueKey(d.mcp.approvals.first)),
+                              ),
+                            ),
+                          ),
+                        )
+                      : Positioned(top: topH + 16, right: 24, child: ApprovalCard(d, d.mcp.approvals.first, key: ValueKey(d.mcp.approvals.first))),
                 if (showToast)
                   Positioned(
                     left: 0,

@@ -9,6 +9,7 @@ import '../scripts/script_hub.dart' show ScriptHub;
 import '../theme/tokens.dart';
 import '../ui/components.dart';
 import '../ui/icons.dart';
+import 'assistant_ui.dart';
 import 'controller_settings.dart';
 import 'script_dialogs.dart' show showAddHostDialog;
 import 'update_ui.dart';
@@ -247,6 +248,8 @@ class SettingsScreen extends StatelessWidget {
                 ),
               ),
             ]),
+            SizedBox(height: phone ? 20 : 32),
+            section('AI assistants (MCP)', [AssistantsSection(d, phone: phone)]),
             SizedBox(height: phone ? 20 : 32),
             section('Scripts', [
               for (final h in d.scripts.hosts)

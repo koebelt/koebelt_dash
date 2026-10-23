@@ -856,7 +856,7 @@ class McpServer {
         final c = r == null ? null : d.scripts.connOf(r);
         if (c == null) throw McpError('“${f.name}” is not running.');
         final l = c.device == null ? null : d.links[c.device];
-        if (l != null) await _approve(client, l, 'trigger', 'Fire “${a['event']}” in “${f.name}”', 'On ${l.info.name}.');
+        if (l != null) await _approve(client, l, 'trigger', 'Fire “${a['event']}” in “${f.name}”', '');
         d.scripts.fire(c, '${a['event']}', a['value']);
         return _text('Fired “${a['event']}”.');
       case 'run_program':
@@ -886,7 +886,7 @@ class McpServer {
     final l = _link(a['device']), action = '${a['action']}', h = d.linkHost(l);
     if (l.tel.estop) throw McpError('STOP is on: the operator must clear it.');
     double n(String k, double def) => (a[k] as num?)?.toDouble() ?? def;
-    Future<void> ask(String title, {bool always = false}) => _approve(client, l, 'command', title, 'On ${l.info.name}.', always: always);
+    Future<void> ask(String title, {bool always = false}) => _approve(client, l, 'command', title, '', always: always);
     Future<String> step(String type, Map<String, Object> p, String title, {bool always = false}) async {
       final def = stepDef(l.kind, type);
       if (def == null) throw McpError('A ${l.kind.name} has no $type.');
