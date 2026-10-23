@@ -28,7 +28,30 @@ jobs:
             echo "Tag $GITHUB_REF_NAME does not match pubspec version $v" >&2; exit 1
           fi
           grep -q "^const appVersion = '$v';" apps/dash/lib/link/protocol.dart || { echo "appVersion in lib/link/protocol.dart is not $v" >&2; exit 1; }
+          # koebelt-dash-scripts and the MCP bridge are released with the app, at its version.
+          grep -q "^version = \"$v\"" libs/python-dash-scripts/pyproject.toml || { echo "libs/python-dash-scripts/pyproject.toml is not $v" >&2; exit 1; }
+          grep -q "^__version__ = \"$v\"" libs/python-dash-scripts/koebelt_dash_scripts/__init__.py || { echo "koebelt_dash_scripts.__version__ is not $v" >&2; exit 1; }
+          grep -q "^const version = '$v';" tools/mcp_bridge/bin/koebelt_dash_mcp.dart || { echo "the MCP bridge's version is not $v" >&2; exit 1; }
           echo "version=$v" >> "$GITHUB_OUTPUT"
+
+  # The Python package scripts import, on PyPI (trusted publishing: a
+  # publisher for this workflow and the pypi environment, set up once).
+  pypi-scripts:
+    needs: version
+    if: startsWith(github.ref, 'refs/tags/app-v')
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+    defaults: { run: { working-directory: libs/python-dash-scripts } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install -e ".[dev]" build && pytest -q
+      - run: python -m build
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with: { packages-dir: libs/python-dash-scripts/dist }
 
   macos:
     needs: version

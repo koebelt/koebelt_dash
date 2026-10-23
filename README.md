@@ -21,7 +21,8 @@ connects your hardware to it.
 | [`libs/python/`](libs/python/) | `koebelt-link` for Raspberry Pi, Jetson and any Linux/macOS computer, plus a network simulator. |
 | [`libs/rust/`](libs/rust/) | `koebelt-link` crate: `no_std` core with no dependencies, plus a `std` layer. |
 | [`libs/ros2/koebelt_link_ros/`](libs/ros2/koebelt_link_ros/) | ROS 2 bridge node that maps existing topics to the app. |
-| [`tools/`](tools/) | Autopilot simulators for the tests ([`sitl`](tools/sitl/)) and the library release ([`release`](tools/release/RELEASING.md)). |
+| [`libs/python-dash-scripts/`](libs/python-dash-scripts/) | `koebelt-dash-scripts`: Python scripts that drive devices through the app, and the script host for phones. |
+| [`tools/`](tools/) | Autopilot simulators for the tests ([`sitl`](tools/sitl/)), the MCP bridge ([`mcp_bridge`](tools/mcp_bridge/)) and the releases ([`release`](tools/release/RELEASING.md)). |
 
 ## Install koebelt/link
 
@@ -74,6 +75,15 @@ connects your hardware to it.
   kinds get waits, modes, arming and custom commands. A live plan or throttle
   profile shows the sequence. Runs stop on STOP, stick input or disconnect,
   and pause on link loss.
+- **Scripts**: drive devices from Python with any package (OpenCV, PyTorch,
+  YOLO): a library, a built-in editor, the camera as NumPy images, Program
+  steps, and triggers fired by buttons, keys, controller buttons, conditions
+  (`battery.pct < 25 for 3s`), device events or timers. Phones and tablets run
+  them on a script host. STOP, the operator's sticks, limits and a watchdog
+  stay in charge ([design](docs/design/scripts.md), [messages](protocol/SCRIPTS.md)).
+- **AI assistants**: an MCP server (off until enabled) lets Claude, Cursor and
+  other clients read the docs, write and test scripts, use the app, and act on
+  hardware once the operator approves.
 - **Tune**: parameter tables declared by the firmware, with search, a live
   response chart per group, unsaved-change tracking, revert and write-to-device.
 - **Several devices at once**: up to 8 connected together. The one shown gets

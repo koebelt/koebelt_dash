@@ -256,4 +256,46 @@ print("done")
     final m = jsonDecode(await ws.first as String) as Map;
     expect(m['t'], 'bye', reason: 'the main token only works from this computer');
   });
+
+  group('examples', () {
+    Future<(Dash, ScriptRun)> runExample(String sim, String example, {bool allowArm = false}) async {
+      SharedPreferences.setMockInitialValues({});
+      final d = Dash();
+      await d.init();
+      await d.connect(d.addSimulated(simTemplates().firstWhere((t) => t.id == sim)).id);
+      await d.scripts.start(port: 0);
+      final ticker = Timer.periodic(const Duration(milliseconds: 20), (_) => d.tick(.02));
+      final file = File('../../libs/python-dash-scripts/examples/$example').absolute;
+      d.scripts.configFor(file.path).limits.allowArm = allowArm;
+      final run = await d.scripts.runFile(file, python: python);
+      addTearDown(() async {
+        ticker.cancel();
+        await run.stop();
+        await d.scripts.stop();
+        await d.disconnectAll();
+      });
+      return (d, run);
+    }
+
+    test('hold_altitude brings the drone to 5 m', () async {
+      final (d, run) = await runExample('kite', 'hold_altitude.py');
+      final tel = d.links.values.single.tel;
+      for (var i = 0; i < 300 && (tel.pos[2] - 5).abs() > .4; i++) {
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+      }
+      expect(tel.pos[2], closeTo(5, .4), reason: run.console.map((l) => l.text).join('\n'));
+    }, skip: python == null ? 'no Python with koebelt-dash-scripts' : false, timeout: const Timeout(Duration(seconds: 40)));
+
+    test('thrust_curve measures every step on the bench', () async {
+      final (_, run) = await runExample('bench', 'thrust_curve.py', allowArm: true);
+      for (var i = 0; i < 900 && run.state == ScriptState.running; i++) {
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+      }
+      final rows = run.console.map((l) => l.text).where((t) => RegExp(r'^\d+\t').hasMatch(t)).toList();
+      expect(rows, hasLength(10), reason: run.console.map((l) => l.text).join('\n'));
+      final thrust = [for (final r in rows) double.parse(r.split('\t')[1])];
+      expect(thrust.last, greaterThan(thrust.first), reason: 'more throttle, more thrust');
+      expect(run.state, ScriptState.exited);
+    }, skip: python == null ? 'no Python with koebelt-dash-scripts' : false, timeout: const Timeout(Duration(seconds: 60)));
+  });
 }

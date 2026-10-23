@@ -320,4 +320,145 @@ if (startCamera()) {                        // esp_camera_init + httpd on port 8
       ),
     ],
   ),
+  Guide(
+    'scripts',
+    'Scripts',
+    'Drive a device from Python: behaviours, computer vision, machine learning, with the operator always in charge.',
+    10,
+    section: 'features',
+    platforms: ['python'],
+    [
+      Step.rich(
+        'What a script is',
+        'A Python file that reads a device\'s telemetry and drives it through koebelt dash: sticks, Program steps, modes, commands. It runs in your own Python, so any package works: OpenCV, PyTorch, YOLO, NumPy.',
+        bullets: [
+          'On a computer, dash runs it with the Python you choose (Scripts > a script > Python). The first time, Set up Python creates a Python environment in the scripts folder with the koebelt-dash-scripts package.',
+          'On a phone or tablet, it runs on a script host: a computer on the same network running koebelt-dash-scripts host. The phone keeps the device link, the sticks and STOP.',
+          'Scripts live in Documents/koebelt/dash scripts on computers, in the app\'s documents on phones. Edit them in dash, or in any editor.',
+        ],
+      ),
+      Step(
+        'A first script',
+        'connect() gives the device selected in dash. every() runs the loop at a steady rate; dash shows the real one. A setting becomes a slider on the script\'s page.',
+        {
+          'python': [
+            'python',
+            r'''"""Drive north and hold the x = 0 line."""
+from koebelt_dash_scripts import connect, every, pid
+
+dev = connect()
+speed = dev.setting("speed", 0.4, min=0, max=1)
+keep = pid(1.5, 0.0, 0.2)
+
+dev.mode("MANUAL")
+for _ in every(0.05):                       # 20 Hz
+    error = 0.0 - dev.tlm.pos[0]            # metres east of the line
+    dev.sticks(throttle=speed.value, steer=keep.update(error))''',
+          ],
+        },
+      ),
+      Step(
+        'Steps, programs and the camera',
+        'Program steps wait until they are done. The camera gives NumPy images, newest first, so a slow model never falls behind; overlay() draws what it sees over the camera in dash.',
+        {
+          'python': [
+            'python',
+            r'''dev.takeoff(6)              # drones: needs arming allowed in Limits
+dev.goto(10, 0, 6)          # metres east, north, up from home
+dev.land()
+dev.run_program("Survey square")
+
+for frame in dev.camera.frames():           # pip install opencv-python
+    boxes = find_targets(frame)             # your code: (x, y, w, h, label)
+    dev.overlay(boxes, width=frame.shape[1], height=frame.shape[0])''',
+          ],
+        },
+      ),
+      Step.rich(
+        'Triggers',
+        'A script declares what it reacts to; you choose what fires it on the script\'s page: an on-screen button or switch (also on Control if pinned), a key, a controller button, a condition such as battery.pct < 25 for 3s, a device event, or a timer.',
+        c: {
+          'python': [
+            'python',
+            r'''@dev.trigger("Drop payload", key="D", gamepad="LT")
+def drop():
+    dev.cmd("release")
+
+@dev.trigger("Patrol", kind="switch")
+def patrol(on):
+    ...
+
+@dev.on_trigger                     # the ones you add in dash
+def other(name, value):
+    print(name, value)''',
+          ],
+        },
+        note: 'A controller button already used by dash (STOP, arm, modes…) keeps its action: pick a free one for scripts.',
+      ),
+      Step.rich(
+        'You stay in charge',
+        'Whatever a script does:',
+        bullets: [
+          'STOP stops every device and ends the script.',
+          'Moving the sticks takes over; the script waits until you press Resume.',
+          'Limits, set in dash: maximum speed, geofence, ceiling. Arming, take-off and parameter writes are refused unless you allow them.',
+          'If the script crashes, stops answering for half a second, or leaves the geofence, the device holds, and the script cannot drive again until you resume it.',
+        ],
+        warn: true,
+        note: 'Test a script on a simulated device first (Devices > Pair > Simulated): same telemetry, same commands, nothing to break.',
+      ),
+      Step(
+        'From a terminal, Jupyter or ROS',
+        'A script started anywhere on the same computer finds dash by itself. On a computer without dash, set KOEBELT_DASH_URL and KOEBELT_DASH_TOKEN, as a script host does.',
+        {
+          'python': [
+            'bash',
+            '''pip install koebelt-dash-scripts
+python my_script.py                  # dash open on this computer
+
+# a script host for phones and tablets
+koebelt-dash-scripts host''',
+          ],
+        },
+      ),
+    ],
+  ),
+  Guide(
+    'assistants',
+    'AI assistants',
+    'Let Claude, Cursor or another MCP client read the docs, write scripts, use the app and, with your approval, act on devices.',
+    5,
+    section: 'features',
+    platforms: ['python'],
+    [
+      Step.rich(
+        'What an assistant can do',
+        'koebelt dash speaks MCP, the protocol AI assistants use for tools. Turn it on in Settings > AI assistants, then connect the assistant you use.',
+        bullets: [
+          'Learn: search and read these guides, the protocols, the script API and its examples.',
+          'Look: devices, telemetry, the camera, parameters, alerts, recordings, and the window itself.',
+          'Write: scripts, programs and triggers; check scripts with your Python.',
+          'Use the app: add simulated devices, connect, record, export, open screens, change settings (not the safety ones).',
+          'Act: run scripts and programs, send commands, write parameters. On real hardware each waits for your approval; arming and take-off always ask. STOP never asks.',
+        ],
+        note: 'koebelt dash sends nothing to any AI service. The assistant you connect talks to its own provider, and what it reads in dash goes there.',
+      ),
+      Step(
+        'Connect an assistant',
+        'Settings > AI assistants shows the line for your client, with a copy button. Claude Code, for example:',
+        {
+          'python': ['bash', 'claude mcp add --transport http koebelt-dash http://127.0.0.1:47920/mcp'],
+        },
+      ),
+      Step.rich(
+        'Then ask',
+        'For example:',
+        bullets: [
+          '“Write a script that makes the rover follow the yellow ball, test it on a simulated rover, then show me.”',
+          '“Why did Kite drift at 01:20 in the last recording?”',
+          '“Set up a Raspberry Pi rover with a motor driver and a GPS.”',
+        ],
+      ),
+    ],
+  ),
 ];

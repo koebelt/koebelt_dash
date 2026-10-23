@@ -38,7 +38,9 @@ patch version.
 
 - **PyPI**: on pypi.org, add a *pending trusted publisher* for the project
   `koebelt-link`: owner `koebelt`, repository `koebelt_dash`, workflow
-  `release.yml`, environment `pypi`. No token is stored.
+  `release.yml`, environment `pypi`. No token is stored. A second one for
+  `koebelt-dash-scripts`, released with the app: workflow `app-release.yml`,
+  environment `pypi`.
 - **crates.io**: sign in with GitHub, create an API token with the
   `publish-new` and `publish-update` scopes, and store it as the repository
   secret `CARGO_REGISTRY_TOKEN`.
@@ -62,7 +64,10 @@ and then:
   Developer ID, notarized), the Windows installer, the Linux tarball, the
   Android APK and `SHA256SUMS`;
 - uploads the iOS build to App Store Connect, where it appears in TestFlight
-  after Apple's processing (about 15 minutes).
+  after Apple's processing (about 15 minutes);
+- publishes `koebelt-dash-scripts` (libs/python-dash-scripts) to PyPI. Its
+  version, and the MCP bridge's (tools/mcp_bridge), must be the app's: the
+  version job checks.
 
 `apps/dash/compat.json` says which koebelt/link versions the app works with:
 the protocol version it speaks and the oldest library version it supports, per

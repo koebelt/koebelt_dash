@@ -1,6 +1,6 @@
 # Scripts (koebelt/dash 1.3) — design
 
-Status: draft for review. Nothing here is built yet.
+Status: built for koebelt/dash 1.3. Where the build differs from this design, the code and protocol/SCRIPTS.md are right.
 
 ## 1. Goal
 

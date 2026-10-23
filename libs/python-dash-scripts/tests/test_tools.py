@@ -48,3 +48,11 @@ def test_geometry():
     # One degree of latitude is about 111 km; due east is 90°.
     assert 111_000 < geo_distance(45, 6, 46, 6) < 111_400
     assert round(geo_bearing(0, 0, 0, 1)) == 90
+
+
+def test_the_examples_compile():
+    import pathlib
+    import py_compile
+
+    for f in sorted(pathlib.Path(__file__).parent.parent.joinpath("examples").glob("*.py")):
+        py_compile.compile(str(f), doraise=True)
