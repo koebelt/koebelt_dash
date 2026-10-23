@@ -44,6 +44,11 @@ jobs:
       - run: brew install automake libtool
       - run: flutter build macos --release --build-number=${{ needs.version.outputs.build }} --dart-define=KDASH_UPDATES=github
         working-directory: apps/dash
+      # The MCP bridge for clients that start a command (Claude Desktop), next to the app's executable.
+      - name: MCP bridge
+        run: |
+          cd tools/mcp_bridge && dart pub get
+          dart compile exe bin/koebelt_dash_mcp.dart -o "../../apps/dash/build/macos/Build/Products/Release/koebelt dash.app/Contents/MacOS/koebelt-dash-mcp"
       - name: Signing keychain
         if: env.HAS_SIGNING == 'true'
         env:
@@ -169,6 +174,10 @@ jobs:
         with: { channel: stable }
       - run: flutter build windows --release --build-number=${{ needs.version.outputs.build }} --dart-define=KDASH_UPDATES=github
         working-directory: apps/dash
+      - name: MCP bridge
+        run: |
+          cd tools/mcp_bridge && dart pub get
+          dart compile exe bin/koebelt_dash_mcp.dart -o ../../apps/dash/build/windows/x64/runner/Release/koebelt-dash-mcp.exe
       - name: Installer
         run: |
           choco install innosetup --no-progress -y >/dev/null
@@ -188,6 +197,10 @@ jobs:
         with: { channel: stable }
       - run: flutter build linux --release --build-number=${{ needs.version.outputs.build }} --dart-define=KDASH_UPDATES=github
         working-directory: apps/dash
+      - name: MCP bridge
+        run: |
+          cd tools/mcp_bridge && dart pub get
+          dart compile exe bin/koebelt_dash_mcp.dart -o ../../apps/dash/build/linux/x64/release/bundle/koebelt-dash-mcp
       - name: Tarball
         run: |
           d=koebelt-dash-$V-linux-x64

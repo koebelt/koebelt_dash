@@ -19,6 +19,9 @@ jobs:
       - run: flutter pub get
       - run: flutter analyze
       - run: flutter test
+      - name: MCP bridge
+        working-directory: tools/mcp_bridge
+        run: dart pub get && dart analyze && dart test
 
   # The app against every published koebelt/link release (PyPI, crates.io):
   # devices people already run must keep working with each new app.

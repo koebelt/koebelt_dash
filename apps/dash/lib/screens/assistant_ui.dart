@@ -32,6 +32,7 @@ class _AssistantsSectionState extends State<AssistantsSection> {
   @override
   void initState() {
     super.initState();
+    if (ScriptHub.canRunHere) checkMcpBridge().then((_) => mounted ? setState(() {}) : null);
     NetworkInterface.list(type: InternetAddressType.IPv4).then((l) {
       final a = l.expand((i) => i.addresses).where((a) => !a.isLoopback).firstOrNull;
       if (mounted) setState(() => ip = a?.address);
@@ -189,16 +190,22 @@ class _AssistantsSectionState extends State<AssistantsSection> {
   }
 }
 
-/// The stdio bridge shipped inside the app, for clients that start a
-/// command (Claude Desktop); null where it is not bundled.
-String? mcpBridgePath() {
-  final exe = File(Platform.resolvedExecutable);
-  final candidates = [
-    if (Platform.isMacOS) '${exe.parent.parent.path}/Resources/koebelt-dash-mcp',
-    if (Platform.isWindows) '${exe.parent.path}\\koebelt-dash-mcp.exe',
-    if (Platform.isLinux) '${exe.parent.path}/koebelt-dash-mcp',
-  ];
-  return candidates.where((p) => File(p).existsSync()).firstOrNull;
+/// The stdio bridge shipped next to the app's executable, for clients that
+/// start a command (Claude Desktop); null where it is missing or does not
+/// run here (an Apple silicon build on an Intel Mac).
+String? mcpBridgePath() => _bridge;
+String? _bridge;
+bool _bridgeChecked = false;
+
+Future<void> checkMcpBridge() async {
+  if (_bridgeChecked) return;
+  _bridgeChecked = true;
+  final f = File('${File(Platform.resolvedExecutable).parent.path}${Platform.pathSeparator}koebelt-dash-mcp${Platform.isWindows ? '.exe' : ''}');
+  if (!f.existsSync()) return;
+  try {
+    final r = await Process.run(f.path, ['--version']).timeout(const Duration(seconds: 5));
+    if (r.exitCode == 0) _bridge = f.path;
+  } catch (_) {}
 }
 
 /// What assistants did, newest first.

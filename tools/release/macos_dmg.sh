@@ -28,6 +28,10 @@ if [ -n "$identity" ]; then
     while IFS= read -r -d '' f; do
       codesign --force --timestamp --options runtime --sign "$identity" "$f"
     done
+  # The MCP bridge, a second executable next to the app's.
+  if [ -f "$app/Contents/MacOS/koebelt-dash-mcp" ]; then
+    codesign --force --timestamp --options runtime --sign "$identity" "$app/Contents/MacOS/koebelt-dash-mcp"
+  fi
   codesign --force --timestamp --options runtime --entitlements "$entitlements" --sign "$identity" "$app"
   codesign --verify --deep --strict --verbose=2 "$app"
 fi
