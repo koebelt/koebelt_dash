@@ -141,7 +141,12 @@ bool scriptsPackageAccepts(String v, [String app = appVersion]) {
 Future<void> installScriptsPackage(String python, void Function(String) log, {bool upgrade = false}) async {
   final spec = scriptsPackageSpec();
   log('${upgrade ? 'Updating' : 'Installing'} $spec');
-  final p = await Process.start(python, ['-m', 'pip', 'install', if (upgrade) '--upgrade', spec]);
+  await pipInstall(python, [spec], log, upgrade: upgrade);
+}
+
+/// `python -m pip install [specs]`, its output to [log]; throws if pip fails.
+Future<void> pipInstall(String python, List<String> specs, void Function(String) log, {bool upgrade = false}) async {
+  final p = await Process.start(python, ['-m', 'pip', 'install', if (upgrade) '--upgrade', ...specs]);
   // All of pip's output first: its last lines say why it failed.
   final out = p.stdout.transform(utf8.decoder).transform(const LineSplitter()).listen(log).asFuture<void>();
   final err = p.stderr.transform(utf8.decoder).transform(const LineSplitter()).listen(log).asFuture<void>();

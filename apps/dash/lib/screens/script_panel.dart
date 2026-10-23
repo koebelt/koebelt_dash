@@ -8,6 +8,7 @@ import '../core/gamepad.dart';
 import '../core/compat.dart' show fromPep440;
 import '../core/model.dart';
 import '../scripts/hosts.dart';
+import '../scripts/imports.dart';
 import '../scripts/library.dart';
 import '../scripts/requirements.dart';
 import '../scripts/script_hub.dart';
@@ -21,7 +22,19 @@ import 'script_dialogs.dart';
 /// The run side of a script's page: where and with what it runs, Run/Stop,
 /// its state, settings, triggers and limits.
 class ScriptRunPanel extends StatelessWidget {
-  const ScriptRunPanel({super.key, required this.d, required this.script, required this.scriptsDir, required this.onRun, required this.phone, this.requires = const ScriptRequirements()});
+  const ScriptRunPanel({
+    super.key,
+    required this.d,
+    required this.script,
+    required this.scriptsDir,
+    required this.onRun,
+    required this.phone,
+    this.requires = const ScriptRequirements(),
+    this.missing = const [],
+  });
+
+  /// Modules the script imports that its Python lacks.
+  final List<String> missing;
 
   /// What the script needs, from its code as it is in the editor.
   final ScriptRequirements requires;
@@ -52,6 +65,7 @@ class ScriptRunPanel extends StatelessWidget {
         if (local) _kv('Python', _pythonChoice(context, cfg)),
         const SizedBox(height: 14),
         _runButtons(context, cfg, run, running),
+        if (local && missing.isNotEmpty) ...[const SizedBox(height: 12), _missingNotice(cfg)],
         if (local && hub.setupResult != null) ...[const SizedBox(height: 12), _setupResult(hub.setupResult!)],
         if (local) ..._pythonSetup(context, cfg),
         if (!ScriptHub.canRunHere && hub.hosts.isEmpty) ...[
@@ -319,6 +333,48 @@ class ScriptRunPanel extends StatelessWidget {
         ),
       ),
     ];
+  }
+
+  /// The script imports packages its Python lacks: offer to install them.
+  Widget _missingNotice(ScriptConfig cfg) {
+    final python = hub.pythonFor(cfg)!;
+    final packages = {for (final m in missing) pipNameFor(m)}.toList();
+    String list(List<String> l) => l.length == 1 ? l.single : '${l.sublist(0, l.length - 1).join(', ')} and ${l.last}';
+    return KNotice(
+      tone: Tone.warning,
+      title: missing.length == 1 ? 'A package is missing' : 'Packages are missing',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text('This script imports ${list(missing)}, not in this Python: it would stop there. Install ${list(packages)}?'),
+          const SizedBox(height: 8),
+          Text(
+            hub.settingUp ? (hub.setupLog.lastOrNull ?? '…') : 'pip install ${packages.join(' ')}',
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: KText.mono(11, color: K.textMuted),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              KButton(hub.settingUp ? 'Installing…' : 'Install', size: KSize.sm, onPressed: hub.settingUp ? null : () => hub.installPackages(python, packages)),
+              if (!hub.settingUp)
+                KButton(
+                  'Not now',
+                  size: KSize.sm,
+                  variant: KButtonVariant.ghost,
+                  onPressed: () {
+                    hub.declinedImports.addAll(missing.map((m) => '$python|$m'));
+                    d.emit();
+                  },
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 
   /// What the last install, update or setup did: a success fades after a few

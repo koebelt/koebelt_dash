@@ -63,4 +63,17 @@ void main() {
     }
     expect(p.docOf('builtins.nope_kdash'), isNull);
   }, skip: python == null ? 'no Python' : false, timeout: const Timeout(Duration(seconds: 60)));
+
+  test('which imports a Python lacks, modules next to the script counting', () async {
+    final p = PythonIntrospector(python!);
+    final dir = Directory.systemTemp.createTempSync('kdash_imports');
+    File('${dir.path}/helpers_kdash.py').writeAsStringSync('X = 1\n');
+    List<String>? miss;
+    for (var i = 0; i < 200 && miss == null; i++) {
+      miss = p.missing(['json', 'helpers_kdash', 'no_such_module_kdash'], dir.path);
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+    }
+    expect(miss, ['no_such_module_kdash']);
+    dir.deleteSync(recursive: true);
+  }, skip: python == null ? 'no Python' : false, timeout: const Timeout(Duration(seconds: 60)));
 }

@@ -10,6 +10,7 @@ import '../core/save_io.dart';
 import '../mcp/docs.dart' show bundledExamples, exampleName, loadBundledText;
 import '../scripts/hosts.dart';
 import '../scripts/completion.dart';
+import '../scripts/imports.dart';
 import '../scripts/library.dart';
 import '../scripts/requirements.dart';
 import '../scripts/script_hub.dart' show ScriptHub, stickAxes;
@@ -170,10 +171,65 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
     });
   }
 
+  /// Modules the open script imports (as saved) that its Python lacks, but
+  /// for those the operator chose not to install; none until dash knows, and
+  /// none for scripts that run on a host.
+  List<String> _missingImports() {
+    final f = current;
+    if (f == null || !ScriptHub.canRunHere) return const [];
+    final cfg = d.scripts.configFor(f.path);
+    final py = d.scripts.pythonFor(cfg);
+    if (d.scripts.hostFor(cfg) != null || py == null || !(d.scripts.envOf(py)?.hasPackage ?? false)) return const [];
+    final miss = d.scripts.introspector(py).missing(importedModules(_diskText ?? code.text), File(f.path).parent.path) ?? const [];
+    return [
+      for (final m in miss)
+        if (!d.scripts.declinedImports.contains('$py|$m')) m,
+    ];
+  }
+
+  /// Before running: offer to install what the script imports and lacks.
+  /// False to not run.
+  Future<bool> _askMissing() async {
+    final missing = _missingImports();
+    final py = d.scripts.pythonFor(d.scripts.configFor(current!.path));
+    if (missing.isEmpty || py == null) return true;
+    final packages = {for (final m in missing) pipNameFor(m)}.toList();
+    final pick = await showKDialog<String>(
+      context,
+      builder: (ctx) => KDialogPanel(
+        title: 'Install what this script imports?',
+        onClose: () => Navigator.pop(ctx),
+        footer: [
+          KButton('Cancel', variant: KButtonVariant.ghost, onPressed: () => Navigator.pop(ctx)),
+          KButton('Run anyway', variant: KButtonVariant.secondary, onPressed: () => Navigator.pop(ctx, 'run')),
+          KButton('Install and run', onPressed: () => Navigator.pop(ctx, 'install')),
+        ],
+        children: [
+          Text(
+            '${missing.length == 1 ? missing.single : '${missing.sublist(0, missing.length - 1).join(', ')} and ${missing.last}'} '
+            '${missing.length == 1 ? 'is' : 'are'} not in this Python, so the script would stop at its imports.',
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(color: K.surfaceSunken, borderRadius: BorderRadius.circular(K.radiusControl)),
+            child: Text('pip install ${packages.join(' ')}', style: KText.mono(12, color: K.textSecondary)),
+          ),
+        ],
+      ),
+    );
+    if (pick == 'run') {
+      d.scripts.declinedImports.addAll(missing.map((m) => '$py|$m'));
+      return true;
+    }
+    if (pick != 'install') return false;
+    return d.scripts.installPackages(py, packages);
+  }
+
   Future<void> _run() async {
     final f = current;
     if (f == null) return;
     await _saveNow();
+    if (!await _askMissing()) return;
     final cfg = d.scripts.configFor(f.path), host = d.scripts.hostFor(cfg);
     try {
       host == null ? await d.scripts.runFile(f.file, python: d.scripts.pythonFor(cfg)) : await d.scripts.runOnHost(f.file, host);
@@ -587,7 +643,7 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
       decoration: const BoxDecoration(border: Border(left: BorderSide(color: K.borderHairline))),
       child: ListView(
         padding: const EdgeInsets.all(20),
-        children: [ScriptRunPanel(d: d, script: f, scriptsDir: lib!.dir, onRun: _run, phone: false, requires: ScriptRequirements.parse(code.text))],
+        children: [ScriptRunPanel(d: d, script: f, scriptsDir: lib!.dir, onRun: _run, phone: false, requires: ScriptRequirements.parse(code.text), missing: _missingImports())],
       ),
     );
     return Row(
@@ -635,7 +691,7 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
             ],
           ),
           const SizedBox(height: 20),
-          Panel(child: ScriptRunPanel(d: d, script: f, scriptsDir: lib!.dir, onRun: _run, phone: true, requires: ScriptRequirements.parse(code.text))),
+          Panel(child: ScriptRunPanel(d: d, script: f, scriptsDir: lib!.dir, onRun: _run, phone: true, requires: ScriptRequirements.parse(code.text), missing: _missingImports())),
           const SizedBox(height: 24),
           SizedBox(height: 220, child: ScriptConsole(lines: _consoleOf(f), phone: true)),
           const SizedBox(height: 16),

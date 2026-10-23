@@ -20,6 +20,7 @@ class PythonIntrospector {
   final Map<String, Map<String, Member>> members = {};
   final Map<String, String> errors = {};
   final Map<String, Member?> docs = {};
+  final Map<String, List<String>> _missing = {};
   final Set<String> _asking = {};
   bool _askingModules = false;
 
@@ -32,6 +33,15 @@ if sys.argv[1] == "modules":
     for m in pkgutil.iter_modules():
         names.add(m.name)
     out = sorted(n for n in names if not n.startswith("_"))
+elif sys.argv[1] == "find":
+    import importlib.util
+    out = []
+    for n in sys.argv[2:]:
+        try:
+            if importlib.util.find_spec(n) is None:
+                out.append(n)
+        except Exception:
+            out.append(n)
 else:
     def resolve(path):
         with contextlib.redirect_stdout(quiet), contextlib.redirect_stderr(quiet):
@@ -95,9 +105,9 @@ else:
 print("\n@@koebelt@@" + json.dumps(out))
 ''';
 
-  Future<Object?> _run(List<String> args) async {
+  Future<Object?> _run(List<String> args, {String? cwd}) async {
     try {
-      final r = await Process.run(python, ['-c', _code, ...args]).timeout(const Duration(seconds: 40));
+      final r = await Process.run(python, ['-c', _code, ...args], workingDirectory: cwd).timeout(const Duration(seconds: 40));
       final s = '${r.stdout}';
       final i = s.lastIndexOf('@@koebelt@@');
       if (i < 0) return null;
@@ -113,6 +123,7 @@ print("\n@@koebelt@@" + json.dumps(out))
     _askingModules = true;
     _run(['modules']).then((r) {
       installed = r is List ? r.cast<String>() : const [];
+      _askingModules = false;
       onChange?.call();
     });
   }
@@ -151,5 +162,32 @@ print("\n@@koebelt@@" + json.dumps(out))
       onChange?.call();
     });
     return null;
+  }
+
+  /// Which of [modules] this Python cannot import, run from [folder] (so the
+  /// script's own modules next to it count); null until known.
+  List<String>? missing(Iterable<String> modules, String folder) {
+    final names = modules.toList()..sort();
+    if (names.isEmpty) return const [];
+    final key = '$folder\n${names.join(',')}';
+    final m = _missing[key];
+    if (m != null || _asking.contains('find:$key')) return m;
+    _asking.add('find:$key');
+    _run(['find', ...names], cwd: Directory(folder).existsSync() ? folder : null).then((r) {
+      _asking.remove('find:$key');
+      _missing[key] = r is List ? r.cast<String>() : const [];
+      onChange?.call();
+    });
+    return null;
+  }
+
+  /// After an install: what is installed has changed.
+  void forgetInstalled() {
+    _missing.clear();
+    installed = null;
+    _askingModules = false;
+    members.clear();
+    errors.clear();
+    docs.clear();
   }
 }

@@ -352,6 +352,38 @@ class ScriptHub {
     );
   }
 
+  /// Packages the operator chose not to install ("python|module"), not
+  /// offered again until dash restarts.
+  final Set<String> declinedImports = {};
+
+  /// Installs packages a script imports into [python]; true if pip did.
+  Future<bool> installPackages(String python, List<String> packages) async {
+    if (settingUp || packages.isEmpty) return false;
+    settingUp = true;
+    setupLog
+      ..clear()
+      ..add('Installing ${packages.join(', ')}');
+    setupResult = null;
+    d.emit();
+    String? failed;
+    try {
+      await pipInstall(python, packages, (l) {
+        setupLog.add(l);
+        d.emit();
+      });
+    } catch (e) {
+      final why = setupLog.where((l) => l.contains('externally-managed') || l.contains('ERROR')).firstOrNull;
+      failed = why != null && why.contains('externally-managed')
+          ? 'This Python is managed by the system and refuses packages: use a scripts environment instead.'
+          : 'Failed: ${why?.replaceFirst('ERROR: ', '') ?? e}';
+    } finally {
+      settingUp = false;
+      introspector(python).forgetInstalled();
+    }
+    _result(failed == null, failed ?? '${packages.join(', ')} ${packages.length == 1 ? 'is' : 'are'} installed in this Python.');
+    return failed == null;
+  }
+
   /// The outcome of the last install, update or setup, shown on the panel: a
   /// success for a few seconds, a failure until the next attempt.
   ({bool ok, String text})? setupResult;
