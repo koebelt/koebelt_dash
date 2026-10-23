@@ -53,24 +53,129 @@ class SetRow extends StatelessWidget {
   }
 }
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends StatefulWidget {
   const SettingsScreen(this.d, {super.key, required this.w, required this.go});
   final Dash d;
   final double w;
   final ValueChanged<String> go;
 
+  /// From this width, the sections are listed beside the settings.
+  static const asideFrom = 1100.0;
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  final _scroll = ScrollController();
+  final _view = GlobalKey();
+  final Map<String, GlobalKey> _keys = {};
+  String? _current;
+
+  /// While a click scrolls the page, the clicked section stays highlighted
+  /// (near the end, it cannot reach the top).
+  bool _jumping = false;
+
+  /// The aside's names for the sections (the headings are longer, or in a widget).
+  static const _names = {'AI assistants (MCP)': 'AI assistants'};
+
+  GlobalKey _key(String label) => _keys.putIfAbsent(label, GlobalKey.new);
+
+  @override
+  void initState() {
+    super.initState();
+    _scroll.addListener(_spy);
+  }
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  /// The section at the top of the view: the last one that starts above a
+  /// line a little below the top (the last one, at the bottom of the page).
+  void _spy() {
+    if (_jumping) return;
+    final view = _view.currentContext?.findRenderObject() as RenderBox?;
+    if (view == null) return;
+    String? at;
+    for (final e in _keys.entries) {
+      final box = e.value.currentContext?.findRenderObject() as RenderBox?;
+      if (box == null) continue;
+      if (box.localToGlobal(Offset.zero, ancestor: view).dy <= 120) at = e.key;
+    }
+    if (_scroll.position.pixels >= _scroll.position.maxScrollExtent - 4) at = _keys.keys.last;
+    at ??= _keys.keys.firstOrNull;
+    if (at != _current) setState(() => _current = at);
+  }
+
+  Future<void> _jump(String label) async {
+    final ctx = _keys[label]?.currentContext;
+    if (ctx == null) return;
+    setState(() => _current = label);
+    _jumping = true;
+    await Scrollable.ensureVisible(ctx, duration: K.durBase, curve: K.easeStandard);
+    _jumping = false;
+  }
+
+  Widget _aside() => Container(
+    width: 220,
+    padding: const EdgeInsets.fromLTRB(16, 32, 8, 32),
+    decoration: const BoxDecoration(border: Border(right: BorderSide(color: K.borderHairline))),
+    child: ListView(
+      children: [
+        const Padding(padding: EdgeInsets.fromLTRB(12, 0, 0, 12), child: MonoLabel('Settings')),
+        for (final label in _keys.keys)
+          Pressable(
+            onTap: () => _jump(label),
+            builder: (_, hover, _) {
+              final on = label == (_current ?? _keys.keys.first);
+              return AnimatedContainer(
+                duration: K.durFast,
+                height: 36,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                alignment: Alignment.centerLeft,
+                decoration: BoxDecoration(
+                  color: on
+                      ? K.whiteA08
+                      : hover
+                      ? K.surfaceHover
+                      : Colors.transparent,
+                  border: Border(left: BorderSide(color: on ? K.accent : Colors.transparent, width: 2)),
+                ),
+                child: Text(
+                  _names[label] ?? label,
+                  style: KText.bodySm.copyWith(color: on ? K.textPrimary : K.textSecondary),
+                ),
+              );
+            },
+          ),
+      ],
+    ),
+  );
+
   @override
   Widget build(BuildContext context) {
-    final st = d.settings, phone = w < 600;
+    final d = widget.d, w = widget.w, go = widget.go;
+    final st = d.settings, phone = w < 600, aside = w >= SettingsScreen.asideFrom;
     const cm = {'joysticks': 'STICKS', 'sliders': 'SLIDERS', 'tilt': 'TILT'};
-    Widget section(String label, List<Widget> rows) => Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Padding(padding: const EdgeInsets.only(bottom: 4), child: MonoLabel(label)),
-        ...rows,
-      ],
+    Widget section(String label, List<Widget> rows) => KeyedSubtree(
+      key: _key(label),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(padding: const EdgeInsets.only(bottom: 4), child: MonoLabel(label)),
+          ...rows,
+        ],
+      ),
     );
-    return SingleChildScrollView(
+    // The keys in page order: the controller's section is a widget of its own.
+    _key('Control');
+    _key('Game controller');
+    final page = SingleChildScrollView(
+      key: _view,
+      controller: _scroll,
       padding: phone ? const EdgeInsets.all(16) : const EdgeInsets.symmetric(horizontal: 40, vertical: 32),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 860),
@@ -104,7 +209,7 @@ class SettingsScreen extends StatelessWidget {
               ),
             ]),
             SizedBox(height: phone ? 20 : 32),
-            ControllerSection(d, phone: phone),
+            KeyedSubtree(key: _key('Game controller'), child: ControllerSection(d, phone: phone)),
             SizedBox(height: phone ? 20 : 32),
             section('Link and safety', [
               SetRow(
@@ -288,6 +393,14 @@ class SettingsScreen extends StatelessWidget {
           ],
         ),
       ),
+    );
+    if (!aside) return page;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _aside(),
+        Expanded(child: page),
+      ],
     );
   }
 }
