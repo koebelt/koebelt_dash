@@ -128,29 +128,20 @@ enum ScriptState { running, exited, failed }
 
 typedef ConsoleLine = ({DateTime at, String level, String text});
 
-/// A script dash started: its process and its output.
-class ScriptRun {
-  ScriptRun._(this.file, this.python, this.process, this.onChange) : startedAt = DateTime.now() {
-    process.stdout.transform(const SystemEncoding().decoder).transform(const LineSplitter()).listen((l) => log('out', l));
-    process.stderr.transform(const SystemEncoding().decoder).transform(const LineSplitter()).listen((l) => log('err', l));
-    process.exitCode.then((code) {
-      exitCode = code;
-      state = code == 0 || _stopping ? ScriptState.exited : ScriptState.failed;
-      log(state == ScriptState.failed ? 'err' : 'info', _stopping ? 'Stopped' : 'Exited with code $code');
-    });
-  }
-
+/// A script dash started, here or on a script host: its output and state.
+/// [token] is the one it connects with, so dash knows which connection is it.
+abstract class ScriptRun {
+  ScriptRun(this.file, this.token, this.onChange) : startedAt = DateTime.now();
   final File file;
-  final String python;
-  final Process process;
+  final String token;
   final void Function() onChange;
   final DateTime startedAt;
   ScriptState state = ScriptState.running;
   int? exitCode;
-  bool _stopping = false;
   final List<ConsoleLine> console = [];
 
-  int get pid => process.pid;
+  /// Where it runs, for the panel: "This computer", or the host's name.
+  String get where;
 
   void log(String level, String text) {
     console.add((at: DateTime.now(), level: level, text: text));
@@ -159,6 +150,30 @@ class ScriptRun {
   }
 
   /// Asks the script to end, then ends it.
+  Future<void> stop({Duration grace = const Duration(seconds: 2)});
+}
+
+/// A script running in a Python on this computer.
+class LocalRun extends ScriptRun {
+  LocalRun._(super.file, super.token, super.onChange, this.python, this.process) {
+    process.stdout.transform(const SystemEncoding().decoder).transform(const LineSplitter()).listen((l) => log('out', l));
+    process.stderr.transform(const SystemEncoding().decoder).transform(const LineSplitter()).listen((l) => log('err', l));
+    process.exitCode.then((code) {
+      // this.: dart:io has a top-level exitCode too.
+      this.exitCode = code;
+      state = code == 0 || _stopping ? ScriptState.exited : ScriptState.failed;
+      log(state == ScriptState.failed ? 'err' : 'info', _stopping ? 'Stopped' : 'Exited with code $code');
+    });
+  }
+
+  final String python;
+  final Process process;
+  bool _stopping = false;
+
+  @override
+  String get where => 'This computer';
+
+  @override
   Future<void> stop({Duration grace = const Duration(seconds: 2)}) async {
     if (state != ScriptState.running) return;
     _stopping = true;
@@ -171,14 +186,14 @@ class ScriptRun {
   }
 
   /// Starts [file] with [python], connected to the script API at [url].
-  static Future<ScriptRun> start(File file, String python, {required String url, required String token, required void Function() onChange}) async {
+  static Future<LocalRun> start(File file, String python, {required String url, required String token, required void Function() onChange}) async {
     final p = await Process.start(
       python,
       ['-u', file.path],
       workingDirectory: file.parent.path,
       environment: {'KOEBELT_DASH_URL': url, 'KOEBELT_DASH_TOKEN': token, 'PYTHONUNBUFFERED': '1', 'PYTHONIOENCODING': 'utf-8'},
     );
-    final r = ScriptRun._(file, python, p, onChange);
+    final r = LocalRun._(file, token, onChange, python, p);
     r.log('info', 'Started with Python at $python');
     return r;
   }

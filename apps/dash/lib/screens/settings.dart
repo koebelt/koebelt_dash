@@ -3,10 +3,14 @@ import 'package:flutter/material.dart';
 import '../core/alerts.dart';
 import '../core/dash.dart';
 import '../link/protocol.dart';
+import '../scripts/hosts.dart' show hostPort;
+import '../scripts/library.dart' show ScriptLibrary;
+import '../scripts/script_hub.dart' show ScriptHub;
 import '../theme/tokens.dart';
 import '../ui/components.dart';
 import '../ui/icons.dart';
 import 'controller_settings.dart';
+import 'script_dialogs.dart' show showAddHostDialog;
 import 'update_ui.dart';
 
 class SetRow extends StatelessWidget {
@@ -242,6 +246,39 @@ class SettingsScreen extends StatelessWidget {
                   onPressed: () => go('devices'),
                 ),
               ),
+            ]),
+            SizedBox(height: phone ? 20 : 32),
+            section('Scripts', [
+              for (final h in d.scripts.hosts)
+                SetRow(
+                  phone: phone,
+                  title: h.name,
+                  desc: 'Script host at ${h.address}${h.port == hostPort ? '' : ':${h.port}'}${h.python.isEmpty ? '' : ' · Python ${h.python}'}',
+                  child: KButton('Forget', size: KSize.sm, variant: KButtonVariant.ghost, onPressed: () => d.scripts.forgetHost(h)),
+                ),
+              SetRow(
+                phone: phone,
+                title: 'Script hosts',
+                desc: 'Computers on the network that run scripts for this ${phone ? 'phone' : 'device'}, with any Python package. On the computer: pip install koebelt-dash-scripts, then koebelt-dash-scripts host.',
+                child: KButton('Add', size: KSize.sm, variant: KButtonVariant.secondary, onPressed: () => showAddHostDialog(context, d)),
+              ),
+              if (ScriptHub.canRunHere)
+                SetRow(
+                  phone: phone,
+                  title: 'Be a script host',
+                  desc: d.scripts.hostService == null
+                      ? 'Run scripts for phones and tablets on this network, with the scripts\' Python.'
+                      : 'Pairing code: ${d.scripts.hostCode ?? '…'}. Phones pair in Scripts > Runs on > Add a script host.${d.scripts.hostLog.isEmpty ? '' : '\n${d.scripts.hostLog.last}'}',
+                  child: KSwitch(
+                    checked: d.scripts.hostService != null,
+                    onChanged: (v) async {
+                      if (!v) return d.scripts.stopHostService();
+                      if (d.scripts.pythons == null) await d.scripts.refreshPythons(near: await ScriptLibrary.defaultDir());
+                      final py = d.scripts.pythons?.where((p) => p.hasPackage).firstOrNull?.path;
+                      if (py != null) await d.scripts.startHostService(py);
+                    },
+                  ),
+                ),
             ]),
             SizedBox(height: phone ? 20 : 32),
             section('Updates', [UpdatesSection(d: d, phone: phone)]),

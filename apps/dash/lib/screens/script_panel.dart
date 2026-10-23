@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../core/dash.dart';
 import '../core/gamepad.dart';
 import '../core/model.dart';
+import '../scripts/hosts.dart';
 import '../scripts/library.dart';
 import '../scripts/script_hub.dart';
 import '../scripts/script_runner.dart';
@@ -34,21 +35,34 @@ class ScriptRunPanel extends StatelessWidget {
     final conn = run == null ? null : hub.connOf(run);
     final running = run?.state == ScriptState.running;
     final kind = conn?.device == null ? d.focus?.kind : d.links[conn!.device]?.kind;
+    final local = hub.hostFor(cfg) == null && ScriptHub.canRunHere;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _status(context, run, conn),
         const SizedBox(height: 16),
         _kv('Device', _deviceChoice(cfg)),
-        if (ScriptHub.canRunHere) _kv('Python', _pythonChoice(context, cfg)),
+        _kv('Runs on', _hostChoice(context, cfg)),
+        if (local) _kv('Python', _pythonChoice(context, cfg)),
         const SizedBox(height: 14),
         _runButtons(context, cfg, run, running),
-        if (ScriptHub.canRunHere) ..._pythonSetup(context, cfg),
-        if (!ScriptHub.canRunHere) ...[
+        if (local) ..._pythonSetup(context, cfg),
+        if (!ScriptHub.canRunHere && hub.hosts.isEmpty) ...[
           const SizedBox(height: 12),
-          const KNotice(
+          KNotice(
             tone: Tone.info,
-            child: Text('Scripts run in Python on a computer. Run this one from koebelt dash on a Mac, Windows or Linux computer.'),
+            title: 'Scripts run on a computer',
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text('This device sends them to a script host: a computer on the same network running koebelt-dash-scripts, which can use any Python package (OpenCV, PyTorch…).'),
+                const SizedBox(height: 10),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: KButton('Add a script host', size: KSize.sm, onPressed: () => showAddHostDialog(context, d)),
+                ),
+              ],
+            ),
           ),
         ],
         if (conn != null && conn.settings.isNotEmpty) ...[const SizedBox(height: 28), _settings(conn)],
@@ -81,7 +95,14 @@ class ScriptRunPanel extends StatelessWidget {
         children: [
           const PulseDot(color: K.positive),
           const SizedBox(width: 10),
-          Text('RUNNING ${two(s ~/ 60)}:${two(s % 60)}', style: KText.labelMd(color: K.positive)),
+          Flexible(
+            child: Text(
+              'RUNNING ${two(s ~/ 60)}:${two(s % 60)}${run is RemoteRun ? ' · ${run.where}' : ''}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: KText.labelMd(color: K.positive),
+            ),
+          ),
           const Spacer(),
           if (conn?.hz != null) Text('${conn!.hz!.toStringAsFixed(1)} Hz', style: KText.mono(12, color: K.textSecondary)),
         ],
@@ -137,6 +158,29 @@ class ScriptRunPanel extends StatelessWidget {
       items: {null: 'Selected in dash${d.focus == null ? '' : ' (${d.focus!.info.name})'}', for (final n in names) n: n},
       onChanged: (v) {
         cfg.device = v;
+        hub.saveConfigs();
+        d.emit();
+      },
+    );
+  }
+
+  Widget _hostChoice(BuildContext context, ScriptConfig cfg) {
+    const add = '+';
+    final current = hub.hostFor(cfg);
+    return _Dropdown<String?>(
+      value: current?.key,
+      items: {
+        if (ScriptHub.canRunHere) null: 'This computer',
+        for (final h in hub.hosts) h.key: h.name,
+        add: 'Add a script host…',
+      },
+      onChanged: (v) async {
+        if (v == add) {
+          final h = await showAddHostDialog(context, d);
+          if (h == null) return;
+          v = h.key;
+        }
+        cfg.host = v;
         hub.saveConfigs();
         d.emit();
       },
@@ -210,7 +254,7 @@ class ScriptRunPanel extends StatelessWidget {
   }
 
   Widget _runButtons(BuildContext context, ScriptConfig cfg, ScriptRun? run, bool running) {
-    final canRun = ScriptHub.canRunHere && hub.port != null && hub.pythonFor(cfg) != null;
+    final canRun = hub.hostFor(cfg) != null || (ScriptHub.canRunHere && hub.port != null && hub.pythonFor(cfg) != null);
     return Row(
       children: [
         Expanded(

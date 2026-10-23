@@ -50,6 +50,21 @@ for frame in dev.camera.frames():
     dev.sticks(throttle=0.4, steer=steer.update(-x))
 ```
 
+## Script hosts: scripts for phones and tablets
+
+koebelt dash on an iPhone, iPad or Android device sends its scripts to a
+computer on the same network, which runs them with its own Python (and its
+GPU), while the phone keeps the device link, the sticks and STOP:
+
+```sh
+pip install koebelt-dash-scripts
+koebelt-dash-scripts host
+```
+
+It prints a pairing code; in dash: Scripts > Runs on > Add a script host. A
+laptop on the field, a Raspberry Pi 5 or a Jetson all work. A computer
+running koebelt dash can also be a host (Settings > Scripts).
+
 ## Safety
 
 dash stays in charge, whatever the script does:

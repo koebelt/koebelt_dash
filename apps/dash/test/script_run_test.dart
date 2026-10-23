@@ -5,10 +5,12 @@
 library;
 
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:koebelt_dash/core/dash.dart';
+import 'package:koebelt_dash/scripts/hosts.dart';
 import 'package:koebelt_dash/scripts/script_runner.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -172,4 +174,85 @@ print("landed", round(dev.tlm.alt))
     expect(o, contains('landed 0'));
     expect(run.state, ScriptState.exited, reason: o);
   }, skip: python == null ? 'no Python with koebelt-dash-scripts (KDASH_SCRIPTS_PYTHON)' : false, timeout: const Timeout(Duration(seconds: 90)));
+
+  test('a phone runs a script on a script host, which drives through the phone’s dash', () async {
+    SharedPreferences.setMockInitialValues({});
+    final d = Dash();
+    await d.init();
+    final mule = d.addSimulated(simTemplates().firstWhere((t) => t.id == 'mule'));
+    await d.connect(mule.id);
+    // A free port: a koebelt dash running on this computer holds the usual one.
+    await d.scripts.start(port: 0);
+    final ticker = Timer.periodic(const Duration(milliseconds: 20), (_) => d.tick(.02));
+    // A host on this computer, on a free port.
+    final free = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
+    final port = free.port;
+    await free.close();
+    final home = await Directory.systemTemp.createTemp('kdash-host-home');
+    final host = await Process.start(python!, ['-m', 'koebelt_dash_scripts', 'host', '--port', '$port', '--no-discovery', '--name', 'Bench PC'], environment: {'HOME': home.path});
+    final lines = <String>[];
+    host.stdout.transform(utf8.decoder).transform(const LineSplitter()).listen(lines.add);
+    host.stderr.transform(utf8.decoder).transform(const LineSplitter()).listen(lines.add);
+    addTearDown(() async {
+      ticker.cancel();
+      host.kill();
+      for (final r in d.scripts.runs) {
+        await r.stop();
+      }
+      await d.scripts.stop();
+      await d.disconnectAll();
+    });
+    for (var i = 0; i < 100 && !lines.any((l) => l.startsWith('Pairing code: ')); i++) {
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+    }
+    final code = lines.firstWhere((l) => l.startsWith('Pairing code: ')).substring(14, 21);
+
+    await expectLater(pairHost('127.0.0.1', port, 'AAA-AAA', myName: 'test'), throwsA(isA<HostError>().having((e) => e.message, 'message', contains('Wrong pairing code'))));
+    final paired = await pairHost('127.0.0.1', port, code, myName: 'Thomas’s iPhone');
+    expect(paired.name, 'Bench PC');
+    d.scripts.addHost(paired);
+
+    final dir = await Directory.systemTemp.createTemp('kdash-remote');
+    await Directory('${dir.path}/remote').create();
+    File('${dir.path}/remote/settings.txt').writeAsStringSync('0.6');
+    final file = File('${dir.path}/remote/main.py')..writeAsStringSync('''
+from koebelt_dash_scripts import connect, every
+dev = connect()
+speed = float(open("settings.txt").read())
+print("remote on", dev.name, "speed", speed)
+dev.mode("MANUAL")
+x0 = dev.tlm.pos[1]
+for i in every(0.05):
+    dev.sticks(throttle=speed)
+    if i == 30:
+        break
+dev.sticks(throttle=0)
+print("done")
+''');
+    final run = await d.scripts.runOnHost(file, paired);
+    expect(d.scripts.lan, isTrue, reason: 'the API listens on the network for the host');
+    String out() => run.console.map((l) => l.text).join('\n');
+    for (var i = 0; i < 300 && run.state == ScriptState.running; i++) {
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+    }
+    expect(out(), contains('remote on Mule speed 0.6'), reason: '${out()}\nhost: ${lines.join('\n')}');
+    expect(out(), contains('done'));
+    expect(run.where, 'Bench PC');
+    expect(run.state, ScriptState.exited);
+    expect(d.links.values.single.tel.speed, greaterThan(.2), reason: 'the rover moved');
+  }, skip: python == null ? 'no Python with koebelt-dash-scripts (KDASH_SCRIPTS_PYTHON)' : false, timeout: const Timeout(Duration(seconds: 60)));
+
+  test('from the network, only a run’s own token is accepted', () async {
+    SharedPreferences.setMockInitialValues({});
+    final d = Dash();
+    await d.init();
+    await d.scripts.start(port: 0, lan: true);
+    addTearDown(d.scripts.stop);
+    final ip = (await NetworkInterface.list(type: InternetAddressType.IPv4)).expand((i) => i.addresses).where((a) => !a.isLoopback).firstOrNull;
+    if (ip == null) return markTestSkipped('no network address');
+    final ws = await WebSocket.connect('ws://${ip.address}:${d.scripts.port}/scripts');
+    ws.add(jsonEncode({'t': 'hello', 'v': 1, 'token': d.scripts.token}));
+    final m = jsonDecode(await ws.first as String) as Map;
+    expect(m['t'], 'bye', reason: 'the main token only works from this computer');
+  });
 }

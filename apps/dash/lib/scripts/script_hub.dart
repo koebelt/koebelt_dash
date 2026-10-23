@@ -10,6 +10,7 @@ import '../core/sequence.dart';
 import '../link/protocol.dart';
 import '../video/video_hub.dart' show resolveVideoUrl;
 import 'fields.dart';
+import 'hosts.dart';
 import 'script_runner.dart';
 import 'triggers.dart';
 
@@ -147,6 +148,79 @@ class ScriptHub {
   /// Scripts dash started, running or finished (the last few).
   final List<ScriptRun> runs = [];
 
+  /// Whether the API listens on the local network, for scripts on script
+  /// hosts. Only the tokens of runs dash started are accepted from there.
+  bool lan = false;
+
+  /// Script hosts this dash is paired with.
+  final List<ScriptHost> hosts = [];
+  static const _hostsKey = 'kdash-script-hosts-v1';
+
+  void saveHosts() => d.store.writeJson(_hostsKey, [for (final h in hosts) h.toJson()]);
+
+  void addHost(ScriptHost h) {
+    hosts.removeWhere((x) => x.key == h.key || x.name == h.name);
+    hosts.add(h);
+    saveHosts();
+    d.emit();
+  }
+
+  void forgetHost(ScriptHost h) {
+    hosts.remove(h);
+    for (final c in configs.values) {
+      if (c.host == h.key) c.host = null;
+    }
+    saveHosts();
+    saveConfigs();
+    d.emit();
+  }
+
+  /// This computer as a script host for phones (`koebelt-dash-scripts host`,
+  /// started by dash with the scripts' Python), its pairing code and output.
+  Process? hostService;
+  String? hostCode;
+  final List<String> hostLog = [];
+
+  Future<void> startHostService(String python) async {
+    if (hostService != null) return;
+    hostLog.clear();
+    final p = await Process.start(python, ['-u', '-m', 'koebelt_dash_scripts', 'host']);
+    hostService = p;
+    void line(String l) {
+      hostLog.add(l);
+      if (hostLog.length > 50) hostLog.removeAt(0);
+      final m = RegExp(r'(?:Pairing code:|Next pairing code:)\s*([A-Z0-9]{3}-[A-Z0-9]{3})').firstMatch(l);
+      if (m != null) hostCode = m[1];
+      d.emit();
+    }
+
+    p.stdout.transform(const SystemEncoding().decoder).transform(const LineSplitter()).listen(line);
+    p.stderr.transform(const SystemEncoding().decoder).transform(const LineSplitter()).listen(line);
+    unawaited(
+      p.exitCode.then((_) {
+        if (hostService == p) hostService = null;
+        hostCode = null;
+        d.emit();
+      }),
+    );
+    d.emit();
+  }
+
+  void stopHostService() {
+    hostService?.kill();
+    hostService = null;
+    hostCode = null;
+    d.emit();
+  }
+
+  /// Where a script runs: its chosen host, else this computer, else (phones)
+  /// the first paired host.
+  ScriptHost? hostFor(ScriptConfig c) {
+    final chosen = hosts.where((h) => h.key == c.host).firstOrNull;
+    if (chosen != null) return chosen;
+    return canRunHere ? null : hosts.firstOrNull;
+  }
+
   /// Pythons found on this computer (null until looked for).
   List<PythonEnv>? pythons;
   bool findingPythons = false;
@@ -201,6 +275,12 @@ class ScriptHub {
   double _trigAcc = 0;
 
   void load() {
+    final hj = d.store.readJson(_hostsKey);
+    if (hj is List) {
+      for (final h in hj) {
+        if (h is Map) hosts.add(ScriptHost.fromJson(h));
+      }
+    }
     final j = d.store.readJson(_configKey);
     if (j is Map) {
       for (final e in j.entries) {
@@ -235,13 +315,21 @@ class ScriptHub {
 
   /// Opens the API on 127.0.0.1. [discovery]: where to write the address and
   /// token for scripts started by hand (null in tests).
-  Future<void> start({int port = scriptApiPort, File? discovery}) async {
-    if (_server != null) return;
-    try {
-      _server = await HttpServer.bind(InternetAddress.loopbackIPv4, port);
-    } on SocketException {
-      _server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+  Future<void> start({int port = scriptApiPort, File? discovery, bool lan = false}) async {
+    if (_server != null && (this.lan || !lan)) return;
+    final old = _server;
+    // Moving to the network: the same port, so scripts already connected stay.
+    if (old != null) {
+      port = old.port;
+      await old.close();
     }
+    final at = lan ? InternetAddress.anyIPv4 : InternetAddress.loopbackIPv4;
+    try {
+      _server = await HttpServer.bind(at, port);
+    } on SocketException {
+      _server = await HttpServer.bind(at, 0);
+    }
+    this.lan = lan;
     _server!.listen(_onRequest, onError: (_) {});
     if (discovery != null) {
       await discovery.parent.create(recursive: true);
@@ -281,13 +369,17 @@ class ScriptHub {
           return;
         }
         if (c == null) {
-          if (m['t'] != 'hello' || m['token'] != token) {
+          // From the network, only a run's own token: the main one is for
+          // scripts started by hand on this computer.
+          final local = req.connectionInfo?.remoteAddress.isLoopback ?? false;
+          final run = runs.where((r) => r.token == m['token'] && r.state == ScriptState.running).firstOrNull;
+          if (m['t'] != 'hello' || (run == null && (m['token'] != token || !local))) {
             ws.add(jsonEncode({'t': 'bye', 'why': 'Wrong or missing token.'}));
             ws.close();
             return;
           }
           c = ScriptConn(this, ws, (m['name'] as String?) ?? 'script')..pid = (m['pid'] as num?)?.toInt();
-          c!.run = runs.where((r) => r.pid == c!.pid && r.state == ScriptState.running).firstOrNull;
+          c!.run = run;
           c!.config = configFor(c!.configKey);
           c!.lastSeen = d.t;
           conns.add(c!);
@@ -592,16 +684,28 @@ class ScriptHub {
     }
   }
 
-  /// Runs a script file. The interpreter: [python], else the one the script
-  /// names in its first lines (`# python: …`), else [fallback].
+  /// Runs a script file on this computer. The interpreter: [python], else the
+  /// one the script names in its first lines (`# python: …`), else [fallback].
   Future<ScriptRun> runFile(File file, {String? python, String fallback = 'python3'}) async {
     if (_server == null) throw StateError('The script API is not running.');
     final py = python ?? pythonFromHeader(await file.readAsString()) ?? fallback;
-    final r = await ScriptRun.start(file, py, url: 'ws://127.0.0.1:${_server!.port}/scripts', token: token, onChange: d.emit);
+    final r = await LocalRun.start(file, py, url: 'ws://127.0.0.1:${_server!.port}/scripts', token: _newToken(), onChange: d.emit);
+    _track(r);
+    return r;
+  }
+
+  /// Runs a script on a script host; it connects back over the network.
+  Future<ScriptRun> runOnHost(File file, ScriptHost host) async {
+    await start(lan: true);
+    final r = await RemoteRun.start(file, host, dashPort: _server!.port, token: _newToken(), onChange: d.emit);
+    _track(r);
+    return r;
+  }
+
+  void _track(ScriptRun r) {
     runs.add(r);
     if (runs.length > 20) runs.removeAt(0);
     d.emit();
-    return r;
   }
 
   /// The connection of a script dash started, once it has connected.
@@ -765,6 +869,7 @@ class ScriptHub {
   }
 
   void dispose() {
+    hostService?.kill();
     for (final r in runs) {
       r.stop(grace: Duration.zero);
     }

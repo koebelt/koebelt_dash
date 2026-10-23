@@ -106,7 +106,9 @@ String _n(double v) => v == v.roundToDouble() ? v.toInt().toString() : v.toStrin
 /// and the trigger bindings. Keyed by the script's path.
 class ScriptConfig {
   ScriptConfig();
-  String? python, device;
+
+  /// The interpreter, the device, and the script host (its key) or null for this computer.
+  String? python, device, host;
   ScriptLimits limits = ScriptLimits();
   final List<TriggerBinding> bindings = [];
 
@@ -116,6 +118,7 @@ class ScriptConfig {
   Map<String, dynamic> toJson() => {
     'python': ?python,
     'device': ?device,
+    'host': ?host,
     'limits': limits.toJson(),
     'bindings': [for (final b in bindings) b.toJson()],
   };
@@ -123,7 +126,8 @@ class ScriptConfig {
   factory ScriptConfig.fromJson(Map j) {
     final c = ScriptConfig()
       ..python = j['python'] as String?
-      ..device = j['device'] as String?;
+      ..device = j['device'] as String?
+      ..host = j['host'] as String?;
     final l = j['limits'];
     if (l is Map) {
       c.limits = ScriptLimits(

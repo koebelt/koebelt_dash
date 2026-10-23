@@ -71,6 +71,6 @@
 	<key>NSBluetoothAlwaysUsageDescription</key>
 	<string>koebelt dash connects to your drones and robots over Bluetooth.</string>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>koebelt dash finds and controls devices on your local network.</string>
+	<string>koebelt dash finds and controls devices on your local network, and works with the computers you choose to run your scripts.</string>
 </dict>
 </plist>

@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 
 import '../core/dash.dart';
 import '../core/save_io.dart';
+import '../scripts/hosts.dart';
 import '../scripts/library.dart';
 import '../scripts/script_hub.dart';
 import '../scripts/script_runner.dart';
@@ -163,9 +164,11 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
     final f = current;
     if (f == null) return;
     await _saveNow();
-    final cfg = d.scripts.configFor(f.path);
+    final cfg = d.scripts.configFor(f.path), host = d.scripts.hostFor(cfg);
     try {
-      await d.scripts.runFile(f.file, python: d.scripts.pythonFor(cfg));
+      host == null ? await d.scripts.runFile(f.file, python: d.scripts.pythonFor(cfg)) : await d.scripts.runOnHost(f.file, host);
+    } on HostError catch (e) {
+      setState(() => _message = e.message);
     } catch (e) {
       setState(() => _message = 'Could not start: $e');
     }

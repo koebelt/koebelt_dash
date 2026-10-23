@@ -81,3 +81,51 @@ Messages with an `id` get a result:
   cannot take them again until the operator resumes it in dash.
 - STOP releases every script and refuses their commands until the operator
   clears it.
+
+## Script hosts
+
+Phones and tablets run scripts on a script host: a computer on the same
+network running `koebelt-dash-scripts host`. The host runs the script in its
+Python, and the script connects back to dash on the phone, with a token for
+that run only. dash on the phone then listens on the network; from there it
+accepts only the tokens of runs it started.
+
+**Finding hosts.** dash broadcasts a UDP datagram to port 47922; hosts
+answer to the sender:
+
+```json
+→ {"t":"hostdiscover"}
+← {"t":"host","v":1,"name":"Bench PC","port":47921,"python":"3.12.6","pkg":"1.3.0"}
+```
+
+**Talking to a host.** A WebSocket to `ws://<host>:47921/host`, JSON text
+messages.
+
+Pairing, once, with the code the host prints (it changes after each use):
+
+```json
+→ {"t":"pair","code":"K7Q-2MX","name":"Thomas’s iPhone"}
+← {"t":"paired","token":"<32 hex>","name":"Bench PC","port":47921,"python":"3.12.6","pkg":"1.3.0"}
+```
+
+A wrong code gets `{"t":"bye","why":"Wrong pairing code."}`. The host keeps
+its paired phones in `~/.koebelt/script-host.json`; `koebelt-dash-scripts
+host --forget` unpairs them all.
+
+Running a script:
+
+```json
+→ {"t":"hello","token":"<pairing token>"}
+← {"t":"welcome","name":"Bench PC",…}
+→ {"t":"run","name":"follow.py","main":"main.py","files":{"main.py":"<base64>","model/yolo.pt":"<base64>"},"dashPort":47920,"dashToken":"<run token>"}
+← {"t":"started","pid":5120,"python":"3.12.6"}
+← {"t":"out","level":"out","text":"following on Mule"}
+→ {"t":"stop"}
+← {"t":"exit","code":0}
+```
+
+The host writes the files to a temporary folder, runs `main` there with
+`KOEBELT_DASH_URL` set to `ws://<the phone's address>:<dashPort>/scripts`
+and `KOEBELT_DASH_TOKEN` to the run token, and deletes the folder when the
+script ends. Closing the connection stops the script.
+

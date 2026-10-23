@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -8,6 +9,7 @@ import '../core/gamepad.dart';
 import '../core/model.dart';
 import '../scripts/conditions.dart';
 import '../scripts/fields.dart';
+import '../scripts/hosts.dart';
 import '../scripts/script_hub.dart';
 import '../scripts/triggers.dart';
 import '../theme/tokens.dart';
@@ -521,3 +523,127 @@ Future<void> showLimitsDialog(BuildContext context, ScriptLimits lim, {required 
     },
   ),
 );
+
+/// Pairs a script host: found on the network, or by address, with the code it
+/// prints. Returns the host, or null.
+Future<ScriptHost?> showAddHostDialog(BuildContext context, Dash d) => showKDialog<ScriptHost>(context, builder: (ctx) => _AddHostDialog(d: d));
+
+class _AddHostDialog extends StatefulWidget {
+  const _AddHostDialog({required this.d});
+  final Dash d;
+  @override
+  State<_AddHostDialog> createState() => _AddHostDialogState();
+}
+
+class _AddHostDialogState extends State<_AddHostDialog> {
+  final _address = TextEditingController(), _code = TextEditingController();
+  List<FoundHost> found = [];
+  bool scanning = false, pairing = false;
+  String? error;
+
+  @override
+  void initState() {
+    super.initState();
+    _scan();
+    _address.addListener(() => setState(() {}));
+    _code.addListener(() => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    _address.dispose();
+    _code.dispose();
+    super.dispose();
+  }
+
+  Future<void> _scan() async {
+    setState(() => scanning = true);
+    final f = await discoverHosts();
+    if (!mounted) return;
+    setState(() {
+      found = f;
+      scanning = false;
+      if (_address.text.isEmpty && f.length == 1) _address.text = '${f.single.address}:${f.single.port}';
+    });
+  }
+
+  Future<void> _pair() async {
+    final parts = _address.text.trim().split(':');
+    final port = parts.length > 1 ? int.tryParse(parts[1]) ?? hostPort : hostPort;
+    setState(() {
+      pairing = true;
+      error = null;
+    });
+    try {
+      final h = await pairHost(parts.first, port, _code.text, myName: Platform.localHostname);
+      widget.d.scripts.addHost(h);
+      if (mounted) Navigator.pop(context, h);
+    } on HostError catch (e) {
+      if (mounted) setState(() => error = e.message);
+    } finally {
+      if (mounted) setState(() => pairing = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    Widget mono(String s) => Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: K.surfaceSunken,
+        border: Border.all(color: K.borderHairline),
+        borderRadius: BorderRadius.circular(K.radiusControl),
+      ),
+      child: SelectableText(s, style: KText.mono(12, color: K.textSecondary, w: FontWeight.w400)),
+    );
+    return KDialogPanel(
+      title: 'Add a script host',
+      width: 560,
+      onClose: () => Navigator.pop(context),
+      footer: [
+        KButton('Cancel', variant: KButtonVariant.ghost, onPressed: () => Navigator.pop(context)),
+        KButton(pairing ? 'Pairing…' : 'Pair', onPressed: pairing || _address.text.trim().isEmpty || _code.text.trim().length < 6 ? null : _pair),
+      ],
+      children: [
+        Text(
+          'A script host is a computer on the same network that runs scripts for this ${Platform.isIOS || Platform.isAndroid ? 'phone or tablet' : 'computer'}: a laptop, a Raspberry Pi, a Jetson… On it:',
+          style: KText.bodySm.copyWith(color: K.textSecondary),
+        ),
+        mono('pip install koebelt-dash-scripts\nkoebelt-dash-scripts host'),
+        _field(
+          'On the network',
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (scanning)
+                Text('Looking…', style: KText.bodySm.copyWith(color: K.textMuted))
+              else if (found.isEmpty)
+                Text('None found. Type its address below (shown by `ipconfig getifaddr en0`, `hostname -I`…).', style: KText.bodySm.copyWith(color: K.textMuted))
+              else
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    for (final f in found)
+                      Pressable(
+                        onTap: () => setState(() => _address.text = '${f.address}:${f.port}'),
+                        builder: (_, _, _) => KTag('${f.name} · ${f.address}', tone: _address.text == '${f.address}:${f.port}' ? TagTone.accent : TagTone.neutral, height: 30),
+                      ),
+                  ],
+                ),
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: KButton('Look again', size: KSize.sm, variant: KButtonVariant.ghost, onPressed: scanning ? null : _scan),
+              ),
+            ],
+          ),
+        ),
+        _field('Address', KInput(controller: _address, height: 40, placeholder: '192.168.1.20', style: KText.mono(13), keyboardType: TextInputType.url)),
+        _field('Pairing code', KInput(controller: _code, height: 40, placeholder: 'ABC-123, printed by the host', style: KText.mono(13))),
+        if (error != null) KNotice(tone: Tone.negative, child: Text(error!)),
+      ],
+    );
+  }
+}
