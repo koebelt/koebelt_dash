@@ -83,6 +83,7 @@ class _VideoViewState extends State<VideoView> {
         fit: StackFit.expand,
         children: [
           if (img != null) RawImage(image: img, fit: widget.fit, filterQuality: FilterQuality.medium, opacity: AlwaysStoppedAnimation(f!.live ? 1 : .35)),
+          if (img != null && d.replay == null) _ScriptBoxes(d, Size(img.width.toDouble(), img.height.toDouble()), widget.fit),
           if (msg != null)
             Center(
               child: Padding(
@@ -145,4 +146,53 @@ class _VideoViewState extends State<VideoView> {
       ),
     );
   }
+}
+
+/// What a script sees: the boxes it draws with dev.overlay(), for a second
+/// after each update.
+class _ScriptBoxes extends StatelessWidget {
+  const _ScriptBoxes(this.d, this.image, this.fit);
+  final Dash d;
+  final Size image;
+  final BoxFit fit;
+  @override
+  Widget build(BuildContext context) {
+    final o = d.focus?.overlay;
+    if (o == null || DateTime.now().difference(o.at) > const Duration(seconds: 1) || o.boxes.isEmpty) return const SizedBox.shrink();
+    return IgnorePointer(child: CustomPaint(painter: _BoxPainter(o.boxes, image, fit)));
+  }
+}
+
+class _BoxPainter extends CustomPainter {
+  _BoxPainter(this.boxes, this.image, this.fit);
+  final List<({double x, double y, double w, double h, String label})> boxes;
+  final Size image;
+  final BoxFit fit;
+  @override
+  void paint(Canvas canvas, Size size) {
+    final fs = applyBoxFit(fit, image, size);
+    final dst = Alignment.center.inscribe(fs.destination, Offset.zero & size);
+    final src = Alignment.center.inscribe(fs.source, Offset.zero & image);
+    final line = Paint()
+      ..color = K.accent
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+    for (final b in boxes) {
+      // Normalised image coordinates → the part of the image on screen.
+      Offset at(double x, double y) => Offset(dst.left + (x * image.width - src.left) / src.width * dst.width, dst.top + (y * image.height - src.top) / src.height * dst.height);
+      final r = Rect.fromPoints(at(b.x, b.y), at(b.x + b.w, b.y + b.h));
+      canvas.drawRect(r, line);
+      if (b.label.isEmpty) continue;
+      final tp = TextPainter(
+        text: TextSpan(text: b.label.toUpperCase(), style: KText.mono(10, color: K.textOnAccent)),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      final tag = Rect.fromLTWH(r.left - 1, r.top - tp.height - 4, tp.width + 8, tp.height + 4);
+      canvas.drawRect(tag, Paint()..color = K.accent);
+      tp.paint(canvas, tag.topLeft + const Offset(4, 2));
+    }
+  }
+
+  @override
+  bool shouldRepaint(_BoxPainter old) => old.boxes != boxes || old.image != image || old.fit != fit;
 }

@@ -41,14 +41,15 @@ Messages with an `id` get a result:
 
 | `t` | Fields | |
 |---|---|---|
-| `use` | `device`: id or name, or absent for the device selected in dash | Chooses the device. `value`: id, name, kind, sim, lib, limits. Telemetry starts. |
+| `use` | `device`: id or name, or absent for the device chosen on the script's page, else the one selected in dash | Chooses the device. `value`: id, name, kind, sim, lib, limits, `cameras` (id, absolute url, fmt, label: scripts read the stream directly), `steps` (the Program steps this kind has). Telemetry starts. |
 | `sticks` | `a`: `{"throttle":0.5,"steer":-0.2}` | Named sticks for the kind (drone: `throttle yaw pitch roll`; rover: `throttle steer`) or raw axes `lx ly rx ry`, −1…1. The first call takes the device's sticks. They hold until changed. |
 | `release` | | Gives the sticks back; the device holds. |
-| `cmd` | `c`, `a` | `mode` `{m}`, `arm`, `disarm`, `speed` `{v}`, `params` (value: the parameters), `pset` `{KEY: value}`, `psave`, `stop` (STOP, always allowed), or a kind-specific command sent as is (`release`, `sethome`, `countdown`…). |
+| `cmd` | `c`, `a` | `mode` `{m}`, `arm`, `disarm`, `speed` `{v}`, `params` (value: the parameters), `pset` `{KEY: value}`, `psave`, `stop` (STOP, always allowed), `step` `{type, …fields, wait}` (one Program step: `takeoff` `{alt}`, `goto` `{x, y, z}`, `land`, `rth`, `pose` `{j1…j6}` (°), `gripper` `{open}` (%), `home`, `throttle` `{pct, s}`, `ramp` `{from, to, s}`, `wait` `{s}`), `program` `{name, wait}` (a sequence from the Program screen), `seqctl` `{c: pause, resume, stop}`, or a kind-specific command sent as is (`release`, `sethome`, `countdown`…). With `wait` (the default), `step` and `program` answer when they end: ok, or why they failed or were interrupted. |
 | `setting` | `name`, `value`, `min`, `max`, `label` | Declares a setting shown in dash. `value`: the current one (the operator's, if they changed it). |
 | `trigger` | `name`, `kind` (`button`, `switch`, `value`), `key`, `gamepad`, `min`, `max` | Declares a trigger the operator can fire and bind. |
 | `print` | `text`, `level` | A console line in dash. |
 | `plot` | `name`, `v` | A value shown and recorded as channel `script:<name>`. |
+| `overlay` | `boxes`: `[[x, y, w, h, label], …]` | Boxes drawn over the device's camera in dash, normalised 0–1 from the top left; they fade a second after the last message. |
 | `mark` | `text` | An event on the recording's timeline. |
 | `notify` | `text`, `level` | A message to the operator. |
 | `ka` | `hz` | Keep-alive. The client library sends it every 100 ms, with the script's loop rate when it uses `every()`. |
@@ -69,8 +70,9 @@ Messages with an `id` get a result:
 
 - Sticks are scaled by the script's speed limit (operator setting, 60 % by
   default), and `speed` is capped by it.
-- `arm`, `mode TAKEOFF`, `pset` and `psave` are refused unless the operator
-  allowed them for the script.
+- `arm`, `mode TAKEOFF`, `pset`, `psave`, a `takeoff` step and a program that
+  arms or takes off are refused unless the operator allowed them for the
+  script. A `goto` beyond the geofence or above the ceiling is refused.
 - Moving the operator's sticks beyond 15 % takes over until the operator
   resumes.
 - A script that drives and sends nothing for 0.5 s, disconnects, takes the

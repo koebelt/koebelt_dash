@@ -29,6 +29,27 @@ for _ in every(0.05):                # 20 Hz
 Run it from koebelt dash (Scripts), or from a terminal while dash is open on
 the same computer: it finds dash by itself.
 
+With a model on the camera:
+
+```python
+from ultralytics import YOLO
+from koebelt_dash_scripts import connect, pid
+
+model = YOLO("yolov8n.pt")
+dev = connect()
+steer = pid(1.2, 0, 0.1)
+
+for frame in dev.camera.frames():
+    result = model(frame, verbose=False)[0]
+    dev.overlay(result)                       # see what the model sees, in dash
+    people = [b for b in result.boxes if int(b.cls) == 0]
+    if not people:
+        dev.sticks(throttle=0, steer=0)
+        continue
+    x = float(people[0].xywhn[0][0]) - 0.5    # −0.5 left … 0.5 right
+    dev.sticks(throttle=0.4, steer=steer.update(-x))
+```
+
 ## Safety
 
 dash stays in charge, whatever the script does:
@@ -50,6 +71,10 @@ dash stays in charge, whatever the script does:
 | `dev.next_tlm()` | Waits for the next telemetry. |
 | `dev.sticks(...)` | −1…1, held until changed. Drones: `throttle yaw pitch roll`; rovers: `throttle steer`. |
 | `dev.mode(m)`, `dev.arm()`, `dev.disarm()`, `dev.speed_limit(v)`, `dev.cmd(name, **args)`, `dev.stop()`, `dev.release()` | Commands. |
+| `dev.takeoff(alt)`, `dev.goto(x, y, z)`, `dev.land()`, `dev.rth()`, `dev.pose(*deg)`, `dev.gripper(pct)`, `dev.home()`, `dev.throttle(pct, s)`, `dev.ramp(a, b, s)` | Program steps; they return once done (or at once with `wait=False`). |
+| `dev.run_program(name)`, `dev.pause_program()`, `dev.resume_program()`, `dev.stop_program()` | Programs from dash's Program screen. |
+| `dev.camera.frame()`, `for img in dev.camera.frames():` | The camera as numpy images (BGR, for OpenCV; needs `opencv-python` or `pillow`). The newest frame only: a slow model never falls behind. |
+| `dev.overlay(boxes)` | Boxes over the camera in dash: `(x, y, w, h, label)` tuples or an ultralytics result. |
 | `dev.params["KEY"]`, `dev.params.set(KEY=v)`, `dev.params.save()` | Parameters. |
 | `dev.setting(name, default, min, max)` | A slider or switch in dash; read `.value`. |
 | `@dev.trigger(name, kind, key, gamepad)` | A button (`button`), switch (`switch`) or number (`value`) in dash. |

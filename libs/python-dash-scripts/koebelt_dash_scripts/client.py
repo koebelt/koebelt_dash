@@ -22,6 +22,8 @@ from typing import Any, Callable, Dict, Iterator, List, Optional
 from websockets.exceptions import ConnectionClosed
 from websockets.sync.client import connect as ws_connect
 
+from .camera import Camera, boxes_of
+
 API_VERSION = 1
 DISCOVERY = pathlib.Path.home() / ".koebelt" / "dash-api.json"
 
@@ -177,6 +179,7 @@ class Device:
         self.devices = welcome.get("devices", [])
         self.params = Params(self)
         self.info: Dict[str, Any] = {}
+        self.cameras: List[Camera] = []
         for target in (self._receive, self._dispatch, self._keepalive):
             threading.Thread(target=target, daemon=True, name=f"koebelt-dash-{target.__name__}").start()
 
@@ -280,6 +283,7 @@ class Device:
 
     def _use(self, device: Optional[str]) -> None:
         self.info = self._call("use", device=device)
+        self.cameras = [Camera(c) for c in self.info.get("cameras", [])]
         with self._tlm_ready:
             self._tlm_ready.wait_for(lambda: self._tlm is not None, timeout=3)
 
@@ -346,6 +350,73 @@ class Device:
         """STOP: every device, at once, as the STOP button."""
         self._call("cmd", c="stop")
 
+    # ------------------------------------------------------------------ steps
+    def _step(self, step: str, wait: bool, **args: Any) -> None:
+        self._call("cmd", timeout=3600 if wait else 5, c="step", a={"type": step, "wait": wait, **args})
+
+    def takeoff(self, alt: float = 6, *, wait: bool = True) -> None:
+        """Drones: arms and climbs to ``alt`` metres (needs leave in Limits). Returns once there."""
+        self._step("takeoff", wait, alt=alt)
+
+    def goto(self, x: float, y: float, z: Optional[float] = None, *, wait: bool = True) -> None:
+        """Goes to x metres east, y north of home (and z up, drones). Returns once there."""
+        self._step("goto", wait, x=x, y=y, **({} if z is None else {"z": z}))
+
+    def land(self, *, wait: bool = True) -> None:
+        self._step("land", wait)
+
+    def rth(self, *, wait: bool = True) -> None:
+        """Drones: returns home and lands."""
+        self._step("rth", wait)
+
+    def pose(self, *joints: float, wait: bool = True) -> None:
+        """Arms: moves to joint angles, degrees (J1, J2…)."""
+        self._step("pose", wait, **{f"j{i + 1}": float(v) for i, v in enumerate(joints)})
+
+    def gripper(self, open_pct: float, *, wait: bool = True) -> None:
+        """Arms: 0 (closed) to 100 % open."""
+        self._step("gripper", wait, open=open_pct)
+
+    def home(self, *, wait: bool = True) -> None:
+        """Arms: the home pose."""
+        self._step("home", wait)
+
+    def throttle(self, pct: float, seconds: float, *, wait: bool = True) -> None:
+        """Test benches: holds a throttle for some seconds."""
+        self._step("throttle", wait, pct=pct, s=seconds)
+
+    def ramp(self, start: float, end: float, seconds: float, *, wait: bool = True) -> None:
+        """Test benches: ramps the throttle from one percentage to another."""
+        self._step("ramp", wait, **{"from": start, "to": end, "s": seconds})
+
+    def run_program(self, name: str, *, wait: bool = True) -> None:
+        """Runs a program from dash's Program screen (on the device when it can
+        store it: it keeps going if the link drops)."""
+        self._call("cmd", timeout=24 * 3600 if wait else 5, c="program", a={"name": name, "wait": wait})
+
+    def pause_program(self) -> None:
+        self._call("cmd", c="seqctl", a={"c": "pause"})
+
+    def resume_program(self) -> None:
+        self._call("cmd", c="seqctl", a={"c": "resume"})
+
+    def stop_program(self) -> None:
+        self._call("cmd", c="seqctl", a={"c": "stop"})
+
+    # ------------------------------------------------------------------ camera
+    @property
+    def camera(self) -> Camera:
+        """The device's first camera."""
+        if not self.cameras:
+            raise ScriptError(f"{self.name} has no camera")
+        return self.cameras[0]
+
+    def overlay(self, boxes: Any, width: Optional[float] = None, height: Optional[float] = None) -> None:
+        """Draws boxes over the camera picture in dash: (x, y, w, h[, label])
+        tuples, normalised 0–1 (or in pixels with width and height), or an
+        ultralytics result. They fade a second after the last call."""
+        self._send({"t": "overlay", "boxes": boxes_of(boxes, width, height)})
+
     # ------------------------------------------------------------------ dash
     def setting(self, name: str, default: Any, *, min: Optional[float] = None, max: Optional[float] = None,
                 label: Optional[str] = None) -> Setting:
@@ -410,6 +481,8 @@ class Device:
             pass
 
     def close(self) -> None:
+        for c in self.cameras:
+            c.close()
         try:
             self._ws.close()
         finally:

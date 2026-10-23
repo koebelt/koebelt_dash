@@ -6,7 +6,9 @@ import 'dart:math' as math;
 import '../core/dash.dart';
 import '../core/device_link.dart';
 import '../core/model.dart';
+import '../core/sequence.dart';
 import '../link/protocol.dart';
+import '../video/video_hub.dart' show resolveVideoUrl;
 import 'fields.dart';
 import 'script_runner.dart';
 import 'triggers.dart';
@@ -111,6 +113,9 @@ class ScriptConn {
 
   /// The script's own loop rate, from its keep-alives (every()).
   double? hz;
+
+  /// Steps and programs the script waits on: request id → (device, sequence id).
+  final Map<Object, ({DeviceLink link, String seq})> pending = {};
 
   /// Declared by the script: settings (name → value, bounds) and triggers.
   final Map<String, Map<String, dynamic>> settings = {};
@@ -349,7 +354,23 @@ class ScriptHub {
           if (l == null) return _res(c, id, err: want == null ? 'No device is connected in koebelt dash.' : 'No connected device called "$want".');
           if (c.device != l.id) _release(c, 'Switched device.', block: false);
           c.device = l.id;
-          return _res(c, id, value: {'id': l.id, 'name': l.info.name, 'kind': l.kind.name, 'sim': l.info.simulated, 'lib': l.info.lib, 'limits': c.limits.toJson()});
+          return _res(
+            c,
+            id,
+            value: {
+              'id': l.id,
+              'name': l.info.name,
+              'kind': l.kind.name,
+              'sim': l.info.simulated,
+              'lib': l.info.lib,
+              'limits': c.limits.toJson(),
+              'cameras': [
+                // Absolute, as dash reaches them (a device may give a path on its own address).
+                for (final v in l.video) {'id': v.id, 'url': resolveVideoUrl(v.url, l.info)?.toString(), 'fmt': v.fmt, 'label': v.label},
+              ],
+              'steps': [for (final s in stepDefs(l.kind)) s.type],
+            },
+          );
         case 'sticks':
           final l = _link(c);
           if (l == null) return _res(c, id, err: 'Call use() first.');
@@ -385,6 +406,18 @@ class ScriptHub {
         case 'plot':
           final l = _link(c);
           if (l != null) l.tel.custom['script:${m['name']}'] = [(m['v'] as num).toDouble()];
+          return;
+        case 'overlay':
+          final l = _link(c);
+          if (l == null) return;
+          double n(Object? v) => (v as num?)?.toDouble() ?? 0;
+          l.overlay = (
+            boxes: [
+              for (final b in (m['boxes'] as List? ?? const []).whereType<List>().take(100))
+                if (b.length >= 4) (x: n(b[0]), y: n(b[1]), w: n(b[2]), h: n(b[3]), label: b.length > 4 ? '${b[4]}' : ''),
+            ],
+            at: DateTime.now(),
+          );
           return;
         case 'mark':
           final l = _link(c);
@@ -426,6 +459,29 @@ class ScriptHub {
         h.seqSetSpeed(math.min(v, lim.maxSpeed));
       case 'params':
         return _res(c, id, value: d.paramDev[l.id] ?? const {});
+      case 'step':
+        return _step(c, id, l, a);
+      case 'program':
+        final name = '${a['name']}';
+        final q = d.sequencesFor(l.id).where((x) => x.name.toLowerCase() == name.toLowerCase() || x.id == name).firstOrNull;
+        if (q == null) return _res(c, id, err: 'No program called "$name" on ${l.info.name} (${d.sequencesFor(l.id).map((x) => x.name).join(', ')}).');
+        if (q.steps.any((st) => st.type == 'takeoff' || st.type == 'arm') && !lim.allowArm) {
+          return _res(c, id, err: '"${q.name}" arms or takes off, which is not allowed for this script (Limits in dash).');
+        }
+        return _start(c, id, l, q, wait: a['wait'] != false);
+      case 'seqctl':
+        final r = l.runner;
+        if (r == null) return _res(c, id, err: 'Nothing is running on ${l.info.name}.');
+        // On-device runners pass these on to the device.
+        switch (a['c']) {
+          case 'pause':
+            r.pause();
+          case 'resume':
+            r.resume();
+          default:
+            r.stop('Stopped by the script');
+        }
+        d.emit();
       case 'pset':
         if (!lim.allowParams) return _res(c, id, err: 'Parameter writes are not allowed for this script (Limits in dash).');
         d.sendTo(l, {'t': 'pset', 'p': a});
@@ -437,6 +493,63 @@ class ScriptHub {
         h.seqCmd(cmd, a);
     }
     _res(c, id);
+  }
+
+  var _seqN = 0;
+
+  /// One Program step (take off, go to, land…), run like a one-step program
+  /// so it behaves exactly as in Program. The result comes when it is done.
+  void _step(ScriptConn c, Object? id, DeviceLink l, Map<String, dynamic> a) {
+    final type = '${a['type']}';
+    final def = stepDef(l.kind, type);
+    if (def == null) {
+      return _res(c, id, err: '"$type" is not a step a ${l.kind.name} has (${stepDefs(l.kind).map((s) => s.type).join(', ')}).');
+    }
+    final lim = c.limits;
+    if ((type == 'takeoff' || type == 'arm') && !lim.allowArm) return _res(c, id, err: 'Take-off and arming are not allowed for this script (Limits in dash).');
+    double n(String k) => (a[k] as num?)?.toDouble() ?? 0;
+    if (type == 'goto') {
+      final dist = math.sqrt(n('x') * n('x') + n('y') * n('y'));
+      if (lim.fence > 0 && dist > lim.fence) return _res(c, id, err: 'That is ${dist.round()} m from home, beyond the ${lim.fence.round()} m geofence.');
+      if (lim.ceiling > 0 && l.kind == DeviceKind.drone && n('z') > lim.ceiling) return _res(c, id, err: '${n('z')} m is above the ${lim.ceiling.round()} m ceiling.');
+    }
+    if (type == 'takeoff' && lim.ceiling > 0 && n('alt') > lim.ceiling) return _res(c, id, err: '${n('alt')} m is above the ${lim.ceiling.round()} m ceiling.');
+    final st = SeqStep.fresh(def);
+    for (final e in a.entries) {
+      if (e.key != 'type' && e.key != 'wait' && st.p.containsKey(e.key)) st.p[e.key] = e.value;
+    }
+    final q = Sequence(id: 'script-${++_seqN}', name: '${c.name}: ${def.label}', kind: l.kind, steps: [st]);
+    _start(c, id, l, q, wait: a['wait'] != false);
+  }
+
+  void _start(ScriptConn c, Object? id, DeviceLink l, Sequence q, {required bool wait}) {
+    final busy = l.runner;
+    if (busy != null && (busy.state == RunState.running || busy.state == RunState.paused)) {
+      return _res(c, id, err: '"${busy.seq.name}" is running on ${l.info.name}: stop it first.');
+    }
+    d.runSequenceOn(l, q);
+    if (l.runner?.seq != q) return _res(c, id, err: '${l.info.name} cannot run it now.');
+    if (!wait || id == null) return _res(c, id);
+    c.pending[id] = (link: l, seq: q.id);
+  }
+
+  /// Answers the steps and programs scripts wait on, once they end.
+  void _settle(ScriptConn c) {
+    for (final e in c.pending.entries.toList()) {
+      final l = e.value.link, r = l.runner;
+      String? err;
+      if (!d.links.containsKey(l.id)) {
+        err = '${l.info.name} disconnected.';
+      } else if (r == null || r.seq.id != e.value.seq) {
+        err = 'Interrupted: another sequence started.';
+      } else if (r.state == RunState.failed) {
+        err = r.message.isEmpty ? 'The step failed.' : r.message;
+      } else if (r.state != RunState.done) {
+        continue;
+      }
+      c.pending.remove(e.key);
+      _res(c, e.key, err: err);
+    }
   }
 
   /// The operator moved the sticks while a script drove.
@@ -604,6 +717,7 @@ class ScriptHub {
   void tick(double dt) {
     if (conns.isEmpty) return;
     for (final c in List.of(conns)) {
+      if (c.pending.isNotEmpty) _settle(c);
       final dr = c.drive;
       if (dr == null) continue;
       if (!d.links.containsKey(dr.link.id)) {

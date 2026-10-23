@@ -8,9 +8,10 @@
 
 __version__ = "1.3.0"
 
+from .camera import Camera, CameraError, decode_jpeg  # noqa: E402
 from .client import Device, Released, ScriptError, Setting, Telemetry, connect, every, wait  # noqa: E402
 from .tools import angle_diff, bearing, clamp, distance, geo_bearing, geo_distance, lowpass, pid, rate_limit  # noqa: E402
 
-__all__ = ["connect", "every", "wait", "Device", "Telemetry", "Setting", "ScriptError", "Released",
+__all__ = ["connect", "every", "wait", "Device", "Telemetry", "Setting", "ScriptError", "Released", "Camera", "CameraError", "decode_jpeg",
            "pid", "lowpass", "rate_limit", "clamp", "distance", "bearing", "angle_diff", "geo_distance", "geo_bearing",
            "__version__"]

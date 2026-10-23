@@ -1557,7 +1557,12 @@ class Dash extends ChangeNotifier implements PadTarget {
   /// app, step by step. Each connected device can run its own.
   void runSequence(Sequence q) {
     final l = focus;
-    if (l == null || replay != null || l.tel.estop) return;
+    if (l != null) runSequenceOn(l, q);
+  }
+
+  /// Runs a sequence on a given device (scripts run steps on theirs).
+  void runSequenceOn(DeviceLink l, Sequence q) {
+    if (replay != null || l.tel.estop) return;
     final host = _LinkHost(this, l);
     if (l.seqCap >= q.steps.length && q.steps.isNotEmpty && canControl) {
       final r = DeviceSequenceRunner(q, host, (m) => _sendTo(l, m.cast<String, dynamic>()));

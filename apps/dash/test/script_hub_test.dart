@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:koebelt_dash/core/dash.dart';
+import 'package:koebelt_dash/core/sequence.dart';
 import 'package:koebelt_dash/scripts/script_hub.dart';
 import 'package:koebelt_dash/scripts/triggers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -189,6 +190,52 @@ void main() {
     expect(s.got.firstWhere((m) => m['t'] == 'fire')['name'], 'Drop payload');
     // Declaring it again (the script restarted) keeps the operator's value.
     expect((await s.call('setting', {'name': 'speed', 'value': .4, 'min': 0, 'max': 1}))['value'], .7);
+  });
+
+  group('steps and programs', () {
+    Future<Map<String, dynamic>> callWhileTicking(_Script s, String t, Map<String, dynamic> m, double seconds) async {
+      final f = s.call(t, m).timeout(Duration(milliseconds: (seconds * 1000).round() + 3000));
+      var done = false;
+      unawaited(f.whenComplete(() => done = true));
+      for (var i = 0; i < seconds * 40 && !done; i++) {
+        d.tick(.025);
+        await Future<void>.delayed(const Duration(milliseconds: 25));
+      }
+      return f;
+    }
+
+    test('a step answers when it is done, and refuses what the device or the limits do not allow', () async {
+      final s = await _Script.open(d.scripts);
+      await s.call('use');
+      final sw = Stopwatch()..start();
+      final r = await callWhileTicking(s, 'cmd', {'c': 'step', 'a': {'type': 'wait', 's': .4}}, 3);
+      expect(r['ok'], isTrue, reason: '$r');
+      expect(sw.elapsedMilliseconds, greaterThan(350), reason: 'answered when done');
+      expect((await s.call('cmd', {'c': 'step', 'a': {'type': 'takeoff'}}))['err'], contains('not a step a rover has'));
+      expect((await s.call('cmd', {'c': 'step', 'a': {'type': 'goto', 'x': 80, 'y': 0}}))['err'], contains('beyond the 50 m geofence'));
+      expect((await s.call('cmd', {'c': 'step', 'a': {'type': 'wait', 's': 5, 'wait': false}}))['ok'], isTrue, reason: 'returns at once');
+      expect((await s.call('cmd', {'c': 'step', 'a': {'type': 'wait', 's': 1}}))['err'], contains('is running on Mule'));
+    });
+
+    test('the operator taking over interrupts the step the script waits on', () async {
+      final s = await _Script.open(d.scripts);
+      await s.call('use');
+      final f = s.call('cmd', {'c': 'step', 'a': {'type': 'goto', 'x': 20, 'y': 0}});
+      await run(.3);
+      d.goManual();
+      await run(.2);
+      expect((await f)['err'], contains('manual control'));
+    });
+
+    test('programs from the Program screen, by name', () async {
+      final s = await _Script.open(d.scripts);
+      await s.call('use');
+      final l = d.links.values.single;
+      d.sequencesFor(l.id).add(Sequence(id: 'q1', name: 'Short wait', kind: l.kind, steps: [SeqStep('wait', {'s': .3})]));
+      expect((await s.call('cmd', {'c': 'program', 'a': {'name': 'nope'}}))['err'], contains('No program called "nope"'));
+      final r = await callWhileTicking(s, 'cmd', {'c': 'program', 'a': {'name': 'short wait'}}, 3);
+      expect(r['ok'], isTrue, reason: '$r');
+    });
   });
 
   group('triggers', () {

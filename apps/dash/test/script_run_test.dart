@@ -116,4 +116,60 @@ void main() {
     expect(best, lessThan(.36), reason: 'within 0.6 m of (8, 0). Console:\n${run.console.map((l) => l.text).join('\n')}');
     expect(run.console.where((l) => l.text.contains('Traceback')), isEmpty);
   }, skip: python == null ? 'no Python with koebelt-dash-scripts (KDASH_SCRIPTS_PYTHON)' : false, timeout: const Timeout(Duration(seconds: 60)));
+
+  test('a script sees the camera, draws on it, and flies the drone with steps', () async {
+    SharedPreferences.setMockInitialValues({});
+    final d = Dash();
+    await d.init();
+    final kite = d.addSimulated(simTemplates().firstWhere((t) => t.id == 'kite'));
+    await d.connect(kite.id);
+    await d.scripts.start(port: 0);
+    final ticker = Timer.periodic(const Duration(milliseconds: 20), (_) => d.tick(.02));
+    addTearDown(() async {
+      ticker.cancel();
+      for (final r in d.scripts.runs) {
+        await r.stop();
+      }
+      await d.scripts.stop();
+      await d.disconnectAll();
+    });
+    final dir = await Directory.systemTemp.createTemp('kdash-steps');
+    final file = File('${dir.path}/fly.py')..writeAsStringSync('''
+from koebelt_dash_scripts import connect, ScriptError
+dev = connect()
+img = dev.camera.jpeg()
+print("frame", len(img) > 1000, img[:4] == b"\\x89PNG")
+dev.overlay([(0.4, 0.4, 0.2, 0.2, "target")])
+try:
+    dev.goto(500, 0, 10)
+except ScriptError as e:
+    print("refused:", e)
+try:
+    dev.drive_to_the_moon()
+except AttributeError:
+    print("no such method")
+dev.land()  # the simulated Kite starts in the air
+dev.takeoff(5)
+print("alt", round(dev.tlm.alt))
+dev.goto(6, 0, 5)
+x, y, z = dev.tlm.pos
+print("off by", round(((x - 6) ** 2 + y ** 2 + (z - 5) ** 2) ** 0.5, 1))
+dev.land()
+print("landed", round(dev.tlm.alt))
+''');
+    d.scripts.configFor(file.path).limits.allowArm = true;
+    final run = await d.scripts.runFile(file, python: python);
+    String out() => run.console.map((l) => l.text).join('\n');
+    for (var i = 0; i < 1200 && run.state == ScriptState.running; i++) {
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+    }
+    final o = out();
+    expect(o, contains('frame True True'), reason: o);
+    expect(d.links.values.single.overlay?.boxes.single.label, 'target');
+    expect(o, contains('refused: That is 500 m from home, beyond the 50 m geofence.'));
+    expect(o, contains('alt 5'));
+    expect(double.parse(RegExp(r'off by ([0-9.]+)').firstMatch(o)![1]!), lessThanOrEqualTo(1.0), reason: 'Program\'s arrival radius');
+    expect(o, contains('landed 0'));
+    expect(run.state, ScriptState.exited, reason: o);
+  }, skip: python == null ? 'no Python with koebelt-dash-scripts (KDASH_SCRIPTS_PYTHON)' : false, timeout: const Timeout(Duration(seconds: 90)));
 }
