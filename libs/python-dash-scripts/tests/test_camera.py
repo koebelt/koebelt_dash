@@ -57,8 +57,9 @@ def test_reads_multipart_frames_whatever_their_type(stream):
 
 
 def test_a_camera_without_a_url():
-    with pytest.raises(RuntimeError, match="not reachable"):
+    with pytest.raises(RuntimeError) as e:
         Camera({"id": "cam", "url": None}).jpeg(timeout=0.1)
+    assert e.value.code == "E0602" and "address" in e.value.why
 
 
 class _T:

@@ -145,7 +145,7 @@ dev.overlay([(0.4, 0.4, 0.2, 0.2, "target")])
 try:
     dev.goto(500, 0, 10)
 except ScriptError as e:
-    print("refused:", e)
+    print("refused:", e.code, e.title)
 try:
     dev.drive_to_the_moon()
 except AttributeError:
@@ -168,7 +168,7 @@ print("landed", round(dev.tlm.alt))
     final o = out();
     expect(o, contains('frame True True'), reason: o);
     expect(d.links.values.single.overlay?.boxes.single.label, 'target');
-    expect(o, contains('refused: That is 500 m from home, beyond the 50 m geofence.'));
+    expect(o, contains('refused: E0303 that point is 500 m from home, beyond the 50 m geofence'));
     // Done from 0.6 m below the target, as in Program.
     expect(double.parse(RegExp(r'alt ([0-9.]+)').firstMatch(o)![1]!), inInclusiveRange(4.4, 5.6));
     expect(double.parse(RegExp(r'off by ([0-9.]+)').firstMatch(o)![1]!), lessThanOrEqualTo(1.5), reason: 'Program\'s 1 m arrival radius, and a little drift before the script reads it');

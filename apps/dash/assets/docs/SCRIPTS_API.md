@@ -100,6 +100,26 @@ dash stays in charge, whatever the script does:
 | `every(seconds)`, `wait(seconds)` | Steady loops; dash shows the real rate. |
 | `pid`, `lowpass`, `rate_limit`, `clamp`, `distance`, `bearing`, `angle_diff`, `geo_distance`, `geo_bearing` | Helpers. |
 
+## Errors
+
+When something goes wrong, the error says what, points at the line of your
+script, says why and how to fix it, and suggests the name you meant:
+
+```
+error[E0201]: “pitch” is not a stick of a rover
+  --> follow_me.py:21
+   |
+21 |     dev.sticks(throttle=0.4, pitch=steer)
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = why: sticks are named for the kind of device
+   = help: a rover has: throttle, steer, lx, ly, rx, ry
+   = docs: https://github.com/koebelt/koebelt_dash/blob/main/libs/python-dash-scripts/ERRORS.md#e0201
+```
+
+Every code is explained in [ERRORS.md](ERRORS.md). Catch them as `ScriptError`
+(`e.code`, `e.why`, `e.help`).
+
 The messages between scripts and dash are documented in
 [protocol/SCRIPTS.md](https://github.com/koebelt/koebelt_dash/blob/main/protocol/SCRIPTS.md).
 

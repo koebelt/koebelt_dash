@@ -16,24 +16,16 @@ import queue
 import sys
 import threading
 import time
-import traceback
 from typing import Any, Callable, Dict, Iterator, List, Optional
 
 from websockets.exceptions import ConnectionClosed
 from websockets.sync.client import connect as ws_connect
 
 from .camera import Camera, boxes_of
+from .errors import Released, ScriptError, TelemetryFieldError, report, warn_once
 
 API_VERSION = 1
 DISCOVERY = pathlib.Path.home() / ".koebelt" / "dash-api.json"
-
-
-class ScriptError(RuntimeError):
-    """dash refused a request; the message says why."""
-
-
-class Released(ScriptError):
-    """dash took the sticks away (watchdog, geofence, STOP…) and the operator has not resumed the script yet."""
 
 
 class Telemetry:
@@ -63,10 +55,12 @@ class Telemetry:
         return (self.raw["lat"], self.raw["lon"], self.raw.get("galt", 0.0))
 
     def __getattr__(self, name: str):
+        if name.startswith("__"):
+            raise AttributeError(name)
         try:
             return self.raw[name]
         except KeyError:
-            raise AttributeError(f"this device sends no '{name}' (it sends: {', '.join(sorted(self.raw))})") from None
+            raise TelemetryFieldError("E0501", {"name": name, "names": sorted([*self.raw, "alt", "gps", "age"])}) from None
 
     def __repr__(self):
         keys = ("mode", "armed", "pos", "speed", "battery")
@@ -145,8 +139,7 @@ def _find_dash(url: Optional[str], token: Optional[str]):
     try:
         found = json.loads(DISCOVERY.read_text())
     except (OSError, ValueError):
-        raise ScriptError("koebelt dash is not running on this computer (no ~/.koebelt/dash-api.json). "
-                          "Start it, or pass url= and token=.") from None
+        raise ScriptError("E0010") from None
     return url or found["url"], token or found["token"]
 
 
@@ -190,7 +183,7 @@ class Device:
 
     def _call(self, t: str, timeout: float = 5, **fields) -> Any:
         if self._closed.is_set():
-            raise ScriptError("the connection to koebelt dash is closed")
+            raise ScriptError("E0013")
         i = next(self._ids)
         box: "queue.Queue[Dict[str, Any]]" = queue.Queue(1)
         self._waiting[i] = box
@@ -199,14 +192,15 @@ class Device:
             try:
                 res = box.get(timeout=timeout)
             except queue.Empty:
-                raise ScriptError(f"koebelt dash did not answer '{t}' within {timeout} s") from None
+                raise ScriptError("E0014", {"request": t, "timeout": timeout}) from None
         finally:
             self._waiting.pop(i, None)
         if res.get("closed"):
-            raise ScriptError("the connection to koebelt dash closed")
+            raise ScriptError("E0013")
         if not res.get("ok"):
-            err = res.get("err") or "refused"
-            raise (Released if self.released and "resume" in err else ScriptError)(err)
+            code = res.get("code") or "E0900"
+            data = {**(res.get("data") or {}), "message": res.get("err") or "refused"}
+            raise (Released if code == "E0102" else ScriptError)(code, data, res.get("err"))
         return res.get("value")
 
     def _receive(self) -> None:
@@ -271,8 +265,8 @@ class Device:
             for h in handlers:
                 try:
                     h(*args)
-                except Exception:
-                    traceback.print_exc()
+                except Exception as e:
+                    report(e)
 
     def _keepalive(self) -> None:
         while not self._closed.wait(0.1):
@@ -305,7 +299,7 @@ class Device:
     def tlm(self) -> Telemetry:
         """The latest telemetry (20 Hz)."""
         if self._tlm is None:
-            raise ScriptError("no telemetry from the device yet")
+            raise ScriptError("E0502")
         return self._tlm
 
     def next_tlm(self, timeout: float = 1.0) -> Telemetry:
@@ -313,15 +307,21 @@ class Device:
         with self._tlm_ready:
             before = self._tlm
             if not self._tlm_ready.wait_for(lambda: self._tlm is not before, timeout=timeout):
-                raise ScriptError(f"no telemetry for {timeout} s")
+                raise ScriptError("E0502")
             return self._tlm  # type: ignore[return-value]
 
     # ------------------------------------------------------------------ acting
-    def sticks(self, **axes: float) -> None:
+    def sticks(self, *values: float, **axes: float) -> None:
         """Sets the sticks, −1…1, until changed. Drones: ``throttle``, ``yaw``,
         ``pitch``, ``roll``; rovers: ``throttle``, ``steer``; any device:
         ``lx``, ``ly``, ``rx``, ``ry``. dash scales them to the script's speed
         limit, and the operator's sticks win."""
+        if values:
+            raise ScriptError("E0202")
+        for k, v in list(axes.items()):
+            if not -1 <= v <= 1:
+                axes[k] = max(-1.0, min(1.0, float(v)))
+                warn_once("W0201", k, {"name": k, "value": round(float(v), 3), "clamped": axes[k]})
         self._call("sticks", a=axes)
 
     def release(self) -> None:
@@ -408,7 +408,7 @@ class Device:
     def camera(self) -> Camera:
         """The device's first camera."""
         if not self.cameras:
-            raise ScriptError(f"{self.name} has no camera")
+            raise ScriptError("E0601", {"device": self.name})
         return self.cameras[0]
 
     def overlay(self, boxes: Any, width: Optional[float] = None, height: Optional[float] = None) -> None:
@@ -422,6 +422,10 @@ class Device:
                 label: Optional[str] = None) -> Setting:
         """A slider (numbers) or switch (True/False) in dash. Read ``.value``;
         the operator's last value is kept between runs."""
+        if not isinstance(default, (bool, int, float)):
+            raise ScriptError("E0701", {"name": name, "reason": f"the default must be a number or True/False, not {type(default).__name__}"})
+        if min is not None and max is not None and min >= max:
+            raise ScriptError("E0701", {"name": name, "reason": f"min ({min}) must be below max ({max})"})
         value = self._call("setting", name=name, value=default, min=min, max=max, label=label)
         s = self._settings[name] = Setting(name, value)
         return s
@@ -432,6 +436,9 @@ class Device:
         ``button`` (no argument), ``switch`` (True/False) or ``value`` (a
         number). ``key`` and ``gamepad`` suggest bindings; the operator can
         change them."""
+        if kind not in ("button", "switch", "value"):
+            raise ScriptError("E0702", {"name": name, "kind": kind})
+
         def register(fn: Callable) -> Callable:
             self._triggers[name] = fn
             self._call("trigger", name=name, kind=kind, key=key, gamepad=gamepad, min=min, max=max)
@@ -511,13 +518,13 @@ def connect(device: Optional[str] = None, *, url: Optional[str] = None, token: O
     try:
         # Entering the context opens it, in every websockets version from 12 on.
         ws = ws_connect(url, open_timeout=5, max_size=None).__enter__()
-    except OSError as e:
-        raise ScriptError(f"cannot reach koebelt dash at {url}: {e}") from None
+    except (OSError, TimeoutError) as e:
+        raise ScriptError("E0011", {"url": url, "reason": str(e) or type(e).__name__}) from None
     ws.send(json.dumps({"t": "hello", "v": API_VERSION, "token": token, "name": name, "pid": os.getpid()}))
     welcome = json.loads(ws.recv(timeout=5))
     if welcome.get("t") != "welcome":
         ws.close()
-        raise ScriptError(welcome.get("why") or "koebelt dash refused the connection")
+        raise ScriptError("E0012", {"reason": welcome.get("why") or "no reason given"})
     dev = Device(ws, welcome, name)
     dev._use(device)
     _current = dev
@@ -528,6 +535,8 @@ def every(seconds: float) -> Iterator[int]:
     """A steady loop: ``for i in every(0.05): ...`` runs the body every 50 ms
     (or as fast as it can), and reports the real rate to dash."""
     period = float(seconds)
+    if period <= 0:
+        raise ScriptError("E0703", {"seconds": seconds})
     nxt = time.monotonic()
     window, count = nxt, 0
     for i in itertools.count():

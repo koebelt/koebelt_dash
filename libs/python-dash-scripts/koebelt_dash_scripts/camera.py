@@ -13,8 +13,11 @@ import urllib.request
 from typing import Any, Dict, Iterator, Optional
 
 
-class CameraError(RuntimeError):
-    pass
+from .errors import ScriptError
+
+
+class CameraError(ScriptError):
+    """A camera problem (E0602, E0603)."""
 
 
 def decode_jpeg(data: bytes):
@@ -27,13 +30,13 @@ def decode_jpeg(data: bytes):
     if cv2 is not None:
         img = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
         if img is None:
-            raise CameraError("could not decode a camera frame")
+            raise CameraError("E0602", {"camera": "?", "timeout": 0, "reason": "a frame could not be decoded"})
         return img
     try:
         import numpy as np
         from PIL import Image
     except ImportError:
-        raise CameraError("camera frames need numpy and OpenCV (pip install opencv-python) or Pillow (pip install pillow)") from None
+        raise CameraError("E0603") from None
     return np.asarray(Image.open(io.BytesIO(data)).convert("RGB"))[:, :, ::-1].copy()
 
 
@@ -61,7 +64,7 @@ class Camera:
         if self._thread is not None:
             return
         if not self.url:
-            raise CameraError(f"camera {self.label} is not reachable from this computer")
+            raise CameraError("E0602", {"camera": self.label, "timeout": 0, "reason": "dash knows no address for it that this computer can reach"})
         self._thread = threading.Thread(target=self._read, daemon=True, name=f"koebelt-dash-camera-{self.id}")
         self._thread.start()
 
@@ -121,7 +124,7 @@ class Camera:
         self._start()
         with self._cond:
             if not self._cond.wait_for(lambda: self._jpeg is not None, timeout=timeout):
-                raise CameraError(f"no picture from camera {self.label} within {timeout} s" + (f": {self.error}" if self.error else ""))
+                raise CameraError("E0602", {"camera": self.label, "timeout": timeout, "reason": self.error or "the stream sent nothing"})
             return self._jpeg  # type: ignore[return-value]
 
     def frame(self, timeout: float = 5.0):
@@ -135,7 +138,7 @@ class Camera:
         while True:
             with self._cond:
                 if not self._cond.wait_for(lambda: self._count != seen and self._jpeg is not None, timeout=timeout):
-                    raise CameraError(f"no picture from camera {self.label} within {timeout} s" + (f": {self.error}" if self.error else ""))
+                    raise CameraError("E0602", {"camera": self.label, "timeout": timeout, "reason": self.error or "the stream sent nothing"})
                 seen, data = self._count, self._jpeg
             yield decode_jpeg(data)  # type: ignore[arg-type]
 
@@ -157,7 +160,7 @@ class _Buffered:
             return False
         self.buf += chunk
         if len(self.buf) > 32_000_000:
-            raise CameraError("camera stream without frame boundaries")
+            raise CameraError("E0602", {"camera": "?", "timeout": 0, "reason": "the stream has no frame boundaries"})
         return True
 
     def readline(self) -> Optional[bytes]:

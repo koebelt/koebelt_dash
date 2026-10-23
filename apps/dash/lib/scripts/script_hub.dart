@@ -43,6 +43,15 @@ const stickAxes = <DeviceKind, Map<String, int>>{
   DeviceKind.rover: {'steer': 0, 'throttle': 3},
 };
 
+/// A request dash refuses, with its code (protocol/SCRIPTS.md, Errors).
+class ScriptRefusal implements Exception {
+  ScriptRefusal(this.code, this.message, [this.data]);
+  final String code, message;
+  final Map<String, Object?>? data;
+  @override
+  String toString() => message;
+}
+
 /// Maps named sticks (`throttle`, `steer`…) or raw axes (`lx`…) to the four
 /// axes, clamped to −1…1. Unknown names are an error.
 List<double> sticksFor(DeviceKind kind, Map a, List<double> current) {
@@ -51,7 +60,11 @@ List<double> sticksFor(DeviceKind kind, Map a, List<double> current) {
   for (final e in a.entries) {
     final i = names[e.key] ?? const {'lx': 0, 'ly': 1, 'rx': 2, 'ry': 3}[e.key];
     if (i == null) {
-      throw ArgumentError('"${e.key}" is not a stick of a ${kind.name}${names.isEmpty ? '' : ' (${names.keys.join(', ')})'}');
+      throw ScriptRefusal(
+        'E0201',
+        '"${e.key}" is not a stick of a ${kind.name}${names.isEmpty ? '' : ' (${names.keys.join(', ')})'}',
+        {'name': e.key, 'names': [...names.keys, 'lx', 'ly', 'rx', 'ry'], 'kind': kind.name},
+      );
     }
     out[i] = (e.value as num).toDouble().clamp(-1.0, 1.0);
   }
@@ -474,7 +487,10 @@ class ScriptHub {
     c.send({'t': 'released', 'why': why});
   }
 
-  void _res(ScriptConn c, Object? id, {String? err, Object? value}) => c.send({'t': 'res', 'id': id, 'ok': err == null, 'err': ?err, 'value': ?value});
+  /// A result; a refusal carries a code (protocol/SCRIPTS.md, Errors) and
+  /// what a script needs to explain it (the names it could have used…).
+  void _res(ScriptConn c, Object? id, {String? err, String? code, Map<String, Object?>? data, Object? value}) =>
+      c.send({'t': 'res', 'id': id, 'ok': err == null, 'err': ?err, 'code': ?code, 'data': ?data, 'value': ?value});
 
   void _onMsg(ScriptConn c, Map<String, dynamic> m) {
     final id = m['id'];
@@ -488,7 +504,12 @@ class ScriptHub {
           DeviceLink? named(String n) => d.links.values.where((x) => x.id == n || x.info.name.toLowerCase() == n.toLowerCase()).firstOrNull;
           // No name: the device chosen on the script's page, else the selected one.
           final l = want != null ? named(want) : (c.config.device == null ? null : named(c.config.device!)) ?? d.focus;
-          if (l == null) return _res(c, id, err: want == null ? 'No device is connected in koebelt dash.' : 'No connected device called "$want".');
+          if (l == null) {
+            final names = [for (final x in d.links.values) x.info.name];
+            return want == null
+                ? _res(c, id, err: 'No device is connected in koebelt dash.', code: 'E0001')
+                : _res(c, id, err: 'No connected device called "$want".', code: 'E0002', data: {'name': want, 'names': names});
+          }
           if (c.device != l.id) _release(c, 'Switched device.', block: false);
           c.device = l.id;
           return _res(
@@ -510,11 +531,13 @@ class ScriptHub {
           );
         case 'sticks':
           final l = _link(c);
-          if (l == null) return _res(c, id, err: 'Call use() first.');
-          if (l.tel.estop) return _res(c, id, err: 'STOP is on: the operator must clear it.');
-          if (c.blocked != null) return _res(c, id, err: '${c.blocked} The operator must resume the script in dash.');
+          if (l == null) return _res(c, id, err: 'Call use() first.', code: 'E0003');
+          if (l.tel.estop) return _res(c, id, err: 'STOP is on: the operator must clear it.', code: 'E0101');
+          if (c.blocked != null) return _res(c, id, err: '${c.blocked} The operator must resume the script in dash.', code: 'E0102', data: {'why': c.blocked});
           final other = l.drive;
-          if (other != null && other.conn != c) return _res(c, id, err: 'Another script (${other.conn.name}) drives ${l.info.name}.');
+          if (other != null && other.conn != c) {
+            return _res(c, id, err: 'Another script (${other.conn.name}) drives ${l.info.name}.', code: 'E0103', data: {'other': other.conn.name, 'device': l.info.name});
+          }
           final dr = c.drive ??= ScriptDrive(c, l);
           l.drive = dr;
           dr.sticks.setAll(0, sticksFor(l.kind, (m['a'] as Map?) ?? const {}, dr.sticks));
@@ -565,10 +588,11 @@ class ScriptHub {
           d.emit();
           return _res(c, id);
         default:
-          return _res(c, id, err: 'Unknown message "${m['t']}".');
+          return _res(c, id, err: 'Unknown message "${m['t']}".', code: 'E0901', data: {'message': m['t']});
       }
     } catch (e) {
-      _res(c, id, err: e is ArgumentError ? '${e.message}' : '$e');
+      if (e is ScriptRefusal) return _res(c, id, err: e.message, code: e.code, data: e.data);
+      _res(c, id, err: e is ArgumentError ? '${e.message}' : '$e', code: 'E0900');
     }
   }
 
@@ -578,16 +602,16 @@ class ScriptHub {
       return _res(c, id);
     }
     final l = _link(c);
-    if (l == null) return _res(c, id, err: 'Call use() first.');
-    if (l.tel.estop) return _res(c, id, err: 'STOP is on: the operator must clear it.');
+    if (l == null) return _res(c, id, err: 'Call use() first.', code: 'E0003');
+    if (l.tel.estop) return _res(c, id, err: 'STOP is on: the operator must clear it.', code: 'E0101');
     final h = d.linkHost(l), lim = c.limits;
     switch (cmd) {
       case 'mode':
         final mode = '${a['m']}'.toUpperCase();
-        if (mode == 'TAKEOFF' && !lim.allowArm) return _res(c, id, err: 'Take-off is not allowed for this script (Limits in dash).');
+        if (mode == 'TAKEOFF' && !lim.allowArm) return _res(c, id, err: 'Take-off is not allowed for this script (Limits in dash).', code: 'E0301');
         h.seqSetMode(mode);
       case 'arm':
-        if (!lim.allowArm) return _res(c, id, err: 'Arming is not allowed for this script (Limits in dash).');
+        if (!lim.allowArm) return _res(c, id, err: 'Arming is not allowed for this script (Limits in dash).', code: 'E0301');
         h.seqSetArmed(a['v'] != false);
       case 'disarm':
         h.seqSetArmed(false);
@@ -601,14 +625,17 @@ class ScriptHub {
       case 'program':
         final name = '${a['name']}';
         final q = d.sequencesFor(l.id).where((x) => x.name.toLowerCase() == name.toLowerCase() || x.id == name).firstOrNull;
-        if (q == null) return _res(c, id, err: 'No program called "$name" on ${l.info.name} (${d.sequencesFor(l.id).map((x) => x.name).join(', ')}).');
+        if (q == null) {
+          final names = [for (final x in d.sequencesFor(l.id)) x.name];
+          return _res(c, id, err: 'No program called "$name" on ${l.info.name} (${names.join(', ')}).', code: 'E0402', data: {'name': name, 'names': names, 'device': l.info.name});
+        }
         if (q.steps.any((st) => st.type == 'takeoff' || st.type == 'arm') && !lim.allowArm) {
-          return _res(c, id, err: '"${q.name}" arms or takes off, which is not allowed for this script (Limits in dash).');
+          return _res(c, id, err: '"${q.name}" arms or takes off, which is not allowed for this script (Limits in dash).', code: 'E0301');
         }
         return _start(c, id, l, q, wait: a['wait'] != false);
       case 'seqctl':
         final r = l.runner;
-        if (r == null) return _res(c, id, err: 'Nothing is running on ${l.info.name}.');
+        if (r == null) return _res(c, id, err: 'Nothing is running on ${l.info.name}.', code: 'E0406');
         // On-device runners pass these on to the device.
         switch (a['c']) {
           case 'pause':
@@ -620,10 +647,10 @@ class ScriptHub {
         }
         d.emit();
       case 'pset':
-        if (!lim.allowParams) return _res(c, id, err: 'Parameter writes are not allowed for this script (Limits in dash).');
+        if (!lim.allowParams) return _res(c, id, err: 'Parameter writes are not allowed for this script (Limits in dash).', code: 'E0302');
         d.sendTo(l, {'t': 'pset', 'p': a});
       case 'psave':
-        if (!lim.allowParams) return _res(c, id, err: 'Parameter writes are not allowed for this script (Limits in dash).');
+        if (!lim.allowParams) return _res(c, id, err: 'Parameter writes are not allowed for this script (Limits in dash).', code: 'E0302');
         d.sendTo(l, {'t': 'psave'});
       default:
         // Kind-specific commands (release, countdown, sethome…).
@@ -640,17 +667,24 @@ class ScriptHub {
     final type = '${a['type']}';
     final def = stepDef(l.kind, type);
     if (def == null) {
-      return _res(c, id, err: '"$type" is not a step a ${l.kind.name} has (${stepDefs(l.kind).map((s) => s.type).join(', ')}).');
+      final names = [for (final s in stepDefs(l.kind)) s.type];
+      return _res(c, id, err: '"$type" is not a step a ${l.kind.name} has (${names.join(', ')}).', code: 'E0401', data: {'name': type, 'names': names, 'kind': l.kind.name});
     }
     final lim = c.limits;
-    if ((type == 'takeoff' || type == 'arm') && !lim.allowArm) return _res(c, id, err: 'Take-off and arming are not allowed for this script (Limits in dash).');
+    if ((type == 'takeoff' || type == 'arm') && !lim.allowArm) return _res(c, id, err: 'Take-off and arming are not allowed for this script (Limits in dash).', code: 'E0301');
     double n(String k) => (a[k] as num?)?.toDouble() ?? 0;
     if (type == 'goto') {
       final dist = math.sqrt(n('x') * n('x') + n('y') * n('y'));
-      if (lim.fence > 0 && dist > lim.fence) return _res(c, id, err: 'That is ${dist.round()} m from home, beyond the ${lim.fence.round()} m geofence.');
-      if (lim.ceiling > 0 && l.kind == DeviceKind.drone && n('z') > lim.ceiling) return _res(c, id, err: '${n('z')} m is above the ${lim.ceiling.round()} m ceiling.');
+      if (lim.fence > 0 && dist > lim.fence) {
+        return _res(c, id, err: 'That is ${dist.round()} m from home, beyond the ${lim.fence.round()} m geofence.', code: 'E0303', data: {'distance': dist, 'fence': lim.fence});
+      }
+      if (lim.ceiling > 0 && l.kind == DeviceKind.drone && n('z') > lim.ceiling) {
+        return _res(c, id, err: '${n('z')} m is above the ${lim.ceiling.round()} m ceiling.', code: 'E0304', data: {'height': n('z'), 'ceiling': lim.ceiling});
+      }
     }
-    if (type == 'takeoff' && lim.ceiling > 0 && n('alt') > lim.ceiling) return _res(c, id, err: '${n('alt')} m is above the ${lim.ceiling.round()} m ceiling.');
+    if (type == 'takeoff' && lim.ceiling > 0 && n('alt') > lim.ceiling) {
+      return _res(c, id, err: '${n('alt')} m is above the ${lim.ceiling.round()} m ceiling.', code: 'E0304', data: {'height': n('alt'), 'ceiling': lim.ceiling});
+    }
     final st = SeqStep.fresh(def);
     for (final e in a.entries) {
       if (e.key != 'type' && e.key != 'wait' && st.p.containsKey(e.key)) st.p[e.key] = e.value;
@@ -662,10 +696,10 @@ class ScriptHub {
   void _start(ScriptConn c, Object? id, DeviceLink l, Sequence q, {required bool wait}) {
     final busy = l.runner;
     if (busy != null && (busy.state == RunState.running || busy.state == RunState.paused)) {
-      return _res(c, id, err: '"${busy.seq.name}" is running on ${l.info.name}: stop it first.');
+      return _res(c, id, err: '"${busy.seq.name}" is running on ${l.info.name}: stop it first.', code: 'E0403', data: {'running': busy.seq.name});
     }
     d.runSequenceOn(l, q);
-    if (l.runner?.seq != q) return _res(c, id, err: '${l.info.name} cannot run it now.');
+    if (l.runner?.seq != q) return _res(c, id, err: '${l.info.name} cannot run it now.', code: 'E0404');
     if (!wait || id == null) return _res(c, id);
     c.pending[id] = (link: l, seq: q.id);
   }
@@ -685,7 +719,7 @@ class ScriptHub {
         continue;
       }
       c.pending.remove(e.key);
-      _res(c, e.key, err: err);
+      _res(c, e.key, err: err, code: err == null ? null : 'E0405');
     }
   }
 

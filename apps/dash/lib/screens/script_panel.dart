@@ -644,7 +644,8 @@ class _ScriptConsoleState extends State<ScriptConsole> {
                           'info' => K.textMuted,
                           _ => K.textSecondary,
                         };
-                        final line = RegExp(r'File ".*?", line (\d+)').firstMatch(l.text);
+                        // A traceback's line, or an error's --> script.py:14.
+                        final line = RegExp(r'File ".*?", line (\d+)|--> .*?:(\d+)\s*$').firstMatch(l.text);
                         final text = Text(l.text, style: KText.mono(12, color: c, height: 1.5, w: FontWeight.w400));
                         return Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -655,7 +656,7 @@ class _ScriptConsoleState extends State<ScriptConsole> {
                             ],
                             Expanded(
                               child: line != null && widget.onLine != null
-                                  ? Pressable(onTap: () => widget.onLine!(int.parse(line[1]!)), builder: (_, _, _) => text)
+                                  ? Pressable(onTap: () => widget.onLine!(int.parse(line[1] ?? line[2]!)), builder: (_, _, _) => text)
                                   : text,
                             ),
                           ],

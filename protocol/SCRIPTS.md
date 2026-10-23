@@ -34,8 +34,15 @@ Messages with an `id` get a result:
 
 ```json
 ← {"t":"res","id":7,"ok":true,"value":…}
-← {"t":"res","id":8,"ok":false,"err":"Arming is not allowed for this script (Limits in dash)."}
+← {"t":"res","id":8,"ok":false,"err":"Arming is not allowed for this script (Limits in dash).","code":"E0301"}
+← {"t":"res","id":9,"ok":false,"err":"\"pitch\" is not a stick of a rover (throttle, steer)","code":"E0201",
+   "data":{"name":"pitch","names":["throttle","steer","lx","ly","rx","ry"],"kind":"rover"}}
 ```
+
+A refusal has a `code` (the list, with what each means and how to fix it,
+is [libs/python-dash-scripts/ERRORS.md](../libs/python-dash-scripts/ERRORS.md))
+and, where it helps explain it, `data`: the names that would have worked,
+the limit that applies… `err` is the same in plain English.
 
 ## Script → dash
 

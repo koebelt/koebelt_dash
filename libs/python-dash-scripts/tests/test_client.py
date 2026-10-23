@@ -54,9 +54,12 @@ class FakeDash:
                 elif m["t"] == "setting":
                     res["value"] = 0.7 if m["name"] == "kept" else m["value"]
                 elif m["t"] == "sticks" and self.refuse_sticks:
-                    res = {"t": "res", "id": m["id"], "ok": False, "err": self.refuse_sticks}
+                    res = {"t": "res", "id": m["id"], "ok": False, "err": self.refuse_sticks, "code": "E0102", "data": {"why": "Mule left the 50 m geofence: it holds."}}
                 elif m["t"] == "cmd" and m["c"] == "arm":
-                    res = {"t": "res", "id": m["id"], "ok": False, "err": "Arming is not allowed for this script (Limits in dash)."}
+                    res = {"t": "res", "id": m["id"], "ok": False, "err": "Arming is not allowed for this script (Limits in dash).", "code": "E0301"}
+                elif m["t"] == "sticks" and "pitch" in m["a"]:
+                    res = {"t": "res", "id": m["id"], "ok": False, "err": "not a stick", "code": "E0201",
+                           "data": {"name": "pitch", "names": ["throttle", "steer", "lx", "ly", "rx", "ry"], "kind": "rover"}}
                 elif m["t"] == "cmd" and m["c"] == "params":
                     res["value"] = {"MAX_SPD": 2.0}
                 ws.send(json.dumps(res))
@@ -92,16 +95,21 @@ def test_finds_dash_and_uses_the_selected_device(dash):
     assert dash.hello["name"] == "test.py" and dash.hello["v"] == 1
     assert (dev.name, dev.kind, dev.simulated) == ("Mule", "rover", True)
     assert dev.tlm.alt == 3 and dev.tlm.mode == "AUTO" and dev.tlm.battery == 80
-    with pytest.raises(AttributeError, match="sends no 'lidar'"):
+    with pytest.raises(AttributeError) as e:
         dev.tlm.lidar
+    assert e.value.code == "E0501" and "lidar" in e.value.title
+    with pytest.raises(AttributeError) as e:
+        dev.tlm.batery
+    assert "did you mean “battery”" in e.value.help
     dev.close()
 
 
 def test_environment_wins_over_the_discovery_file(dash, monkeypatch):
     monkeypatch.setenv("KOEBELT_DASH_URL", dash.url)
     monkeypatch.setenv("KOEBELT_DASH_TOKEN", "wrong")
-    with pytest.raises(k.ScriptError, match="token"):
+    with pytest.raises(k.ScriptError) as e:
         k.connect()
+    assert e.value.code == "E0012" and "token" in e.value.why
 
 
 def test_no_dash_running(tmp_path, monkeypatch):
@@ -190,8 +198,9 @@ def test_released_and_takeover(dash):
     dash.send({"t": "released", "why": "Mule left the 50 m geofence: it holds."})
     assert wait_for(lambda: stopped and dev.released)
     dash.refuse_sticks = "Mule left the 50 m geofence: it holds. The operator must resume the script in dash."
-    with pytest.raises(k.Released, match="resume"):
+    with pytest.raises(k.Released) as e:
         dev.sticks(throttle=1)
+    assert "Resume" in e.value.help
     dash.send({"t": "resumed"})
     assert wait_for(lambda: dev.released is None)
     dev.close()
