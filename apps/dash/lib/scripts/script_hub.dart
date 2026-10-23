@@ -133,7 +133,7 @@ class ScriptConn {
   /// The script's own loop rate, from its keep-alives (every()).
   double? hz;
 
-  /// Steps and programs the script waits on: request id → (device, sequence id).
+  /// Steps and sequences the script waits on: request id → (device, sequence id).
   final Map<Object, ({DeviceLink link, String seq})> pending = {};
 
   /// Declared by the script: settings (name → value, bounds) and triggers.
@@ -755,7 +755,7 @@ class ScriptHub {
         final q = d.sequencesFor(l.id).where((x) => x.name.toLowerCase() == name.toLowerCase() || x.id == name).firstOrNull;
         if (q == null) {
           final names = [for (final x in d.sequencesFor(l.id)) x.name];
-          return _res(c, id, err: 'No program called "$name" on ${l.info.name} (${names.join(', ')}).', code: 'E0402', data: {'name': name, 'names': names, 'device': l.info.name});
+          return _res(c, id, err: 'No sequence called "$name" on ${l.info.name} (${names.join(', ')}).', code: 'E0402', data: {'name': name, 'names': names, 'device': l.info.name});
         }
         if (q.steps.any((st) => st.type == 'takeoff' || st.type == 'arm') && !lim.allowArm) {
           return _res(c, id, err: '"${q.name}" arms or takes off, which is not allowed for this script (Limits in dash).', code: 'E0301');
@@ -789,8 +789,8 @@ class ScriptHub {
 
   var _seqN = 0;
 
-  /// One Program step (take off, go to, land…), run like a one-step program
-  /// so it behaves exactly as in Program. The result comes when it is done.
+  /// One step (take off, go to, land…), run like a one-step sequence so it
+  /// behaves exactly as in a sequence. The result comes when it is done.
   void _step(ScriptConn c, Object? id, DeviceLink l, Map<String, dynamic> a) {
     final type = '${a['type']}';
     final def = stepDef(l.kind, type);
@@ -832,7 +832,7 @@ class ScriptHub {
     c.pending[id] = (link: l, seq: q.id);
   }
 
-  /// Answers the steps and programs scripts wait on, once they end.
+  /// Answers the steps and sequences scripts wait on, once they end.
   void _settle(ScriptConn c) {
     for (final e in c.pending.entries.toList()) {
       final l = e.value.link, r = l.runner;

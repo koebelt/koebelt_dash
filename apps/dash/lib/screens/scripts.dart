@@ -351,7 +351,7 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
   }
 
   /// What completion knows about the device the script would run on: its
-  /// sticks, the telemetry it sends, its programs and channels.
+  /// sticks, the telemetry it sends, its sequences and channels.
   CompletionContext _completionContext() {
     final cfg = d.scripts.configFor(selected ?? '');
     final l = (cfg.device == null ? null : d.links.values.where((x) => x.info.name == cfg.device).firstOrNull) ?? d.focus;
@@ -392,7 +392,7 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
       kind: l.kind.name,
       sticks: [...?stickAxes[l.kind]?.keys],
       tlm: [...snap.keys, 'alt', 'speed', 'heading', if (l.tel.hasGps) 'gps'],
-      programs: [for (final q in d.sequencesFor(l.id)) q.name],
+      sequences: [for (final q in d.sequencesFor(l.id)) q.name],
       channels: [for (final k in l.tel.custom.keys) if (!k.startsWith('script:')) k],
     );
   }

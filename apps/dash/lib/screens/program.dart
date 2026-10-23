@@ -13,7 +13,7 @@ import '../viz/viz.dart';
 import 'common.dart' show confirmSetHome;
 import 'params.dart' show ParamStepper;
 
-/// Program and run step sequences on the connected device.
+/// Automate > Sequences: build and run step sequences on the connected device.
 class ProgramScreen extends StatefulWidget {
   const ProgramScreen(this.d, {super.key, required this.w});
   final Dash d;

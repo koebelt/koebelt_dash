@@ -16,7 +16,7 @@ def go_home():
 
   test('any variable from connect() gets the device API, methods with parentheses', () {
     final r = completeAt('${src}robot.st', '${src}robot.st'.length);
-    expect(r.items.map((c) => c.label), containsAll(['sticks()', 'stop()', 'store', 'stop_program()']));
+    expect(r.items.map((c) => c.label), containsAll(['sticks()', 'stop()', 'store', 'stop_sequence()']));
     expect(r.items.first.label, 'sticks()', reason: 'prefix matches first');
     expect(r.replace, 2);
     final sticks = r.items.first;
@@ -34,13 +34,13 @@ def go_home():
     expect(at('${src}robot.next_tlm().al'), ['alt']);
   });
 
-  test('what dash knows about the device: its sticks, fields, programs, channels', () {
-    const rover = CompletionContext(kind: 'rover', sticks: ['throttle', 'steer'], tlm: ['pos', 'battery'], programs: ['Survey square', 'Back home'], channels: ['motor_temp']);
+  test('what dash knows about the device: its sticks, fields, sequences, channels', () {
+    const rover = CompletionContext(kind: 'rover', sticks: ['throttle', 'steer'], tlm: ['pos', 'battery'], sequences: ['Survey square', 'Back home'], channels: ['motor_temp']);
     expect(at('${src}robot.sticks(', rover), ['throttle=', 'steer=']);
     expect(at('${src}robot.sticks(throttle=0.4, ', rover), ['steer='], reason: 'not the one already given');
     expect(at('${src}robot.sticks(throttle=0.', rover), isEmpty, reason: 'typing a value');
-    expect(at('${src}robot.run_program("', rover), ['Survey square', 'Back home']);
-    expect(at('${src}robot.run_program("ba', rover), ['Back home']);
+    expect(at('${src}robot.run_sequence("', rover), ['Survey square', 'Back home']);
+    expect(at('${src}robot.run_sequence("ba', rover), ['Back home']);
     expect(at('${src}t.motor', rover), ['motor_temp']);
     expect(at('${src}robot.mode("', const CompletionContext(kind: 'drone')), containsAll(['RTH', 'LAND']));
     expect(at('$src@robot.trigger("Go", kind="s'), ['switch']);

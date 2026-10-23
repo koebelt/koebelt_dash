@@ -200,7 +200,7 @@ void main() {
     expect((await s.call('setting', {'name': 'speed', 'value': .4, 'min': 0, 'max': 1}))['value'], .7);
   });
 
-  group('steps and programs', () {
+  group('steps and sequences', () {
     Future<Map<String, dynamic>> callWhileTicking(_Script s, String t, Map<String, dynamic> m, double seconds) async {
       final f = s.call(t, m).timeout(Duration(milliseconds: (seconds * 1000).round() + 3000));
       var done = false;
@@ -235,12 +235,12 @@ void main() {
       expect((await f)['err'], contains('manual control'));
     });
 
-    test('programs from the Program screen, by name', () async {
+    test('sequences, by name', () async {
       final s = await _Script.open(d.scripts);
       await s.call('use');
       final l = d.links.values.single;
       d.sequencesFor(l.id).add(Sequence(id: 'q1', name: 'Short wait', kind: l.kind, steps: [SeqStep('wait', {'s': .3})]));
-      expect((await s.call('cmd', {'c': 'program', 'a': {'name': 'nope'}}))['err'], contains('No program called "nope"'));
+      expect((await s.call('cmd', {'c': 'program', 'a': {'name': 'nope'}}))['err'], contains('No sequence called "nope"'));
       final r = await callWhileTicking(s, 'cmd', {'c': 'program', 'a': {'name': 'short wait'}}, 3);
       expect(r['ok'], isTrue, reason: '$r');
     });

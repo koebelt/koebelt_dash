@@ -389,19 +389,28 @@ class Device:
         """Test benches: ramps the throttle from one percentage to another."""
         self._step("ramp", wait, **{"from": start, "to": end, "s": seconds})
 
-    def run_program(self, name: str, *, wait: bool = True) -> None:
-        """Runs a program from dash's Program screen (on the device when it can
-        store it: it keeps going if the link drops)."""
+    def run_sequence(self, name: str, *, wait: bool = True) -> None:
+        """Runs a sequence from dash's Automate > Sequences, by name (on the
+        device when it can store it: it keeps going if the link drops)."""
         self._call("cmd", timeout=24 * 3600 if wait else 5, c="program", a={"name": name, "wait": wait})
 
-    def pause_program(self) -> None:
+    def pause_sequence(self) -> None:
+        """Pauses the running sequence."""
         self._call("cmd", c="seqctl", a={"c": "pause"})
 
-    def resume_program(self) -> None:
+    def resume_sequence(self) -> None:
+        """Resumes it."""
         self._call("cmd", c="seqctl", a={"c": "resume"})
 
-    def stop_program(self) -> None:
+    def stop_sequence(self) -> None:
+        """Stops it."""
         self._call("cmd", c="seqctl", a={"c": "stop"})
+
+    # The names of 1.3.0b1–b3, for scripts written with them.
+    run_program = run_sequence
+    pause_program = pause_sequence
+    resume_program = resume_sequence
+    stop_program = stop_sequence
 
     # ------------------------------------------------------------------ camera
     @property

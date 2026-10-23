@@ -244,7 +244,7 @@ Why: the script's ceiling keeps drones below <ceiling> m.
 
 Fix: fly lower, or raise the ceiling in dash (the script's Limits).
 
-# Steps and programs
+# Steps and sequences
 
 ## E0401
 
@@ -254,33 +254,33 @@ Fix: fly lower, or raise the ceiling in dash (the script's Limits).
 dev.takeoff(5)             # on a rover
 ```
 
-Why: Program steps depend on the kind of device.
+Why: steps depend on the kind of device.
 
 Fix: a <kind> has: <the ones it has>.
 
 ## E0402
 
-**no program called “<name>” on <device>**
+**no sequence called “<name>” on <device>**
 
 ```python
-dev.run_program("Survey")  # it is called "Survey square"
+dev.run_sequence("Survey") # it is called "Survey square"
 ```
 
-Why: run_program() runs a sequence from dash's Program screen, by name.
+Why: run_sequence() runs a sequence from dash's Automate > Sequences, by name.
 
-Fix: programs on <device>: <the ones it has>.
+Fix: sequences on <device>: <the ones it has>.
 
 ## E0403
 
 **“<running>” is already running**
 
 ```python
-dev.goto(5, 0)             # while a program runs
+dev.goto(5, 0)             # while a sequence runs
 ```
 
 Why: a device runs one sequence at a time.
 
-Fix: wait for it, or dev.stop_program() first.
+Fix: wait for it, or dev.stop_sequence() first.
 
 ## E0404
 
@@ -308,15 +308,15 @@ Fix: look at what the device is doing in dash; the operator taking the sticks en
 
 ## E0406
 
-**no program is running**
+**no sequence is running**
 
 ```python
-dev.pause_program()        # nothing runs
+dev.pause_sequence()       # nothing runs
 ```
 
-Why: pause_program(), resume_program() and stop_program() act on a running one.
+Why: pause_sequence(), resume_sequence() and stop_sequence() act on a running one.
 
-Fix: start one with dev.run_program("…").
+Fix: start one with dev.run_sequence("…").
 
 # Reading telemetry
 

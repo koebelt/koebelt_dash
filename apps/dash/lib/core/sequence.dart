@@ -215,7 +215,7 @@ class Sequence {
   Sequence copyAs(String id, String name) => Sequence(id: id, name: name, kind: kind, steps: [for (final s in steps) s.copy()]);
 }
 
-/// Example programs for the simulated devices.
+/// Example sequences for the simulated devices.
 List<Sequence> exampleSequences(String deviceId, DeviceKind kind) {
   Sequence q(String name, List<SeqStep> steps) => Sequence(id: 'ex-$deviceId-${name.hashCode.abs()}', name: name, kind: kind, steps: steps);
   return switch (kind) {

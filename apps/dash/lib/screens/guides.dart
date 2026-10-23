@@ -598,12 +598,21 @@ class GuidesScreen extends StatefulWidget {
   final Dash d;
   final double w;
   final ValueChanged<String> go;
+
+  /// A guide to open when the screen next shows (from a link elsewhere).
+  static String? pending;
   @override
   State<GuidesScreen> createState() => _GuidesScreenState();
 }
 
 class _GuidesScreenState extends State<GuidesScreen> {
-  String? open;
+  String? open = GuidesScreen.pending;
+
+  @override
+  void initState() {
+    super.initState();
+    GuidesScreen.pending = null;
+  }
 
   static const _platformNames = {'arduino': 'Arduino', 'python': 'Python', 'rust': 'Rust', 'ros2': 'ROS 2'};
 

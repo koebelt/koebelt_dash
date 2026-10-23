@@ -17,6 +17,7 @@ import 'screens/devices.dart';
 import 'screens/guides.dart';
 import 'screens/live.dart';
 import 'screens/params.dart';
+import 'screens/automate.dart';
 import 'screens/program.dart';
 import 'screens/replay.dart';
 import 'screens/script_dialogs.dart' show keyLabelOf;
@@ -31,8 +32,8 @@ import 'ui/mark.dart';
 const nav = [
   ['live', 'Live', 'activity'],
   ['control', 'Control', 'gamepad'],
-  ['program', 'Program', 'list-checks'],
-  ['scripts', 'Scripts', 'code'],
+  // Sequences and Scripts, as two tabs (automateTabs).
+  ['automate', 'Automate', 'list-checks'],
   ['params', 'Tune', 'tune'],
   ['replay', 'Replay', 'replay'],
   ['devices', 'Devices', 'devices'],
@@ -119,10 +120,18 @@ class _ShellState extends State<Shell> {
   String? _seen;
   Timer? _toastT;
 
+  // The Automate tab last shown, to come back to it.
+  String _automate = 'program';
+
   void go(String s) => setState(() {
     detail = null;
+    if (s == 'automate') s = _automate;
+    if (s == 'program' || s == 'scripts') _automate = s;
     screen = s;
   });
+
+  /// Whether nav item [id] is the screen shown.
+  bool _on(String id) => screen == id || (id == 'automate' && (screen == 'program' || screen == 'scripts'));
 
   @override
   void dispose() {
@@ -274,19 +283,12 @@ class _ShellState extends State<Shell> {
                   ],
                 ),
               );
-        // Phones reach Scripts from Program: two tabs, so the tab bar keeps five.
-        final tabbed = phone && (screen == 'program' || screen == 'scripts');
+        // Automate: Sequences and Scripts, two ways to do one job.
+        final tabbed = screen == 'program' || screen == 'scripts';
         final main = Column(
           children: [
             top,
-            if (tabbed)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: KTabs(items: const ['Sequences', 'Scripts'], value: screen == 'scripts' ? 'Scripts' : 'Sequences', onChanged: (v) => go(v == 'Scripts' ? 'scripts' : 'program')),
-                ),
-              ),
+            if (tabbed) AutomateTabs(screen: screen, phone: phone, go: go),
             Expanded(child: ClipRect(child: body)),
           ],
         );
@@ -316,9 +318,9 @@ class _ShellState extends State<Shell> {
                               ),
                               child: Row(
                                 children: [
-                                  for (final n in nav.where((n) => !const ['devices', 'guides', 'scripts'].contains(n[0])))
+                                  for (final n in nav.where((n) => !const ['devices', 'guides'].contains(n[0])))
                                     Expanded(
-                                      child: NavBtn(it: n, on: screen == n[0] || (n[0] == 'program' && screen == 'scripts'), go: go, variant: 'tab', height: tabH),
+                                      child: NavBtn(it: n, on: _on(n[0]), go: go, variant: 'tab', height: tabH),
                                     ),
                                 ],
                               ),
@@ -463,7 +465,7 @@ class _ShellState extends State<Shell> {
               for (final n in nav)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 2),
-                  child: NavBtn(it: n, on: screen == n[0], go: go),
+                  child: NavBtn(it: n, on: _on(n[0]), go: go),
                 ),
             ],
           ),
@@ -555,7 +557,7 @@ class _ShellState extends State<Shell> {
           child: SingleChildScrollView(
             padding: const EdgeInsets.only(top: 8),
             child: Column(
-              children: [for (final n in nav) NavBtn(it: n, on: screen == n[0], go: go, variant: 'rail')],
+              children: [for (final n in nav) NavBtn(it: n, on: _on(n[0]), go: go, variant: 'rail')],
             ),
           ),
         ),
@@ -1140,7 +1142,7 @@ class _AlertChipState extends State<AlertChip> {
   static Widget _mark(bool lost) => MarkMotion(MarkLoop.link, key: const ValueKey('link-mark'), size: 18, lost: lost, gap: K.surfaceSunken);
 }
 
-/// Control, Program and Tune while a recording plays: they act on live
+/// Control, Sequences and Tune while a recording plays: they act on live
 /// devices, so they wait until the replay is closed.
 class ReplayHold extends StatelessWidget {
   const ReplayHold({super.key, required this.d, required this.w, required this.screen, required this.go});

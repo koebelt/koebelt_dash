@@ -33,7 +33,7 @@ class CompletionContext {
     this.kind,
     this.sticks = const [],
     this.tlm = const [],
-    this.programs = const [],
+    this.sequences = const [],
     this.steps = const [],
     this.channels = const [],
     this.members,
@@ -42,7 +42,7 @@ class CompletionContext {
     this.doc,
   });
   final String? kind;
-  final List<String> sticks, tlm, programs, steps, channels;
+  final List<String> sticks, tlm, sequences, steps, channels;
 
   /// The members of a module or class by dotted path (numpy.linalg,
   /// cv2.VideoCapture), as the script's Python reports them; null while not
@@ -162,10 +162,10 @@ final deviceApi = <String, Signature?>{
   'home': _sig('home', 'wait=True', 'Arms: the home pose.'),
   'throttle': _sig('throttle', 'pct — percent; seconds — how long; wait=True', 'Benches: holds a throttle.'),
   'ramp': _sig('ramp', 'start — percent; end — percent; seconds — over; wait=True', 'Benches: ramps the throttle.'),
-  'run_program': _sig('run_program', 'name — a program from the Program screen; wait=True', 'Runs a program (on the device when it can store it).'),
-  'pause_program': _sig('pause_program', '', 'Pauses the running program.'),
-  'resume_program': _sig('resume_program', '', 'Resumes it.'),
-  'stop_program': _sig('stop_program', '', 'Stops it.'),
+  'run_sequence': _sig('run_sequence', 'name — a sequence from Automate > Sequences; wait=True', 'Runs a sequence (on the device when it can store it).'),
+  'pause_sequence': _sig('pause_sequence', '', 'Pauses the running sequence.'),
+  'resume_sequence': _sig('resume_sequence', '', 'Resumes it.'),
+  'stop_sequence': _sig('stop_sequence', '', 'Stops it.'),
   'camera': null,
   'cameras': null,
   'overlay': _sig('overlay', 'boxes — (x, y, w, h, label) tuples or an ultralytics result; width=None; height=None — for boxes in pixels', 'Draws boxes over the camera in dash.'),
@@ -359,14 +359,14 @@ Set<String> _ownNames(String text) => {
     }
   }
 
-  // Inside a string argument: program names, trigger kinds, modes.
-  final str = RegExp(r'(\w+)\.(run_program|mode|trigger|cmd)\(\s*(?:\w+\s*=\s*)?"([^"]*)$|kind\s*=\s*"([^"]*)$').firstMatch(line);
+  // Inside a string argument: sequence names, trigger kinds, modes.
+  final str = RegExp(r'(\w+)\.(run_sequence|run_program|mode|trigger|cmd)\(\s*(?:\w+\s*=\s*)?"([^"]*)$|kind\s*=\s*"([^"]*)$').firstMatch(line);
   if (str != null) {
     final typed = str[3] ?? str[4] ?? '';
     final pool = str[4] != null
         ? ['button', 'switch', 'value']
         : switch (str[2]) {
-            'run_program' => ctx.programs,
+            'run_sequence' || 'run_program' => ctx.sequences,
             'mode' => ['HOLD', 'MANUAL', 'AUTO', if (ctx.kind == 'drone') ...['RTH', 'LAND', 'TAKEOFF']],
             _ => const <String>[],
           };

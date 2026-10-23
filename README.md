@@ -70,15 +70,15 @@ connects your hardware to it.
   disarms). The failsafe runs on the device, which switches to hold, RTH or land on
   its own after 1.8 s without control packets, even if the app crashes. A failsafe test
   in Settings withholds the heartbeat for 6 s.
-- **Program**: build step sequences per device. Drones get take-off, waypoints,
+- **Automate > Sequences**: steps in order, no code. Drones get take-off, waypoints,
   land and return home; rovers get waypoints; arms get poses captured from the
   current position and the gripper; benches get throttle holds and ramps. All
   kinds get waits, modes, arming and custom commands. A live plan or throttle
   profile shows the sequence. Runs stop on STOP, stick input or disconnect,
   and pause on link loss.
-- **Scripts**: drive devices from Python with any package (OpenCV, PyTorch,
-  YOLO): a library, a built-in editor, the camera as NumPy images, Program
-  steps, and triggers fired by buttons, keys, controller buttons, conditions
+- **Automate > Scripts**: drive devices from Python with any package (OpenCV, PyTorch,
+  YOLO): a library, a built-in editor, the camera as NumPy images, steps
+  and sequences, and triggers fired by buttons, keys, controller buttons, conditions
   (`battery.pct < 25 for 3s`), device events or timers. Phones and tablets run
   them on a script host. STOP, the operator's sticks, limits and a watchdog
   stay in charge ([design](docs/design/scripts.md), [messages](protocol/SCRIPTS.md)).
@@ -115,7 +115,7 @@ connects your hardware to it.
   marked SIM everywhere, come with example sequences, and speak the same
   protocol as real devices with sensor sets a hobby build would have. Sample
   recordings are loaded from Replay > Import and marked Demo.
-- **Home**: "Set home" (Control, Program) makes the current position the origin
+- **Home**: "Set home" (Control, Sequences) makes the current position the origin
   for return-to-home, the Home readout and waypoints; arms save the current
   pose as their home pose.
 - **Tiles follow the data**: dashboard tiles appear only for channels the device

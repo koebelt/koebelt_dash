@@ -48,10 +48,10 @@ the limit that applies… `err` is the same in plain English.
 
 | `t` | Fields | |
 |---|---|---|
-| `use` | `device`: id or name, or absent for the device chosen on the script's page, else the one selected in dash | Chooses the device. `value`: id, name, kind, sim, lib, limits, `cameras` (id, absolute url, fmt, label: scripts read the stream directly), `steps` (the Program steps this kind has). Telemetry starts. |
+| `use` | `device`: id or name, or absent for the device chosen on the script's page, else the one selected in dash | Chooses the device. `value`: id, name, kind, sim, lib, limits, `cameras` (id, absolute url, fmt, label: scripts read the stream directly), `steps` (the steps this kind has, as in a sequence). Telemetry starts. |
 | `sticks` | `a`: `{"throttle":0.5,"steer":-0.2}` | Named sticks for the kind (drone: `throttle yaw pitch roll`; rover: `throttle steer`) or raw axes `lx ly rx ry`, −1…1. The first call takes the device's sticks. They hold until changed. |
 | `release` | | Gives the sticks back; the device holds. |
-| `cmd` | `c`, `a` | `mode` `{m}`, `arm`, `disarm`, `speed` `{v}`, `params` (value: the parameters), `pset` `{KEY: value}`, `psave`, `stop` (STOP, always allowed), `step` `{type, …fields, wait}` (one Program step: `takeoff` `{alt}`, `goto` `{x, y, z}`, `land`, `rth`, `pose` `{j1…j6}` (°), `gripper` `{open}` (%), `home`, `throttle` `{pct, s}`, `ramp` `{from, to, s}`, `wait` `{s}`), `program` `{name, wait}` (a sequence from the Program screen), `seqctl` `{c: pause, resume, stop}`, or a kind-specific command sent as is (`release`, `sethome`, `countdown`…). With `wait` (the default), `step` and `program` answer when they end: ok, or why they failed or were interrupted. |
+| `cmd` | `c`, `a` | `mode` `{m}`, `arm`, `disarm`, `speed` `{v}`, `params` (value: the parameters), `pset` `{KEY: value}`, `psave`, `stop` (STOP, always allowed), `step` `{type, …fields, wait}` (one step, as in a sequence: `takeoff` `{alt}`, `goto` `{x, y, z}`, `land`, `rth`, `pose` `{j1…j6}` (°), `gripper` `{open}` (%), `home`, `throttle` `{pct, s}`, `ramp` `{from, to, s}`, `wait` `{s}`), `program` `{name, wait}` (a sequence from Automate > Sequences, by name), `seqctl` `{c: pause, resume, stop}`, or a kind-specific command sent as is (`release`, `sethome`, `countdown`…). With `wait` (the default), `step` and `program` answer when they end: ok, or why they failed or were interrupted. |
 | `setting` | `name`, `value`, `min`, `max`, `label` | Declares a setting shown in dash. `value`: the current one (the operator's, if they changed it). |
 | `trigger` | `name`, `kind` (`button`, `switch`, `value`), `key`, `gamepad`, `min`, `max` | Declares a trigger the operator can fire and bind. |
 | `print` | `text`, `level` | A console line in dash. |
@@ -77,7 +77,7 @@ the limit that applies… `err` is the same in plain English.
 
 - Sticks are scaled by the script's speed limit (operator setting, 60 % by
   default), and `speed` is capped by it.
-- `arm`, `mode TAKEOFF`, `pset`, `psave`, a `takeoff` step and a program that
+- `arm`, `mode TAKEOFF`, `pset`, `psave`, a `takeoff` step and a sequence that
   arms or takes off are refused unless the operator allowed them for the
   script. A `goto` beyond the geofence or above the ceiling is refused.
 - Moving the operator's sticks beyond 15 % takes over until the operator

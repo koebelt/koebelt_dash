@@ -99,8 +99,8 @@ dash stays in charge, whatever the script does:
 | `dev.next_tlm()` | Waits for the next telemetry. |
 | `dev.sticks(...)` | −1…1, held until changed. Drones: `throttle yaw pitch roll`; rovers: `throttle steer`. |
 | `dev.mode(m)`, `dev.arm()`, `dev.disarm()`, `dev.speed_limit(v)`, `dev.cmd(name, **args)`, `dev.stop()`, `dev.release()` | Commands. |
-| `dev.takeoff(alt)`, `dev.goto(x, y, z)`, `dev.land()`, `dev.rth()`, `dev.pose(*deg)`, `dev.gripper(pct)`, `dev.home()`, `dev.throttle(pct, s)`, `dev.ramp(a, b, s)` | Program steps; they return once done (or at once with `wait=False`). |
-| `dev.run_program(name)`, `dev.pause_program()`, `dev.resume_program()`, `dev.stop_program()` | Programs from dash's Program screen. |
+| `dev.takeoff(alt)`, `dev.goto(x, y, z)`, `dev.land()`, `dev.rth()`, `dev.pose(*deg)`, `dev.gripper(pct)`, `dev.home()`, `dev.throttle(pct, s)`, `dev.ramp(a, b, s)` | Steps, as in a sequence; they return once done (or at once with `wait=False`). |
+| `dev.run_sequence(name)`, `dev.pause_sequence()`, `dev.resume_sequence()`, `dev.stop_sequence()` | Sequences from dash's Automate > Sequences, by name. |
 | `dev.camera.frame()`, `for img in dev.camera.frames():` | The camera as numpy images (BGR, for OpenCV; needs `opencv-python` or `pillow`). The newest frame only: a slow model never falls behind. |
 | `dev.overlay(boxes)` | Boxes over the camera in dash: `(x, y, w, h, label)` tuples or an ultralytics result. |
 | `dev.params["KEY"]`, `dev.params.set(KEY=v)`, `dev.params.save()` | Parameters. |

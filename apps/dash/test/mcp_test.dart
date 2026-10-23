@@ -118,7 +118,7 @@ void main() {
     expect(r['isError'], isTrue);
   });
 
-  test('use the app and look: a simulated rover, its telemetry and programs', () async {
+  test('use the app and look: a simulated rover, its telemetry and sequences', () async {
     await init();
     expect(_Client.text(await c.tool('add_simulated_device', {'kind': 'rover'})), contains('simulated rover'));
     final devs = (await c.tool('list_devices'))['structuredContent']['devices'] as List;
@@ -126,7 +126,7 @@ void main() {
     final tel = (await c.tool('get_telemetry'))['structuredContent'] as Map;
     expect(tel['pos'], hasLength(3));
     expect((await c.tool('get_params'))['structuredContent']['params'], isNotEmpty);
-    final w = await c.tool('write_program', {
+    final w = await c.tool('write_sequence', {
       'name': 'Out and back',
       'steps': [
         {'type': 'goto', 'x': 3, 'y': 0},
@@ -134,7 +134,7 @@ void main() {
       ],
     });
     expect(_Client.text(w), contains('Created "Out and back" (2 steps)'));
-    final bad = await c.tool('write_program', {
+    final bad = await c.tool('write_sequence', {
       'name': 'x',
       'steps': [
         {'type': 'takeoff'},

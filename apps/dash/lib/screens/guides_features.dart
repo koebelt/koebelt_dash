@@ -321,6 +321,53 @@ if (startCamera()) {                        // esp_camera_init + httpd on port 8
     ],
   ),
   Guide(
+    'sequence-or-script',
+    'Sequence or script?',
+    'Two ways to automate a device: steps you put in order, or Python that decides. What each does best, and how they work together.',
+    3,
+    section: 'features',
+    platforms: ['python'],
+    [
+      Step.rich(
+        'Two ways to automate',
+        'Both live in Automate. A sequence is a list of steps you put in order: take off, fly to, wait, land; drive to; move to a pose. No code, and the same steps each time. A script is a Python file: it reads the telemetry and the camera, decides what to do, and drives the device.',
+        table: [
+          ['', 'Sequence', 'Script'],
+          ['You write', 'Steps, in the app', 'Python, in the app or any editor'],
+          ['Decides', 'No: the same steps each time', 'Yes: conditions, loops, sensors, the camera'],
+          ['Runs on', 'The device, when it can store sequences; otherwise dash runs the steps', 'A computer: this one, or a script host for phones and tablets'],
+          ['If the link drops', 'A sequence stored on the device carries on', 'It can no longer drive: the device\'s failsafe takes over'],
+          ['Packages', 'None needed', 'Any: NumPy, OpenCV, PyTorch, YOLO'],
+          ['Started by', 'Run, on its page', 'Run, or a trigger: a button, a key, a controller, a condition, a timer'],
+        ],
+      ),
+      Step.rich(
+        'Which one',
+        'Start with a sequence when the job is a fixed route or routine; reach for a script when the device has to react.',
+        bullets: [
+          'A sequence: a survey pattern, a test routine on a bench, a pick-and-place between poses you recorded, anything that must carry on if the link drops.',
+          'A script: follow a line, land on a target the camera finds, hold a distance with a rangefinder, stop when a value crosses a limit, anything with a model.',
+        ],
+      ),
+      Step(
+        'Together',
+        'A script can run a sequence by name and wait for it: the sequence does the flying, the script decides when. Here the camera looks for a landing pad, then the sequence "Land on pad" takes over.',
+        {
+          'python': [
+            'python',
+            r'''from koebelt_dash_scripts import connect, every
+
+dev = connect()
+for _ in every(0.2):
+    if pad_in_view(dev.camera.frame()):   # your code: True when the pad is seen
+        dev.run_sequence("Land on pad")    # returns once the sequence is done
+        break''',
+          ],
+        },
+      ),
+    ],
+  ),
+  Guide(
     'scripts',
     'Scripts',
     'Drive a device from Python: behaviours, computer vision, machine learning, with the operator always in charge.',
@@ -330,7 +377,7 @@ if (startCamera()) {                        // esp_camera_init + httpd on port 8
     [
       Step.rich(
         'What a script is',
-        'A Python file that reads a device\'s telemetry and drives it through koebelt dash: sticks, Program steps, modes, commands. It runs in your own Python, so any package works: OpenCV, PyTorch, YOLO, NumPy.',
+        'A Python file that reads a device\'s telemetry and drives it through koebelt dash: sticks, steps, sequences, modes, commands. It runs in your own Python, so any package works: OpenCV, PyTorch, YOLO, NumPy.',
         bullets: [
           'On a computer, dash runs it with the Python you choose (Scripts > a script > Python). The first time, Set up Python creates a Python environment in the scripts folder with the koebelt-dash-scripts package.',
           'On a phone or tablet, it runs on a script host: a computer on the same network running koebelt-dash-scripts host. The phone keeps the device link, the sticks and STOP.',
@@ -358,15 +405,15 @@ for _ in every(0.05):                       # 20 Hz
         },
       ),
       Step(
-        'Steps, programs and the camera',
-        'Program steps wait until they are done. The camera gives NumPy images, newest first, so a slow model never falls behind; overlay() draws what it sees over the camera in dash.',
+        'Steps, sequences and the camera',
+        'Steps (take off, go to, land…) and sequences wait until they are done. The camera gives NumPy images, newest first, so a slow model never falls behind; overlay() draws what it sees over the camera in dash.',
         {
           'python': [
             'python',
             r'''dev.takeoff(6)              # drones: needs arming allowed in Limits
 dev.goto(10, 0, 6)          # metres east, north, up from home
 dev.land()
-dev.run_program("Survey square")
+dev.run_sequence("Survey square")
 
 for frame in dev.camera.frames():           # pip install opencv-python
     boxes = find_targets(frame)             # your code: (x, y, w, h, label)
@@ -437,9 +484,9 @@ koebelt-dash-scripts host''',
         bullets: [
           'Learn: search and read these guides, the protocols, the script API and its examples.',
           'Look: devices, telemetry, the camera, parameters, alerts, recordings, and the window itself.',
-          'Write: scripts, programs and triggers; check scripts with your Python.',
+          'Write: scripts, sequences and triggers; check scripts with your Python.',
           'Use the app: add simulated devices, connect, record, export, open screens, change settings (not the safety ones).',
-          'Act: run scripts and programs, send commands, write parameters. On real hardware each waits for your approval; arming and take-off always ask. STOP never asks.',
+          'Act: run scripts and sequences, send commands, write parameters. On real hardware each waits for your approval; arming and take-off always ask. STOP never asks.',
         ],
         note: 'koebelt dash sends nothing to any AI service. The assistant you connect talks to its own provider, and what it reads in dash goes there.',
       ),

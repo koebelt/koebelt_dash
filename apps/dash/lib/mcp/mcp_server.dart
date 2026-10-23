@@ -366,11 +366,11 @@ class McpServer {
     _tool('write_script', 'Write a script', 'Creates or replaces a script (a replaced version goes to the trash). Start it with a docstring: its first line is the script\'s title.', {'name': _str, 'source': _str}, required: ['name', 'source']),
     _tool('delete_script', 'Delete a script', 'Moves a script to the trash folder, from which the operator can restore it.', {'name': _str}, required: ['name'], destructive: true),
     _tool('check_script', 'Check a script', 'Syntax check with the scripts\' Python.', {'name': _str}, required: ['name'], readOnly: true),
-    _tool('list_programs', 'List programs', 'Program sequences of a device, with their steps.', {'device': _dev}, readOnly: true),
+    _tool('list_sequences', 'List sequences', 'A device\'s sequences (Automate > Sequences), with their steps.', {'device': _dev}, readOnly: true),
     _tool(
-      'write_program',
-      'Write a program',
-      'Creates or replaces a Program sequence. steps: [{"type": "takeoff", "alt": 6}, {"type": "goto", "x": 10, "y": 0, "z": 8}, {"type": "wait", "s": 2}, {"type": "land"}…]; types depend on the kind (list_programs shows them).',
+      'write_sequence',
+      'Write a sequence',
+      'Creates or replaces a sequence (Automate > Sequences). steps: [{"type": "takeoff", "alt": 6}, {"type": "goto", "x": 10, "y": 0, "z": 8}, {"type": "wait", "s": 2}, {"type": "land"}…]; types depend on the kind (list_sequences shows them).',
       {
         'device': _dev,
         'name': _str,
@@ -452,7 +452,7 @@ class McpServer {
     _tool('stop_script', 'Stop a script', 'Stops a running script; the device holds.', {'name': _str}, required: ['name']),
     _tool('script_output', 'Script output', 'A script\'s state and its last console lines.', {'name': _str, 'lines': _num}, required: ['name'], readOnly: true),
     _tool('fire_trigger', 'Fire a trigger', 'Fires a running script\'s trigger, with an optional value.', {'script': _str, 'event': _str, 'value': {}}, required: ['script', 'event']),
-    _tool('run_program', 'Run a program', 'Runs a Program sequence on a device. On real hardware the operator approves first.', {'device': _dev, 'name': _str}, required: ['name']),
+    _tool('run_sequence', 'Run a sequence', 'Runs a sequence on a device. On real hardware the operator approves first.', {'device': _dev, 'name': _str}, required: ['name']),
     _tool(
       'command',
       'Command a device',
@@ -718,16 +718,17 @@ class McpServer {
         if (py2 == null) throw McpError('No Python on this computer to check with.');
         final r = await checkSyntax(py2, await f.file.readAsString());
         return _text(r == null ? 'No syntax errors.' : 'Line ${r.line}: ${r.message}', error: r != null);
-      case 'list_programs':
+      // (Called *_program in 1.3.0-beta.1 to beta.3.)
+      case 'list_sequences' || 'list_programs':
         final l = _link(a['device']);
         return _json({
           'device': l.info.name,
           'stepTypes': {for (final s in stepDefs(l.kind)) s.type: [for (final f in s.fields) f.key]},
-          'programs': [
+          'sequences': [
             for (final q in d.sequencesFor(l.id)) {'name': q.name, 'steps': [for (final st in q.steps) {'type': st.type, ...st.p}]},
           ],
         });
-      case 'write_program':
+      case 'write_sequence' || 'write_program':
         final l = _link(a['device']);
         final steps = <SeqStep>[];
         for (final raw in (a['steps'] as List? ?? const [])) {
@@ -861,10 +862,10 @@ class McpServer {
         if (l != null) await _approve(client, l, 'trigger', 'Fire “${a['event']}” in “${f.name}”', '');
         d.scripts.fire(c, '${a['event']}', a['value']);
         return _text('Fired “${a['event']}”.');
-      case 'run_program':
+      case 'run_sequence' || 'run_program':
         final l = _link(a['device']);
         final q = d.sequencesFor(l.id).where((x) => x.name.toLowerCase() == '${a['name']}'.toLowerCase()).firstOrNull;
-        if (q == null) throw McpError('No program "${a['name']}" on ${l.info.name}.');
+        if (q == null) throw McpError('No sequence "${a['name']}" on ${l.info.name}.');
         final arms = q.steps.any((st) => st.type == 'takeoff' || st.type == 'arm');
         await _approve(client, l, 'program', 'Run “${q.name}” on ${l.info.name}', '${q.steps.length} steps: ${q.steps.map((st) => st.summary(l.kind)).take(4).join(', ')}${q.steps.length > 4 ? '…' : ''}', always: arms);
         d.runSequenceOn(l, q);

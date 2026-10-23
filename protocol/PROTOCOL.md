@@ -325,7 +325,7 @@ have it (XBee, RFD900x: AES) for confidentiality.
 
 ## Sequences
 
-The app's Program screen runs sequences in one of two ways.
+The app runs sequences (Automate > Sequences) in one of two ways.
 
 **From the app** (any device). The app runs the steps itself using the
 commands above plus `mode`, `arm` and `speed`. It checks each step's

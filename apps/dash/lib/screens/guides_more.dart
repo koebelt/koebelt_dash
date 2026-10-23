@@ -121,7 +121,7 @@ channels:
       ),
       Step.rich(
         'Your own commands',
-        'The app can trigger anything on your device: Program > add a Custom command step with a name and a value. Handle it like the built-in commands.',
+        'The app can trigger anything on your device: in Automate > Sequences, add a Custom command step with a name and a value. Handle it like the built-in commands.',
         c: {
           'arduino': [
             'cpp',
@@ -181,13 +181,13 @@ channels:
   Guide(
     'sequences',
     'Run sequences',
-    'Handle waypoints, poses, take-off and home so the Program tab can drive your device, with or without a link.',
+    'Handle waypoints, poses, take-off and home so sequences can drive your device, with or without a link.',
     6,
     platforms: ['arduino', 'python', 'rust'],
     [
       Step.rich(
         'Handle the sequence commands',
-        'The Program tab sends goto (x, y, z in metres from home), takeoff (alt) and pose (six joint angles in radians) as commands. They ride on the existing cmd message, so no protocol change is involved. Report AUTO while moving and HOLD on arrival; the app moves to the next step once your telemetry shows the target is reached. Handle sethome too: vehicles make the current position the origin, arms store the given joints as the home pose.',
+        'Sequences send goto (x, y, z in metres from home), takeoff (alt) and pose (six joint angles in radians) as commands. They ride on the existing cmd message, so no protocol change is involved. Report AUTO while moving and HOLD on arrival; the app moves to the next step once your telemetry shows the target is reached. Handle sethome too: vehicles make the current position the origin, arms store the given joints as the home pose.',
         c: {
           'arduino': [
             'cpp',

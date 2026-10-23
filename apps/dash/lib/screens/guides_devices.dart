@@ -20,7 +20,7 @@ const deviceGuides = [
         bullets: [
           'Live: HUD over a 3D view with attitude, accelerometer, altitude and a GPS track; the drone model follows position, roll, pitch and yaw.',
           'Control: two sticks (throttle and yaw left, pitch and roll right), sliders or phone tilt; AUTO, MANUAL and HOLD, plus TAKEOFF, LAND and RTH.',
-          'Program: sequences with take off, fly to waypoints, wait and land.',
+          'Sequences (Automate): take off, fly to waypoints, wait and land.',
           'Settings: what the drone does on link loss (hold, return home or land).',
         ],
       ),
@@ -262,7 +262,7 @@ fn main() -> std::io::Result<()> {
         bullets: [
           'Live: the rover box in 3D, its trail, the lidar map, a GPS track and attitude.',
           'Control: steer and drive sticks or sliders, AUTO, MANUAL and HOLD, a speed limit.',
-          'Program: drive to waypoints, wait, change the speed limit.',
+          'Sequences (Automate): drive to waypoints, wait, change the speed limit.',
           'Lidar points accumulate into a map around the rover (10 cm grid).',
         ],
       ),
@@ -474,7 +474,7 @@ safety:
         'The arm is drawn from its six joint angles with a standard 6-axis model.',
         bullets: [
           'Control: hold-to-jog buttons per joint or in X, Y and Z, Home pose, Set as home, gripper open and close, a speed limit.',
-          'Program: move to poses (record them with "Use current pose"), gripper and wait steps.',
+          'Sequences (Automate): move to poses (record them with "Use current pose"), gripper and wait steps.',
           'Live: joints bars, motor current, the arm in 3D.',
         ],
       ),
@@ -861,7 +861,7 @@ dev.run(hz=20, loop=loop)''',
           'throttle {v}: 0…1. Write it to the ESC.',
           'seq {kind: "RAMP" | "STEPS"} starts a built-in sequence; {kind: null} stops it. Report RAMP or STEPS while it runs and IDLE after.',
           'clear: acknowledge a cutoff. Report IDLE.',
-          'Program sequences (Program tab) send throttle commands step by step, so they work without seq support.',
+          'Sequences (Automate > Sequences) send throttle commands step by step, so they work without seq support.',
         ],
       ),
       Step.rich(
@@ -1004,7 +1004,7 @@ dev.run(hz=60, loop=loop)''',
         bullets: [
           'Live: a tile and HUD widget for every channel you declare, with charts, values and the inspector.',
           'Tune: every parameter you declare, grouped by the prefix before the first underscore.',
-          'Program: Wait and Custom command steps, so you can script your own actions.',
+          'Sequences (Automate): Wait and Custom command steps, to trigger your own actions.',
           'Replay and CSV export with one column per channel axis.',
         ],
       ),
@@ -1034,7 +1034,7 @@ void setup() {
   soil = klink.channel("soil_moisture", {"Bed 1", "Bed 2", "Bed 3", "Bed 4"}, "%", 0.2f);
   targetTemp = klink.param("CLIMATE_TARGET", 22, 10, 35, "C");
   ventOpenAt = klink.param("CLIMATE_VENT_AT", 26, 15, 40, "C");
-  // Triggered from Program > Custom command, e.g. name "vent", value 0.5
+  // Triggered from a sequence's Custom command step, e.g. name "vent", value 0.5
   klink.onCommand([](const char* c, JsonObjectConst a) {
     if (!strcmp(c, "vent")) setVent(a["v"] | 0.0f);
   });
@@ -1071,7 +1071,7 @@ vent = {"pos": 0.0}
 
 @dev.on_command
 def command(name, a):
-    if name == "vent":                       # Program > Custom command "vent", value 0…1
+    if name == "vent":                       # a sequence's Custom command "vent", value 0…1
         vent["pos"] = max(0.0, min(1.0, a.get("v", 0)))
 
 

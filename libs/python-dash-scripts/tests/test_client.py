@@ -224,3 +224,12 @@ def test_store_survives_a_restart(dash):
     dev = k.connect(name="store test.py")
     assert dev.store["runs"] == 1
     dev.close()
+
+
+def test_sequence_names_and_the_old_program_ones():
+    # 1.3.0b1–b3 called sequences "programs": scripts written then still run.
+    D = client.Device
+    assert D.run_program is D.run_sequence
+    assert D.pause_program is D.pause_sequence
+    assert D.resume_program is D.resume_sequence
+    assert D.stop_program is D.stop_sequence
