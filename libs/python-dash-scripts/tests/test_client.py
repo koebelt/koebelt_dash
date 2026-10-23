@@ -200,11 +200,11 @@ def test_released_and_takeover(dash):
 def test_keepalives_carry_the_loop_rate(dash):
     dev = k.connect()
     for i in k.every(0.02):
-        if i == 15:
+        if i == 60:
             break
     assert wait_for(lambda: any(m["t"] == "ka" and "hz" in m for m in dash.got))
     hz = [m["hz"] for m in dash.got if m["t"] == "ka" and "hz" in m][-1]
-    assert 30 < hz < 70
+    assert 45 < hz < 55, "50 Hz, measured over a second"
     dev.close()
 
 

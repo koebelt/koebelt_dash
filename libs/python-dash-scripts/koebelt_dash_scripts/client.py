@@ -529,15 +529,15 @@ def every(seconds: float) -> Iterator[int]:
     (or as fast as it can), and reports the real rate to dash."""
     period = float(seconds)
     nxt = time.monotonic()
-    last = None
+    window, count = nxt, 0
     for i in itertools.count():
         yield i
         now = time.monotonic()
-        if last is not None and _current is not None:
-            dt = now - last
-            hz = 1 / dt if dt > 0 else 0.0
-            _current.hz = hz if _current.hz is None else _current.hz * 0.8 + hz * 0.2
-        last = now
+        # The rate over each second, not single intervals.
+        count += 1
+        if now - window >= 1.0 and _current is not None:
+            _current.hz = count / (now - window)
+            window, count = now, 0
         nxt += period
         delay = nxt - time.monotonic()
         if delay > 0:

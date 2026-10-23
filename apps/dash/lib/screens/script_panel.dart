@@ -95,7 +95,7 @@ class ScriptRunPanel extends StatelessWidget {
         children: [
           const PulseDot(color: K.positive),
           const SizedBox(width: 10),
-          Flexible(
+          Expanded(
             child: Text(
               'RUNNING ${two(s ~/ 60)}:${two(s % 60)}${run is RemoteRun ? ' · ${run.where}' : ''}',
               maxLines: 1,
@@ -103,7 +103,6 @@ class ScriptRunPanel extends StatelessWidget {
               style: KText.labelMd(color: K.positive),
             ),
           ),
-          const Spacer(),
           if (conn?.hz != null) Text('${conn!.hz!.toStringAsFixed(1)} Hz', style: KText.mono(12, color: K.textSecondary)),
         ],
       );

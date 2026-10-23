@@ -471,9 +471,12 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
           const SizedBox(height: 20),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Pressable(
-              onTap: () => _openExternally(lib!.dir.path),
-              builder: (_, h, _) => Text(_short(lib!.dir.path), style: KText.mono(11, color: h ? K.textSecondary : K.textFaint)),
+            child: Tooltip(
+              message: lib!.dir.path,
+              child: Pressable(
+                onTap: () => _openExternally(lib!.dir.path),
+                builder: (_, h, _) => Text(_folderLabel(lib!.dir.path), style: KText.mono(11, color: h ? K.textSecondary : K.textFaint)),
+              ),
             ),
           ),
         ],
@@ -522,9 +525,10 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
     );
   }
 
-  static String _short(String p) {
-    final home = Platform.environment['HOME'] ?? '';
-    return home.isNotEmpty && p.startsWith(home) ? '~${p.substring(home.length)}' : p;
+  /// The scripts folder as its last two parts: `koebelt/dash scripts`.
+  static String _folderLabel(String p) {
+    final parts = p.split(RegExp(r'[/\\]')).where((x) => x.isNotEmpty).toList();
+    return parts.length <= 2 ? p : '…/${parts.sublist(parts.length - 2).join('/')}';
   }
 
   Widget _phone() {
