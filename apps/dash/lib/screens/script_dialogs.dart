@@ -15,6 +15,7 @@ import '../scripts/triggers.dart';
 import '../theme/tokens.dart';
 import '../ui/components.dart';
 import '../ui/icons.dart';
+import '../ui/mark.dart';
 
 Widget _field(String label, Widget child) =>
     Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [MonoLabel(label), const SizedBox(height: 8), child]);
@@ -617,7 +618,17 @@ class _AddHostDialogState extends State<_AddHostDialog> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               if (scanning)
-                Text('Looking…', style: KText.bodySm.copyWith(color: K.textMuted))
+                // As device pairing looks for devices.
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8),
+                  child: Row(
+                    children: [
+                      MarkMotion(MarkLoop.searching, size: 36, gap: K.surfaceRaised),
+                      SizedBox(width: 10),
+                      MonoLabel('Looking for script hosts'),
+                    ],
+                  ),
+                )
               else if (found.isEmpty)
                 Text('None found. Type its address below (shown by `ipconfig getifaddr en0`, `hostname -I`…).', style: KText.bodySm.copyWith(color: K.textMuted))
               else
