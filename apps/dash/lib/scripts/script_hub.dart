@@ -115,7 +115,7 @@ class ScriptConn {
   /// Declared by the script: settings (name → value, bounds) and triggers.
   final Map<String, Map<String, dynamic>> settings = {};
   final Map<String, Map<String, dynamic>> triggers = {};
-  final List<({double t, String level, String text})> console = [];
+  final List<ConsoleLine> console = [];
 
   void send(Map<String, dynamic> m) {
     try {
@@ -127,7 +127,7 @@ class ScriptConn {
   ScriptRun? run;
 
   void log(String level, String text) {
-    console.add((t: hub.d.t, level: level, text: text));
+    console.add((at: DateTime.now(), level: level, text: text));
     if (console.length > 500) console.removeRange(0, console.length - 500);
     run?.log(level, text);
   }
@@ -141,6 +141,54 @@ class ScriptHub {
 
   /// Scripts dash started, running or finished (the last few).
   final List<ScriptRun> runs = [];
+
+  /// Pythons found on this computer (null until looked for).
+  List<PythonEnv>? pythons;
+  bool findingPythons = false;
+
+  /// Output of setting up a Python environment for scripts, while it runs.
+  final List<String> setupLog = [];
+  bool settingUp = false;
+
+  /// Whether scripts can run here: computers only (phones use a script host).
+  static bool get canRunHere => Platform.isMacOS || Platform.isLinux || Platform.isWindows;
+
+  Future<void> refreshPythons({Directory? near}) async {
+    if (findingPythons) return;
+    findingPythons = true;
+    d.emit();
+    try {
+      pythons = await findPythons(near: near);
+    } finally {
+      findingPythons = false;
+      d.emit();
+    }
+  }
+
+  /// The interpreter for a script: the one chosen for it, else the first
+  /// with koebelt-dash-scripts.
+  String? pythonFor(ScriptConfig c) => c.python ?? pythons?.where((p) => p.hasPackage).firstOrNull?.path;
+
+  /// Creates `<scripts folder>/.venv` with koebelt-dash-scripts.
+  Future<void> setupPython(Directory scripts) async {
+    final base = pythons?.firstOrNull?.path;
+    if (base == null || settingUp) return;
+    settingUp = true;
+    setupLog.clear();
+    d.emit();
+    try {
+      await createScriptsVenv(base, Directory('${scripts.path}${Platform.pathSeparator}.venv'), (l) {
+        setupLog.add(l);
+        d.emit();
+      });
+      setupLog.add('Ready.');
+    } catch (e) {
+      setupLog.add('Failed: $e');
+    } finally {
+      settingUp = false;
+      await refreshPythons(near: scripts);
+    }
+  }
 
   /// The operator's setup per script (by path), kept by the store.
   final Map<String, ScriptConfig> configs = {};

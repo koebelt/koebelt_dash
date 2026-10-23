@@ -16,6 +16,7 @@ import 'common.dart';
 import 'controller_settings.dart' show PadChip;
 import 'live.dart';
 import 'main_view.dart';
+import 'script_panel.dart' show ScriptControls;
 import 'tiles.dart';
 
 // ------------------------------------------------------------------ inputs
@@ -568,6 +569,7 @@ class MobileControl extends StatelessWidget {
           ),
         PadChip(d),
         KButton('Set home', size: KSize.sm, variant: KButtonVariant.secondary, onPressed: d.linkLost ? null : () => confirmSetHome(context, d)),
+        ScriptControls(d),
       ],
     );
     final stats = Wrap(

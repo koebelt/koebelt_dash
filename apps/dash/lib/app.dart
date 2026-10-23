@@ -18,6 +18,8 @@ import 'screens/live.dart';
 import 'screens/params.dart';
 import 'screens/program.dart';
 import 'screens/replay.dart';
+import 'screens/script_dialogs.dart' show keyLabelOf;
+import 'screens/scripts.dart';
 import 'screens/settings.dart';
 import 'screens/update_ui.dart';
 import 'theme/tokens.dart';
@@ -29,6 +31,7 @@ const nav = [
   ['live', 'Live', 'activity'],
   ['control', 'Control', 'gamepad'],
   ['program', 'Program', 'list-checks'],
+  ['scripts', 'Scripts', 'code'],
   ['params', 'Tune', 'tune'],
   ['replay', 'Replay', 'replay'],
   ['devices', 'Devices', 'devices'],
@@ -57,10 +60,22 @@ class _DashAppState extends State<DashApp> with SingleTickerProviderStateMixin {
       _last = now;
       widget.dash.tick(dt);
     })..start();
+    HardwareKeyboard.instance.addHandler(_onKey);
+  }
+
+  /// Keys bound to script triggers, except while typing.
+  bool _onKey(KeyEvent e) {
+    if (e is! KeyDownEvent || widget.dash.scripts.conns.isEmpty) return false;
+    final ctx = FocusManager.instance.primaryFocus?.context;
+    if (ctx == null || ctx.widget is EditableText || ctx.findAncestorWidgetOfExactType<EditableText>() != null) return false;
+    final k = HardwareKeyboard.instance;
+    if (k.isMetaPressed || k.isControlPressed || k.isAltPressed) return false;
+    return widget.dash.scripts.onKey(keyLabelOf(e.logicalKey));
   }
 
   @override
   void dispose() {
+    HardwareKeyboard.instance.removeHandler(_onKey);
     _ticker.dispose();
     super.dispose();
   }
@@ -163,6 +178,7 @@ class _ShellState extends State<Shell> {
             'replay' => ReplayScreen(d, w: bodyW, h: bodyH),
             'guides' => GuidesScreen(d, w: bodyW, go: go),
             'devices' => DevicesScreen(d, w: bodyW, go: go),
+            'scripts' => ScriptsScreen(d, w: bodyW, go: go),
             _ => SettingsScreen(d, w: bodyW, go: go),
           };
         }
@@ -246,9 +262,19 @@ class _ShellState extends State<Shell> {
                   ],
                 ),
               );
+        // Phones reach Scripts from Program: two tabs, so the tab bar keeps five.
+        final tabbed = phone && (screen == 'program' || screen == 'scripts');
         final main = Column(
           children: [
             top,
+            if (tabbed)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: KTabs(items: const ['Sequences', 'Scripts'], value: screen == 'scripts' ? 'Scripts' : 'Sequences', onChanged: (v) => go(v == 'Scripts' ? 'scripts' : 'program')),
+                ),
+              ),
             Expanded(child: ClipRect(child: body)),
           ],
         );
@@ -278,9 +304,9 @@ class _ShellState extends State<Shell> {
                               ),
                               child: Row(
                                 children: [
-                                  for (final n in nav.where((n) => n[0] != 'devices' && n[0] != 'guides'))
+                                  for (final n in nav.where((n) => !const ['devices', 'guides', 'scripts'].contains(n[0])))
                                     Expanded(
-                                      child: NavBtn(it: n, on: screen == n[0], go: go, variant: 'tab', height: tabH),
+                                      child: NavBtn(it: n, on: screen == n[0] || (n[0] == 'program' && screen == 'scripts'), go: go, variant: 'tab', height: tabH),
                                     ),
                                 ],
                               ),

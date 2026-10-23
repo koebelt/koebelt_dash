@@ -64,6 +64,8 @@ flutter:
   # Which koebelt/link versions this app works with (lib/core/compat.dart).
   assets:
     - compat.json
+    # Script examples, copies of libs/python-dash-scripts/examples (kept equal by a test).
+    - assets/script_examples/
 
   fonts:
     - family: Archivo

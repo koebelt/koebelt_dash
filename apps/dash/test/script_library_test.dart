@@ -86,4 +86,14 @@ void main() {
     expect(pythonFromHeader('"""Doc."""\n# python: ~/venvs/vision/bin/python'), endsWith('/venvs/vision/bin/python'));
     expect(pythonFromHeader('import x\n'), isNull);
   });
+
+  test('the examples in the app are the package’s examples', () {
+    final app = Directory('assets/script_examples').listSync().whereType<File>().where((f) => f.path.endsWith('.py')).toList();
+    final pkg = Directory('../../libs/python-dash-scripts/examples').listSync().whereType<File>().where((f) => f.path.endsWith('.py')).toList();
+    String names(List<File> l) => (l.map((f) => f.uri.pathSegments.last).toList()..sort()).join(', ');
+    expect(names(app), names(pkg), reason: 'copy libs/python-dash-scripts/examples/*.py to assets/script_examples/');
+    for (final f in app) {
+      expect(f.readAsStringSync(), File('../../libs/python-dash-scripts/examples/${f.uri.pathSegments.last}').readAsStringSync(), reason: f.path);
+    }
+  });
 }
