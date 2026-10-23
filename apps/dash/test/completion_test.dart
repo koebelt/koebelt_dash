@@ -1,0 +1,73 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:koebelt_dash/scripts/completion.dart';
+
+void main() {
+  const src = '''from koebelt_dash_scripts import connect, every, pid
+robot = connect()
+t = robot.tlm
+speed = robot.setting("speed", 0.4)
+steer_pid = pid(1.0)
+
+def go_home():
+    pass
+
+''';
+  List<String> at(String code, [CompletionContext ctx = const CompletionContext()]) => [for (final c in completeAt(code, code.length, ctx).items) c.label];
+
+  test('any variable from connect() gets the device API, methods with parentheses', () {
+    final r = completeAt('${src}robot.st', '${src}robot.st'.length);
+    expect(r.items.map((c) => c.label), containsAll(['sticks()', 'stop()', 'store', 'stop_program()']));
+    expect(r.items.first.label, 'sticks()', reason: 'prefix matches first');
+    expect(r.replace, 2);
+    final sticks = r.items.first;
+    expect(sticks.insert, 'sticks()');
+    expect(sticks.cursorBack, 1, reason: 'the cursor lands inside the parentheses');
+    expect(at('${src}robot.'), hasLength(12), reason: 'everything, capped');
+  });
+
+  test('telemetry, camera, params and settings, directly or through a variable', () {
+    expect(at('${src}t.he'), ['heading']);
+    expect(at('${src}robot.tlm.batt'), ['battery']);
+    expect(at('${src}robot.camera.fr'), ['frame()', 'frames()']);
+    expect(at('${src}robot.params.s'), ['set()', 'save()']);
+    expect(at('${src}speed.va'), ['value']);
+    expect(at('${src}robot.next_tlm().al'), ['alt']);
+  });
+
+  test('what dash knows about the device: its sticks, fields, programs, channels', () {
+    const rover = CompletionContext(kind: 'rover', sticks: ['throttle', 'steer'], tlm: ['pos', 'battery'], programs: ['Survey square', 'Back home'], channels: ['motor_temp']);
+    expect(at('${src}robot.sticks(', rover), ['throttle=', 'steer=']);
+    expect(at('${src}robot.sticks(throttle=0.4, ', rover), ['steer='], reason: 'not the one already given');
+    expect(at('${src}robot.sticks(throttle=0.', rover), isEmpty, reason: 'typing a value');
+    expect(at('${src}robot.run_program("', rover), ['Survey square', 'Back home']);
+    expect(at('${src}robot.run_program("ba', rover), ['Back home']);
+    expect(at('${src}t.motor', rover), ['motor_temp']);
+    expect(at('${src}robot.mode("', const CompletionContext(kind: 'drone')), containsAll(['RTH', 'LAND']));
+    expect(at('${src}@robot.trigger("Go", kind="s'), ['switch']);
+  });
+
+  test('plain names: the API, the script\'s own names, keywords, builtins; fuzzy after prefixes', () {
+    expect(at('${src}ev'), contains('every()'));
+    expect(at('${src}go_'), ['go_home']);
+    expect(at('${src}whi'), ['while']);
+    expect(at('${src}pri'), ['print()']);
+    expect(at('${src}pid_'), isEmpty);
+    expect(at('${src}_pid'), ['steer_pid'], reason: 'contains, after prefixes');
+    expect(at('${src}x'), isEmpty, reason: 'one letter is not enough');
+    expect(at('${src}# rob'), isEmpty, reason: 'not in comments');
+  });
+
+  test('signature help: the call, and the argument the cursor is on', () {
+    final code = '${src}robot.goto(5, ';
+    final s = signatureAt(code, code.length)!;
+    expect(s.sig.text, 'goto(x, y, z=None, wait=True)');
+    expect(s.arg, 1);
+    expect(s.sig.params[1].$2, 'metres north');
+    final c2 = '${src}robot.setting("gain", max(1, 2), ';
+    expect(signatureAt(c2, c2.length)!.arg, 2, reason: 'commas inside a nested call do not count');
+    final c3 = '${src}connect(';
+    expect(signatureAt(c3, c3.length)!.sig.name, 'connect');
+    final c4 = '${src}robot.goto(5, 0)\n';
+    expect(signatureAt(c4, c4.length), isNull, reason: 'outside a call');
+  });
+}

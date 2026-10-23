@@ -9,9 +9,10 @@ import '../core/dash.dart';
 import '../core/save_io.dart';
 import '../mcp/docs.dart' show bundledExamples, exampleName, loadBundledText;
 import '../scripts/hosts.dart';
+import '../scripts/completion.dart';
 import '../scripts/library.dart';
 import '../scripts/requirements.dart';
-import '../scripts/script_hub.dart';
+import '../scripts/script_hub.dart' show ScriptHub, stickAxes;
 import '../scripts/script_runner.dart';
 import '../theme/tokens.dart';
 import '../ui/components.dart';
@@ -290,6 +291,22 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
     await _openExternally(path);
   }
 
+  /// What completion knows about the device the script would run on: its
+  /// sticks, the telemetry it sends, its programs and channels.
+  CompletionContext _completionContext() {
+    final cfg = d.scripts.configFor(selected ?? '');
+    final l = (cfg.device == null ? null : d.links.values.where((x) => x.info.name == cfg.device).firstOrNull) ?? d.focus;
+    if (l == null) return const CompletionContext();
+    final snap = l.tel.snapshot()..remove('seen');
+    return CompletionContext(
+      kind: l.kind.name,
+      sticks: [...?stickAxes[l.kind]?.keys],
+      tlm: [...snap.keys, 'alt', 'speed', 'heading', if (l.tel.hasGps) 'gps'],
+      programs: [for (final q in d.sequencesFor(l.id)) q.name],
+      channels: [for (final k in l.tel.custom.keys) if (!k.startsWith('script:')) k],
+    );
+  }
+
   // ----------------------------------------------------------------- views
   List<ConsoleLine> _consoleOf(ScriptFile f) {
     final run = d.scripts.runs.where((r) => r.file.path == f.path).lastOrNull;
@@ -523,9 +540,8 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
         _editorHeader(f),
         _messageBar(),
         Expanded(
-          child: CodeEditor(key: _editor, controller: code, onChanged: _edited, onSave: _saveNow),
+          child: CodeEditor(key: _editor, controller: code, onChanged: _edited, onSave: _saveNow, context: _completionContext),
         ),
-        CompletionBar(editor: _editor, controller: code),
         SizedBox(height: 200, child: ScriptConsole(lines: _consoleOf(f), hz: _hzOf(f), onLine: _goToLine)),
       ],
     );
@@ -562,9 +578,9 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
           _editorHeader(f),
           _messageBar(),
           Expanded(
-            child: CodeEditor(key: _editor, controller: code, onChanged: _edited, onSave: _saveNow, fontSize: 12),
+            child: CodeEditor(key: _editor, controller: code, onChanged: _edited, onSave: _saveNow, fontSize: 12, context: _completionContext, popup: false),
           ),
-          CompletionBar(editor: _editor, controller: code),
+          CompletionBar(editor: _editor, controller: code, context: _completionContext),
           CodeKeyRow(editor: _editor),
         ],
       );
