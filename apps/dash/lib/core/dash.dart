@@ -29,6 +29,7 @@ import 'device_link.dart';
 import 'gamepad.dart';
 import 'log_import.dart';
 import 'model.dart';
+import '../mcp/mcp_server.dart';
 import '../scripts/script_hub.dart';
 import 'sequence.dart';
 import 'store.dart';
@@ -284,6 +285,9 @@ class Dash extends ChangeNotifier implements PadTarget {
   /// Python scripts and (later) MCP clients: see scripts/script_hub.dart.
   late final scripts = ScriptHub(this);
 
+  /// AI assistants over MCP (mcp/mcp_server.dart), on the same local server.
+  late final mcp = McpServer(this);
+
   final pad = PadConfig();
   late final padMapper = PadMapper(pad, this);
   late final gamepads = GamepadInput(padMapper);
@@ -444,6 +448,7 @@ class Dash extends ChangeNotifier implements PadTarget {
     settings.load(store.readJson('kdash-settings-v1'));
     pad.load(store.readJson('kdash-pad-v1') as Map?);
     scripts.load();
+    mcp.load();
     padMapper.onFreeButton = scripts.onPad;
     alertPrefs.load(store.readJson('kdash-alerts-v1') as Map?);
     gamepads.addListener(notifyListeners);

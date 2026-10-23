@@ -96,4 +96,15 @@ void main() {
       expect(f.readAsStringSync(), File('../../libs/python-dash-scripts/examples/${f.uri.pathSegments.last}').readAsStringSync(), reason: f.path);
     }
   });
+
+  test('the docs assistants read are the repository’s', () {
+    const pairs = {
+      'assets/docs/PROTOCOL.md': '../../protocol/PROTOCOL.md',
+      'assets/docs/SCRIPTS.md': '../../protocol/SCRIPTS.md',
+      'assets/docs/SCRIPTS_API.md': '../../libs/python-dash-scripts/README.md',
+    };
+    for (final e in pairs.entries) {
+      expect(File(e.key).readAsStringSync(), File(e.value).readAsStringSync(), reason: 'copy ${e.value} to ${e.key}');
+    }
+  });
 }

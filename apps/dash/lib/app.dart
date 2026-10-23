@@ -104,6 +104,15 @@ class Shell extends StatefulWidget {
 
 class _ShellState extends State<Shell> {
   late String screen = widget.initial;
+
+  @override
+  void initState() {
+    super.initState();
+    // An assistant may show a screen.
+    widget.d.mcp.onOpen = (s) {
+      if (mounted) go(s);
+    };
+  }
   String? detail;
   Recording? toast;
   String? _seen;

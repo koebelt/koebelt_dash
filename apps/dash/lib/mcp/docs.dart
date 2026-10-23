@@ -1,0 +1,80 @@
+import 'package:flutter/services.dart';
+
+import '../screens/guides_data.dart';
+
+/// A document an assistant can read: a guide, a reference, an example.
+class Doc {
+  const Doc(this.id, this.title, this.text);
+  final String id, title, text;
+}
+
+/// A guide as Markdown, every platform's code included.
+String guideMarkdown(Guide g) {
+  final b = StringBuffer('# ${g.title}\n\n${g.sub}\n');
+  for (final s in g.steps) {
+    b.write('\n## ${s.t}\n\n${s.p}\n');
+    for (final x in s.bullets) {
+      b.write('- $x\n');
+    }
+    if (s.note != null) b.write('\n${s.warn ? 'Warning' : 'Note'}: ${s.note}\n');
+    for (final row in s.table ?? const <List<String>>[]) {
+      b.write('| ${row.join(' | ')} |\n');
+    }
+    for (final e in s.c.entries) {
+      b.write('\n${platforms.where((p) => p.id == e.key).firstOrNull?.name ?? e.key}:\n```${e.value[0]}\n${e.value[1]}\n```\n');
+    }
+  }
+  for (final row in g.table ?? const <List<String>>[]) {
+    b.write('| ${row.join(' | ')} |\n');
+  }
+  return b.toString();
+}
+
+/// Everything assistants can read: the guides, the protocols, the script
+/// API and its examples.
+Future<List<Doc>> loadDocs(AssetBundle bundle) async {
+  final docs = <Doc>[
+    for (final g in [quickstart('<pairing code from the app>'), ...guides]) Doc('guide:${g.id}', g.title, guideMarkdown(g)),
+  ];
+  const refs = {
+    'assets/docs/SCRIPTS_API.md': ('ref:scripts-api', 'Python script API (koebelt-dash-scripts)'),
+    'assets/docs/SCRIPTS.md': ('ref:scripts-protocol', 'Script API messages and script hosts'),
+    'assets/docs/PROTOCOL.md': ('ref:protocol', 'koebelt/link device protocol'),
+  };
+  for (final e in refs.entries) {
+    try {
+      docs.add(Doc(e.value.$1, e.value.$2, await bundle.loadString(e.key)));
+    } catch (_) {}
+  }
+  try {
+    final manifest = await AssetManifest.loadFromAssetBundle(bundle);
+    for (final a in manifest.listAssets().where((a) => a.startsWith('assets/script_examples/') && a.endsWith('.py'))) {
+      final name = a.split('/').last;
+      docs.add(Doc('example:$name', 'Example script: $name', await bundle.loadString(a)));
+    }
+  } catch (_) {}
+  return docs;
+}
+
+/// Passages that match a query best: (doc, heading, text), most relevant first.
+List<({Doc doc, String passage})> searchDocs(List<Doc> docs, String query, {int limit = 6}) {
+  final words = query.toLowerCase().split(RegExp(r'[^a-z0-9_]+')).where((w) => w.length > 1).toSet();
+  if (words.isEmpty) return const [];
+  final hits = <({Doc doc, String passage, double score})>[];
+  for (final d in docs) {
+    // Passages: sections between headings, or the whole of a short document.
+    final parts = d.text.split(RegExp(r'\n(?=#{1,3} )'));
+    for (final p in parts) {
+      final lower = p.toLowerCase();
+      var score = 0.0;
+      for (final w in words) {
+        final n = RegExp(RegExp.escape(w)).allMatches(lower).length;
+        if (n > 0) score += 1 + n * .2;
+      }
+      if (d.title.toLowerCase().contains(query.toLowerCase())) score += 2;
+      if (score > 0) hits.add((doc: d, passage: p.length > 2400 ? '${p.substring(0, 2400)}…' : p, score: score / (1 + p.length / 4000)));
+    }
+  }
+  hits.sort((a, b) => b.score.compareTo(a.score));
+  return [for (final h in hits.take(limit)) (doc: h.doc, passage: h.passage)];
+}

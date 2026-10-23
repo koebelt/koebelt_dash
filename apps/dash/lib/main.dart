@@ -17,7 +17,8 @@ Future<void> main() async {
   await migrateFromSandbox();
   await initMapCache();
   final dash = Dash();
-  runApp(KoebeltDash(dash: dash));
+  // The boundary lets an assistant take a screenshot (MCP).
+  runApp(RepaintBoundary(key: dash.mcp.screenKey, child: KoebeltDash(dash: dash)));
   await dash.init();
   // The script API, for Python scripts on this computer.
   if (Platform.isMacOS || Platform.isWindows || Platform.isLinux) {

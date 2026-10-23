@@ -333,7 +333,9 @@ class ScriptHub {
     _server!.listen(_onRequest, onError: (_) {});
     if (discovery != null) {
       await discovery.parent.create(recursive: true);
-      await discovery.writeAsString(jsonEncode({'url': 'ws://127.0.0.1:${_server!.port}/scripts', 'token': token, 'pid': pid, 'app': appVersion}));
+      await discovery.writeAsString(
+        jsonEncode({'url': 'ws://127.0.0.1:${_server!.port}/scripts', 'mcp': 'http://127.0.0.1:${_server!.port}/mcp', 'token': token, 'pid': pid, 'app': appVersion}),
+      );
     }
   }
 
@@ -352,6 +354,7 @@ class ScriptHub {
   }
 
   Future<void> _onRequest(HttpRequest req) async {
+    if (req.uri.path == '/mcp') return d.mcp.handle(req);
     if (req.uri.path != '/scripts' || !WebSocketTransformer.isUpgradeRequest(req)) {
       req.response.statusCode = HttpStatus.notFound;
       await req.response.close();
