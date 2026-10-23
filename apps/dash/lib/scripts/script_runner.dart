@@ -2,16 +2,17 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import '../core/compat.dart' show isPrerelease;
+import '../core/compat.dart' show compareVersions, isPrerelease;
 import '../link/protocol.dart' show appVersion;
 
 /// A Python interpreter scripts can run with.
 class PythonEnv {
-  const PythonEnv(this.path, this.version, {required this.hasPackage});
+  const PythonEnv(this.path, this.version, {required this.hasPackage, this.packageVersion});
   final String path, version;
 
-  /// Whether koebelt-dash-scripts is installed in it.
+  /// Whether koebelt-dash-scripts is installed in it, and which version (1.3.0b2).
   final bool hasPackage;
+  final String? packageVersion;
 
   @override
   String toString() => 'Python $version ($path)';
@@ -23,11 +24,17 @@ Future<PythonEnv?> probePython(String path) async {
   try {
     final r = await Process.run(path, [
       '-c',
-      'import sys, importlib.util; print(sys.version.split()[0], importlib.util.find_spec("koebelt_dash_scripts") is not None)',
+      'import sys\n'
+          'try:\n'
+          '    from importlib.metadata import version\n'
+          '    v = version("koebelt-dash-scripts")\n'
+          'except Exception:\n'
+          '    v = "-"\n'
+          'print(sys.version.split()[0], v)',
     ]).timeout(const Duration(seconds: 8));
     final out = '${r.stdout}'.trim().split(' ');
     if (r.exitCode != 0 || out.length != 2 || !out[0].startsWith('3.')) return null;
-    return PythonEnv(path, out[0], hasPackage: out[1] == 'True');
+    return PythonEnv(path, out[0], hasPackage: out[1] != '-', packageVersion: out[1] == '-' ? null : out[1]);
   } catch (_) {
     return null;
   }
@@ -122,11 +129,19 @@ Future<String> createScriptsVenv(String base, Directory dir, void Function(Strin
 /// beta app accepts betas; a release app only releases.
 String scriptsPackageSpec([String app = appVersion]) => 'koebelt-dash-scripts>=${isPrerelease(app) ? '1.3.0b1' : '1.3.0'},<2';
 
+/// Whether a koebelt-dash-scripts version (in the app's form: 1.3.0-beta.2)
+/// is one [scriptsPackageSpec] accepts.
+bool scriptsPackageAccepts(String v, [String app = appVersion]) {
+  final min = isPrerelease(app) ? '1.3.0-beta.1' : '1.3.0';
+  if (!isPrerelease(app) && isPrerelease(v)) return false;
+  return compareVersions(v, min) >= 0 && compareVersions(v, '2.0.0-alpha.0') < 0;
+}
+
 /// Installs koebelt-dash-scripts into [python].
-Future<void> installScriptsPackage(String python, void Function(String) log) async {
+Future<void> installScriptsPackage(String python, void Function(String) log, {bool upgrade = false}) async {
   final spec = scriptsPackageSpec();
-  log('Installing $spec');
-  final p = await Process.start(python, ['-m', 'pip', 'install', spec]);
+  log('${upgrade ? 'Updating' : 'Installing'} $spec');
+  final p = await Process.start(python, ['-m', 'pip', 'install', if (upgrade) '--upgrade', spec]);
   p.stdout.transform(utf8.decoder).transform(const LineSplitter()).listen(log);
   p.stderr.transform(utf8.decoder).transform(const LineSplitter()).listen(log);
   final code = await p.exitCode;

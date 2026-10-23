@@ -100,6 +100,13 @@ int compareVersions(String a, String b) {
 /// Whether a version is a beta or release candidate (1.3.0-beta.1).
 bool isPrerelease(String v) => v.contains('-');
 
+/// A Python package version as the app writes versions: 1.3.0b2 → 1.3.0-beta.2.
+String fromPep440(String v) {
+  final m = RegExp(r'^(\d+\.\d+\.\d+)(a|b|rc)(\d+)$').firstMatch(v);
+  if (m == null) return v;
+  return '${m[1]}-${const {'a': 'alpha', 'b': 'beta', 'rc': 'rc'}[m[2]]}.${m[3]}';
+}
+
 /// The same version as Python packages write it: 1.3.0-beta.1 → 1.3.0b1, rc → rc.
 String pep440(String v) {
   final m = RegExp(r'^(\d+\.\d+\.\d+)(?:-(alpha|beta|rc)\.?(\d+))?$').firstMatch(v);

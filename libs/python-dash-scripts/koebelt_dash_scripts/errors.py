@@ -139,6 +139,9 @@ CATALOG: Dict[str, Tuple[str, str, str]] = {
 }
 
 WARNINGS: Dict[str, Tuple[str, str, str]] = {
+    "W0102": ("koebelt-dash-scripts {have} is older than koebelt dash {app}",
+              "a newer library may fix bugs or add what this dash offers; this one still works with it",
+              "pip install --upgrade \"koebelt-dash-scripts{spec}\"   (in dash: the script's panel > Update)"),
     "W0201": ("{name}={value} is outside −1…1: dash uses {clamped}",
               "sticks go from −1 to 1",
               "clamp it yourself (koebelt_dash_scripts.clamp) to silence this"),

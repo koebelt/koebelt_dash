@@ -3,8 +3,11 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
 
+import 'package:http/http.dart' as http;
+
 import '../core/dash.dart';
 import '../core/device_link.dart';
+import '../core/compat.dart' show compareVersions, fromPep440;
 import '../core/model.dart';
 import '../core/sequence.dart';
 import '../link/protocol.dart';
@@ -261,6 +264,43 @@ class ScriptHub {
   /// with koebelt-dash-scripts.
   String? pythonFor(ScriptConfig c) => c.python ?? pythons?.where((p) => p.hasPackage).firstOrNull?.path;
 
+  /// The newest koebelt-dash-scripts on PyPI that works with this app (a
+  /// beta app takes betas), looked up at most once a day; null until then.
+  String? latestPackage;
+  DateTime? _packageChecked;
+
+  /// Asks PyPI, on computers (where scripts run).
+  Future<void> checkPackageUpdates({http.Client? client, bool force = false}) async {
+    if (!canRunHere && client == null) return;
+    if (!force && _packageChecked != null && DateTime.now().difference(_packageChecked!) < const Duration(days: 1)) return;
+    _packageChecked = DateTime.now();
+    final c = client ?? http.Client();
+    try {
+      final r = await c
+          .get(Uri.parse('https://pypi.org/pypi/koebelt-dash-scripts/json'), headers: {'User-Agent': 'koebelt-dash/$appVersion'})
+          .timeout(const Duration(seconds: 10));
+      if (r.statusCode != 200) return;
+      final releases = ((jsonDecode(r.body) as Map)['releases'] as Map).keys.cast<String>();
+      final ok = [
+        for (final v in releases.map(fromPep440))
+          if (scriptsPackageAccepts(v)) v,
+      ]..sort(compareVersions);
+      latestPackage = ok.lastOrNull;
+      d.emit();
+    } catch (_) {
+      // Offline: the panel just does not offer an update.
+    } finally {
+      if (client == null) c.close();
+    }
+  }
+
+  /// Whether the Python at [path] has an older koebelt-dash-scripts than
+  /// [latestPackage].
+  bool packageOutdated(String? path) {
+    final have = envOf(path)?.packageVersion, latest = latestPackage;
+    return have != null && latest != null && compareVersions(fromPep440(have), latest) < 0;
+  }
+
   /// What dash knows of an interpreter, if it has looked at it.
   PythonEnv? envOf(String? path) => path == null ? null : pythons?.where((p) => p.path == path).firstOrNull;
 
@@ -276,7 +316,7 @@ class ScriptHub {
 
   /// Installs koebelt-dash-scripts into [python] (a virtual environment or
   /// conda; system Pythons often refuse, and say so).
-  Future<void> installInto(String python) async {
+  Future<void> installInto(String python, {bool upgrade = false}) async {
     if (settingUp) return;
     settingUp = true;
     setupLog.clear();
@@ -285,7 +325,7 @@ class ScriptHub {
       await installScriptsPackage(python, (l) {
         setupLog.add(l);
         d.emit();
-      });
+      }, upgrade: upgrade);
       setupLog.add('Ready.');
     } catch (e) {
       final why = setupLog.where((l) => l.contains('externally-managed') || l.toLowerCase().contains('error')).firstOrNull;

@@ -9,6 +9,8 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:koebelt_dash/core/dash.dart';
 import 'package:koebelt_dash/scripts/hosts.dart';
 import 'package:koebelt_dash/scripts/script_runner.dart';
@@ -312,4 +314,28 @@ print("done")
     await d.scripts.recheckPython('/nonexistent/python3');
     expect(d.scripts.envOf('/nonexistent/python3'), isNull, reason: 'not a Python');
   }, skip: python == null ? 'no Python with koebelt-dash-scripts' : false);
+
+  test('dash knows the library version in a Python, and the newest one for this app on PyPI', () async {
+    SharedPreferences.setMockInitialValues({});
+    final d = Dash();
+    await d.init();
+    await d.scripts.recheckPython(python!);
+    final have = d.scripts.envOf(python)!.packageVersion!;
+    expect(have, matches(RegExp(r'^1\.3\.0(b\d+)?$')), reason: 'the version pip installed');
+    final pypi = MockClient((_) async => http.Response(jsonEncode({'releases': {'1.2.0': [], '1.3.0b1': [], have: [], '1.3.9b1': [], '2.0.0': []}}), 200));
+    await d.scripts.checkPackageUpdates(client: pypi, force: true);
+    // This app is a beta: betas count, 2.x does not.
+    expect(d.scripts.latestPackage, '1.3.9-beta.1');
+    expect(d.scripts.packageOutdated(python), isTrue);
+    await d.scripts.checkPackageUpdates(client: MockClient((_) async => http.Response(jsonEncode({'releases': {have: []}}), 200)), force: true);
+    expect(d.scripts.packageOutdated(python), isFalse);
+  }, skip: python == null ? 'no Python with koebelt-dash-scripts' : false);
+
+  test('which library versions a release app and a beta app accept', () {
+    expect(scriptsPackageAccepts('1.3.0-beta.2', '1.3.0-beta.3'), isTrue);
+    expect(scriptsPackageAccepts('1.3.0-beta.2', '1.3.0'), isFalse, reason: 'a release app takes no betas');
+    expect(scriptsPackageAccepts('1.3.1', '1.3.0'), isTrue);
+    expect(scriptsPackageAccepts('2.0.0', '1.3.0'), isFalse, reason: 'another script API');
+    expect(scriptsPackageAccepts('1.2.0', '1.3.0'), isFalse);
+  });
 }

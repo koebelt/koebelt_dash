@@ -434,6 +434,18 @@ Fix: update koebelt dash and koebelt-dash-scripts to matching versions.
 
 # Warnings
 
+## W0102
+
+**koebelt-dash-scripts <have> is older than koebelt dash <app>**
+
+```python
+dev = connect()            # with an older library than the app
+```
+
+Why: a newer library may fix bugs or add what this dash offers; this one still works with it.
+
+Fix: pip install --upgrade "koebelt-dash-scripts>=…,<2" (in dash: the script's panel > Update).
+
 ## W0201
 
 **<name>=<value> is outside −1…1: dash uses <clamped>**

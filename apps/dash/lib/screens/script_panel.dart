@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../core/dash.dart';
 import '../core/gamepad.dart';
+import '../core/compat.dart' show fromPep440;
 import '../core/model.dart';
 import '../scripts/hosts.dart';
 import '../scripts/library.dart';
@@ -196,7 +197,7 @@ class ScriptRunPanel extends StatelessWidget {
     return _Dropdown<String?>(
       value: ps.any((p) => p.path == current) ? current : null,
       items: {
-        for (final p in ps) p.path: '${p.version} · ${short(p.path)}${p.hasPackage ? '' : ' · no package'}',
+        for (final p in ps) p.path: '${p.version} · ${short(p.path)}${p.hasPackage ? ' · lib ${fromPep440(p.packageVersion ?? '')}' : ' · no package'}',
         if (current != null && !ps.any((p) => p.path == current)) null: short(current),
       },
       onChanged: (v) {
@@ -228,6 +229,27 @@ class ScriptRunPanel extends StatelessWidget {
       ];
     }
     final chosen = hub.pythonFor(cfg), env = hub.envOf(chosen);
+    if (env != null && env.hasPackage && !hub.settingUp && hub.packageOutdated(chosen)) {
+      return [
+        const SizedBox(height: 12),
+        KNotice(
+          tone: Tone.info,
+          title: 'koebelt-dash-scripts ${fromPep440(env.packageVersion!)} → ${hub.latestPackage}',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text('A newer version of the library scripts use is out, for this version of koebelt dash.'),
+              if (hub.setupLog.isNotEmpty) ...[const SizedBox(height: 8), Text(hub.setupLog.last, style: KText.mono(11, color: K.textMuted))],
+              const SizedBox(height: 10),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: KButton('Update', size: KSize.sm, onPressed: () => hub.installInto(chosen!, upgrade: true)),
+              ),
+            ],
+          ),
+        ),
+      ];
+    }
     if (env != null && env.hasPackage && !hub.settingUp) return const [];
     if (chosen != null && !hub.settingUp) {
       return [

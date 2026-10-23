@@ -76,6 +76,8 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
       _watch = l.dir.watch(recursive: true).listen((_) => _onDiskChange());
     }
     if (ScriptHub.canRunHere && d.scripts.pythons == null) unawaited(d.scripts.refreshPythons(near: l.dir));
+    // A newer koebelt-dash-scripts for this app (at most once a day).
+    if (ScriptHub.canRunHere) unawaited(d.scripts.checkPackageUpdates());
   }
 
   @override

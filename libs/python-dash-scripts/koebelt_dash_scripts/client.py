@@ -526,9 +526,32 @@ def connect(device: Optional[str] = None, *, url: Optional[str] = None, token: O
         ws.close()
         raise ScriptError("E0012", {"reason": welcome.get("why") or "no reason given"})
     dev = Device(ws, welcome, name)
+    _check_version(welcome.get("app"))
     dev._use(device)
     _current = dev
     return dev
+
+
+def _version_key(v: str):
+    """1.3.0b2 or 1.3.0-beta.2 → a sortable tuple (a release after its betas)."""
+    import re
+    m = re.match(r"^(\d+)\.(\d+)\.(\d+)(?:-?(a|alpha|b|beta|rc)\.?(\d+))?", v or "")
+    if not m:
+        return None
+    stage = {"a": 0, "alpha": 0, "b": 1, "beta": 1, "rc": 2}.get(m.group(4) or "", 3)
+    return (int(m.group(1)), int(m.group(2)), int(m.group(3)), stage, int(m.group(5) or 0))
+
+
+def _check_version(app: Optional[str]) -> None:
+    """Warns once when this library is older than the dash it talks to."""
+    from . import __version__
+    have, want = _version_key(__version__), _version_key(app or "")
+    if have is None or want is None or have >= want:
+        return
+    # The package is released with the app, at its version: ask for at least that one.
+    major, minor, patch, stage, n = want
+    pep = f"{major}.{minor}.{patch}" + ("" if stage == 3 else f"{['a', 'b', 'rc'][stage]}{n}")
+    warn_once("W0102", "version", {"have": __version__, "app": app, "spec": f">={pep},<2"})
 
 
 def every(seconds: float) -> Iterator[int]:

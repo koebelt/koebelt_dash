@@ -89,3 +89,13 @@ def test_an_uncaught_error_prints_rust_style_without_the_librarys_traceback(tmp_
     assert "--> my_script.py:4" in r.stderr and "k.connect()" in r.stderr
     assert "called from: my_script.py:6 <module>()" in r.stderr
     assert "Traceback" not in r.stderr and "client.py" not in r.stderr
+
+
+def test_warns_when_older_than_dash(dash, capsys):  # noqa: F811
+    from koebelt_dash_scripts import client
+    client._check_version("9.0.0")
+    assert "warning[W0102]: koebelt-dash-scripts" in capsys.readouterr().err
+    client._check_version("0.1.0")
+    client._check_version(k.__version__)
+    assert capsys.readouterr().err == "", "not older: no warning"
+    assert client._version_key("1.3.0b2") < client._version_key("1.3.0-beta.3") < client._version_key("1.3.0rc1") < client._version_key("1.3.0")
