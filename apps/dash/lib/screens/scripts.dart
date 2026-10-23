@@ -202,16 +202,27 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
     }
   }
 
+  /// Copies an example into the library and opens it; one already copied
+  /// (and unchanged) is opened instead of copied again.
   Future<void> _useExample(String asset) async {
     final l = lib;
     if (l == null) return;
-    final text = await rootBundle.loadString(asset);
-    final name = asset.split('/').last.replaceAll(RegExp(r'\.txt$'), '');
-    final f = await l.import(name, utf8.encode(text));
-    await _reload();
-    final s = files.where((x) => x.path == f.path).firstOrNull;
-    if (s != null) await _open(s);
+    try {
+      final text = await rootBundle.loadString(asset);
+      final name = asset.split('/').last.replaceAll(RegExp(r'\.txt$'), '');
+      for (final f in files) {
+        if (f.entry is File && await f.file.readAsString() == text) return await _open(f);
+      }
+      final f = await l.import(name, utf8.encode(text));
+      await _reload();
+      final s = files.where((x) => x.path == f.path).firstOrNull;
+      if (s != null) await _open(s);
+      if (mounted) setState(() => _message = 'Copied the example to ${f.uri.pathSegments.last} in your scripts.');
+    } catch (e) {
+      if (mounted) setState(() => _message = 'Could not copy the example: $e');
+    }
   }
+
 
   Future<void> _rename(ScriptFile s) async {
     final name = await showKDialog<String>(context, builder: (ctx) => _NameDialog(title: 'Rename', initial: s.name));
