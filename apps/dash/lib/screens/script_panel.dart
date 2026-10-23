@@ -203,6 +203,8 @@ class ScriptRunPanel extends StatelessWidget {
         cfg.python = v;
         hub.saveConfigs();
         d.emit();
+        // It may have changed since dash looked at it.
+        if (v != null) hub.recheckPython(v);
       },
     );
   }
@@ -225,7 +227,38 @@ class ScriptRunPanel extends StatelessWidget {
         ),
       ];
     }
-    if (hub.pythonFor(cfg) != null && !hub.settingUp) return const [];
+    final chosen = hub.pythonFor(cfg), env = hub.envOf(chosen);
+    if (env != null && env.hasPackage && !hub.settingUp) return const [];
+    if (chosen != null && !hub.settingUp) {
+      return [
+        const SizedBox(height: 12),
+        KNotice(
+          tone: Tone.warning,
+          title: env == null ? 'This Python does not answer' : 'koebelt-dash-scripts is not in this Python',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                env == null
+                    ? 'dash could not run $chosen. Choose another, or create a scripts environment.'
+                    : 'Install it here (pip install koebelt-dash-scripts), or let dash create a scripts environment in the scripts folder.',
+              ),
+              if (hub.setupLog.isNotEmpty) ...[const SizedBox(height: 8), Text(hub.setupLog.last, style: KText.mono(11, color: K.textMuted))],
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  if (env != null) KButton('Install here', size: KSize.sm, onPressed: () => hub.installInto(chosen)),
+                  KButton('Scripts environment', size: KSize.sm, variant: KButtonVariant.secondary, onPressed: () => hub.setupPython(scriptsDir, cfg: cfg)),
+                  KButton('Check again', size: KSize.sm, variant: KButtonVariant.ghost, onPressed: () => hub.recheckPython(chosen)),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ];
+    }
     return [
       const SizedBox(height: 12),
       KNotice(
@@ -243,7 +276,7 @@ class ScriptRunPanel extends StatelessWidget {
               const SizedBox(height: 10),
               Align(
                 alignment: Alignment.centerLeft,
-                child: KButton('Set up Python', size: KSize.sm, onPressed: () => hub.setupPython(scriptsDir)),
+                child: KButton('Set up Python', size: KSize.sm, onPressed: () => hub.setupPython(scriptsDir, cfg: cfg)),
               ),
             ],
           ],
@@ -253,7 +286,8 @@ class ScriptRunPanel extends StatelessWidget {
   }
 
   Widget _runButtons(BuildContext context, ScriptConfig cfg, ScriptRun? run, bool running) {
-    final canRun = hub.hostFor(cfg) != null || (ScriptHub.canRunHere && hub.port != null && hub.pythonFor(cfg) != null);
+    // Here: a Python dash checked has koebelt-dash-scripts.
+    final canRun = hub.hostFor(cfg) != null || (ScriptHub.canRunHere && hub.port != null && (hub.envOf(hub.pythonFor(cfg))?.hasPackage ?? false));
     return Row(
       children: [
         Expanded(

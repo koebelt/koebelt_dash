@@ -130,6 +130,9 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
       dirty = false;
       if (show && phone) phoneView = 'run';
     });
+    // Its Python may have changed outside dash (a package installed, removed).
+    final py = d.scripts.configFor(f.path).python;
+    if (py != null && ScriptHub.canRunHere) unawaited(d.scripts.recheckPython(py));
   }
 
   void _edited() {

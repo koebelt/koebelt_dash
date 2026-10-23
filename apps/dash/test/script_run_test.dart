@@ -298,4 +298,18 @@ print("done")
       expect(run.state, ScriptState.exited);
     }, skip: python == null ? 'no Python with koebelt-dash-scripts' : false, timeout: const Timeout(Duration(seconds: 60)));
   });
+
+  test('choosing a Python checks it again', () async {
+    SharedPreferences.setMockInitialValues({});
+    final d = Dash();
+    await d.init();
+    // What dash remembered: no package (it was installed since).
+    d.scripts.pythons = [PythonEnv(python!, '3', hasPackage: false)];
+    expect(d.scripts.envOf(python)!.hasPackage, isFalse);
+    await d.scripts.recheckPython(python);
+    expect(d.scripts.envOf(python)!.hasPackage, isTrue);
+    expect(d.scripts.pythons, hasLength(1), reason: 'replaced, not added');
+    await d.scripts.recheckPython('/nonexistent/python3');
+    expect(d.scripts.envOf('/nonexistent/python3'), isNull, reason: 'not a Python');
+  }, skip: python == null ? 'no Python with koebelt-dash-scripts' : false);
 }

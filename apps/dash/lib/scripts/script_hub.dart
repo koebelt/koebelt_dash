@@ -248,18 +248,60 @@ class ScriptHub {
   /// with koebelt-dash-scripts.
   String? pythonFor(ScriptConfig c) => c.python ?? pythons?.where((p) => p.hasPackage).firstOrNull?.path;
 
-  /// Creates `<scripts folder>/.venv` with koebelt-dash-scripts.
-  Future<void> setupPython(Directory scripts) async {
+  /// What dash knows of an interpreter, if it has looked at it.
+  PythonEnv? envOf(String? path) => path == null ? null : pythons?.where((p) => p.path == path).firstOrNull;
+
+  /// Looks at one interpreter again (chosen, or changed outside dash): its
+  /// version and whether it has koebelt-dash-scripts.
+  Future<void> recheckPython(String path) async {
+    final p = await probePython(path);
+    final list = [...?pythons]..removeWhere((x) => x.path == path);
+    if (p != null) list.insert(0, p);
+    pythons = list;
+    d.emit();
+  }
+
+  /// Installs koebelt-dash-scripts into [python] (a virtual environment or
+  /// conda; system Pythons often refuse, and say so).
+  Future<void> installInto(String python) async {
+    if (settingUp) return;
+    settingUp = true;
+    setupLog.clear();
+    d.emit();
+    try {
+      await installScriptsPackage(python, (l) {
+        setupLog.add(l);
+        d.emit();
+      });
+      setupLog.add('Ready.');
+    } catch (e) {
+      final why = setupLog.where((l) => l.contains('externally-managed') || l.toLowerCase().contains('error')).firstOrNull;
+      setupLog.add(why != null && why.contains('externally-managed')
+          ? 'This Python is managed by the system and refuses packages: use a scripts environment instead.'
+          : 'Failed: ${why ?? e}');
+    } finally {
+      settingUp = false;
+      await recheckPython(python);
+    }
+  }
+
+  /// Creates `<scripts folder>/.venv` with koebelt-dash-scripts, and makes it
+  /// [cfg]'s interpreter.
+  Future<void> setupPython(Directory scripts, {ScriptConfig? cfg}) async {
     final base = pythons?.firstOrNull?.path;
     if (base == null || settingUp) return;
     settingUp = true;
     setupLog.clear();
     d.emit();
     try {
-      await createScriptsVenv(base, Directory('${scripts.path}${Platform.pathSeparator}.venv'), (l) {
+      final venv = await createScriptsVenv(base, Directory('${scripts.path}${Platform.pathSeparator}.venv'), (l) {
         setupLog.add(l);
         d.emit();
       });
+      if (cfg != null) {
+        cfg.python = venv;
+        saveConfigs();
+      }
       setupLog.add('Ready.');
     } catch (e) {
       setupLog.add('Failed: $e');
