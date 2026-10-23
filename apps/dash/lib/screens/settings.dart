@@ -9,6 +9,7 @@ import '../scripts/script_hub.dart' show ScriptHub;
 import '../theme/tokens.dart';
 import '../ui/components.dart';
 import '../ui/icons.dart';
+import '../viz/map_view.dart' show tilesProblem;
 import 'assistant_ui.dart';
 import 'controller_settings.dart';
 import 'script_dialogs.dart' show showAddHostDialog;
@@ -293,13 +294,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
               SetRow(
                 phone: phone,
                 title: 'Map tiles',
-                desc: 'Background for the map view. OSM and TOPO are community-run servers, free for light personal use; for anything heavier, use your own provider. Tiles you have looked at stay on this device and are shown when there is no signal. None shows a metre grid only.',
+                desc: 'Background for the map view: Mapbox Dark, Outdoors (terrain) or Satellite, your own tiles, or none (a metre grid). Tiles you have looked at stay on this device for a while.',
                 child: Seg(
-                  items: const ['OSM', 'TOPO', 'CUSTOM', 'NONE'],
-                  value: {'osm': 'OSM', 'topo': 'TOPO', 'custom': 'CUSTOM', 'none': 'NONE'}[st.mapTiles],
+                  small: phone,
+                  items: const ['DARK', 'OUTDOORS', 'SATELLITE', 'CUSTOM', 'NONE'],
+                  value: st.mapTiles.toUpperCase(),
                   onChanged: (v) => d.updateSettings((s) => s.mapTiles = v.toLowerCase()),
                 ),
               ),
+              if (tilesProblem(st) != null) Padding(padding: const EdgeInsets.only(top: 12), child: KNotice(tone: Tone.warning, child: Text(tilesProblem(st)!))),
+              if (st.mapTiles != 'custom' && st.mapTiles != 'none')
+                SetRow(
+                  phone: phone,
+                  title: 'Your Mapbox token',
+                  desc: 'Optional: a public token (pk.…) from your own Mapbox account, to use your quota instead of the app\'s.',
+                  child: SizedBox(
+                    width: phone ? double.infinity : 320,
+                    child: _TextSetting(d, get: (s) => s.mapboxToken, set: (s, v) => s.mapboxToken = v.trim(), placeholder: 'pk.…'),
+                  ),
+                ),
               if (st.mapTiles == 'custom')
                 SetRow(
                   phone: phone,
@@ -314,14 +327,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 SetRow(
                   phone: phone,
                   title: 'Attribution',
-                  desc: 'The credit your provider requires, shown on the map. For example: © MapTiler © OpenStreetMap contributors.',
+                  desc: 'The credit your provider requires, shown on the map.',
                   child: SizedBox(
                     width: phone ? double.infinity : 320,
                     child: _TextSetting(
                       d,
                       get: (s) => s.mapAttribution,
                       set: (s, v) => s.mapAttribution = v,
-                      placeholder: '© Provider © OpenStreetMap contributors',
+                      placeholder: '© Provider',
                     ),
                   ),
                 ),

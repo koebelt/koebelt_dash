@@ -45,7 +45,11 @@ class Settings {
   int rateHz = 30;
 
   /// Map tiles: osm | topo | custom | none.
-  String mapTiles = 'osm';
+  /// dark, outdoors, satellite (Mapbox), custom or none.
+  String mapTiles = 'dark';
+
+  /// The user's own Mapbox token, instead of the app's.
+  String mapboxToken = '';
 
   /// URL template for custom tiles, `https://…/{z}/{x}/{y}.png`.
   String mapUrl = '';
@@ -64,6 +68,7 @@ class Settings {
     'haptics': haptics,
     'rateHz': rateHz,
     'mapTiles': mapTiles,
+    'mapboxToken': mapboxToken,
     'mapUrl': mapUrl,
     'mapAttribution': mapAttribution,
     'recordVideo': recordVideo,
@@ -76,7 +81,9 @@ class Settings {
     failsafe = j['failsafe'] ?? failsafe;
     haptics = j['haptics'] ?? haptics;
     rateHz = j['rateHz'] ?? rateHz;
-    mapTiles = j['mapTiles'] ?? mapTiles;
+    // OpenStreetMap and OpenTopoMap went: their closest Mapbox styles.
+    mapTiles = const {'osm': 'dark', 'topo': 'outdoors'}[j['mapTiles']] ?? j['mapTiles'] ?? mapTiles;
+    mapboxToken = j['mapboxToken'] ?? mapboxToken;
     mapUrl = j['mapUrl'] ?? mapUrl;
     mapAttribution = j['mapAttribution'] ?? mapAttribution;
     recordVideo = j['recordVideo'] ?? recordVideo;

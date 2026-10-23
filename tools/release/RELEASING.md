@@ -36,6 +36,10 @@ patch version.
 
 ## One-time setup
 
+- **Mapbox**: a public token (pk.…) of the koebelt Mapbox account, as the
+  repository secret `MAPBOX_TOKEN`. Every app build bakes it in; a tagged
+  release fails without it. Set a budget alert on the account: a token in an
+  app can be read out of it.
 - **PyPI**: on pypi.org, add a *pending trusted publisher* for the project
   `koebelt-link`: owner `koebelt`, repository `koebelt_dash`, workflow
   `release.yml`, environment `pypi`. No token is stored. A second one for

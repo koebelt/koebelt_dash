@@ -6,6 +6,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/retry.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -25,7 +26,7 @@ import '../ui/icons.dart';
 
 /// Tile sources offered in Settings.
 class TileSource {
-  const TileSource(this.id, this.name, this.url, this.attribution, {this.dark = true, this.link});
+  const TileSource(this.id, this.name, this.url, this.attribution, {this.dark = false, this.link, this.mapbox = false, this.size = 256});
   final String id, name, url, attribution;
 
   /// Where tapping the attribution goes (the licence or copyright page).
@@ -33,38 +34,59 @@ class TileSource {
 
   /// Restyle light tiles to fit the dark interface.
   final bool dark;
+
+  /// Mapbox: its logo and "Improve this map" on the map, and no stale tiles
+  /// offline beyond what its cache headers allow.
+  final bool mapbox;
+
+  /// Tile size in pixels.
+  final int size;
 }
 
-const tileSources = [
-  TileSource(
-    'osm',
-    'OpenStreetMap',
-    'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-    '© OpenStreetMap contributors',
-    link: 'https://www.openstreetmap.org/copyright',
-  ),
-  TileSource(
-    'topo',
-    'OpenTopoMap',
-    'https://tile.opentopomap.org/{z}/{x}/{y}.png',
-    '© OpenStreetMap contributors, SRTM · © OpenTopoMap (CC-BY-SA)',
-    link: 'https://opentopomap.org/about',
-  ),
-];
+/// The app's Mapbox token, given at build time (--dart-define=MAPBOX_TOKEN):
+/// never in the repository.
+const appMapboxToken = String.fromEnvironment('MAPBOX_TOKEN');
 
-/// Identifies the app to tile servers, as the OpenStreetMap tile usage
-/// policy asks: app name, version, where to find it and a contact.
+/// Mapbox styles: (id, name, Mapbox style).
+const mapboxStyles = [('dark', 'Dark', 'mapbox/dark-v11'), ('outdoors', 'Outdoors', 'mapbox/outdoors-v12'), ('satellite', 'Satellite', 'mapbox/satellite-streets-v12')];
+
+/// The token for Mapbox tiles: the user's own, else the app's; empty without either.
+String mapboxTokenFor(Settings st) => st.mapboxToken.trim().isNotEmpty ? st.mapboxToken.trim() : appMapboxToken;
+
+/// Identifies the app to tile servers: app name, version, where to find it
+/// and a contact.
 const tileUserAgent = 'koebelt-dash/$appVersion (+$repoUrl; $contactEmail)';
 
 /// Contact for tile servers and package registries.
 const contactEmail = 'contact@koebelt.com';
 
-/// The tile source the settings select, or null for the plain grid.
-TileSource? tileSourceFor(Settings st) => st.mapTiles == 'custom'
-    ? (st.mapUrl.contains('{z}')
-          ? TileSource('custom', 'Custom', st.mapUrl, st.mapAttribution.trim().isEmpty ? 'Custom tiles' : st.mapAttribution.trim(), dark: false)
-          : null)
-    : tileSources.where((s) => s.id == st.mapTiles).firstOrNull;
+/// The tile source the settings select, or null for the plain grid (no
+/// tiles, a bad custom URL, or Mapbox without a token).
+TileSource? tileSourceFor(Settings st) {
+  if (st.mapTiles == 'custom') {
+    return st.mapUrl.contains('{z}') ? TileSource('custom', 'Custom', st.mapUrl, st.mapAttribution.trim().isEmpty ? 'Custom tiles' : st.mapAttribution.trim()) : null;
+  }
+  final style = mapboxStyles.where((s) => s.$1 == st.mapTiles).firstOrNull;
+  final token = mapboxTokenFor(st);
+  if (style == null || token.isEmpty) return null;
+  // 512-pixel tiles at twice the density: sharp on phones, a quarter of the requests.
+  return TileSource(
+    style.$1,
+    'Mapbox ${style.$2}',
+    'https://api.mapbox.com/styles/v1/${style.$3}/tiles/512/{z}/{x}/{y}@2x?access_token=$token',
+    '© Mapbox © OpenStreetMap',
+    link: 'https://www.mapbox.com/about/maps/',
+    mapbox: true,
+    size: 512,
+  );
+}
+
+/// Why the map shows no tiles, for the Settings page; null when it does.
+String? tilesProblem(Settings st) {
+  if (st.mapTiles == 'none') return null;
+  if (st.mapTiles == 'custom') return st.mapUrl.contains('{z}') ? null : 'The tile URL needs {z}, {x} and {y}.';
+  return mapboxTokenFor(st).isEmpty ? 'This build has no Mapbox token: enter your own below, or choose another source.' : null;
+}
 
 MapCachingProvider _cache = const DisabledMapCachingProvider();
 
@@ -110,18 +132,43 @@ class OfflineTileClient extends http.BaseClient {
 
 /// Required credit for the tiles on screen. Screens that draw tiles over
 /// the map (the HUD, the drive screen) put this on top so it is never hidden.
+/// Mapbox also requires its logo and an "Improve this map" link.
 class MapAttribution extends StatelessWidget {
   const MapAttribution(this.src, {super.key});
   final TileSource src;
   @override
-  Widget build(BuildContext context) => Pressable(
-    onTap: src.link == null ? null : () => launchUrl(Uri.parse(src.link!)),
-    builder: (_, h, _) => Container(
+  Widget build(BuildContext context) {
+    Widget link(String text, String? url) => Pressable(
+      onTap: url == null ? null : () => launchUrl(Uri.parse(url)),
+      builder: (_, h, _) => Text(text, style: KText.bodySm.copyWith(fontSize: 10, height: 1.2, color: h ? K.textPrimary : K.textSecondary)),
+    );
+    final credit = Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
       decoration: BoxDecoration(color: K.inkA70, borderRadius: BorderRadius.circular(3)),
-      child: Text(src.attribution, style: KText.bodySm.copyWith(fontSize: 10, height: 1.2, color: h ? K.textPrimary : K.textSecondary)),
-    ),
-  );
+      child: src.mapbox
+          ? Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                link('© Mapbox', 'https://www.mapbox.com/about/maps/'),
+                const SizedBox(width: 6),
+                link('© OpenStreetMap', 'https://www.openstreetmap.org/copyright'),
+                const SizedBox(width: 6),
+                link('Improve this map', 'https://apps.mapbox.com/feedback/'),
+              ],
+            )
+          : link(src.attribution, src.link),
+    );
+    if (!src.mapbox) return credit;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        SvgPicture.asset('assets/mapbox-logo.svg', height: 18, semanticsLabel: 'Mapbox'),
+        const SizedBox(width: 6),
+        credit,
+      ],
+    );
+  }
 }
 
 /// Grey-inverted tiles: light OpenStreetMap styles become a dark map.
@@ -245,16 +292,21 @@ class _MapViewState extends State<MapView> {
     if (src != null) {
       tiles = TileLayer(
         urlTemplate: src.url,
-        maxNativeZoom: 19,
+        maxNativeZoom: src.mapbox ? 22 : 19,
+        tileDimension: src.size,
+        zoomOffset: src.size == 512 ? -1 : 0,
         tileProvider: NetworkTileProvider(
           headers: {'User-Agent': tileUserAgent},
-          httpClient: RetryClient(OfflineTileClient()),
+          // Mapbox: cached only as its headers allow, so no stale tiles offline.
+          httpClient: RetryClient(src.mapbox ? http.Client() : OfflineTileClient()),
           silenceExceptions: true,
           cachingProvider: _cache,
         ),
         evictErrorTileStrategy: EvictErrorTileStrategy.notVisibleRespectMargin,
         tileBuilder: src.dark
             ? (context, tile, _) => ColorFiltered(colorFilter: const ColorFilter.matrix(_darkMatrix), child: tile)
+            : src.mapbox
+            ? null
             : (context, tile, _) => Opacity(opacity: .8, child: tile),
       );
     }

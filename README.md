@@ -47,13 +47,12 @@ connects your hardware to it.
   camera, webcams, ROS image topics); the app shows them behind the HUD, as
   the drive screen background for first-person driving and flying, and as a
   tile. One connection per stream, newest frame only, so latency stays low.
-- **Map**: OpenStreetMap or OpenTopoMap tiles restyled dark (or your own tile
-  URL and attribution), with the device's heading, track, home point and the
-  running sequence's waypoints. Viewed tiles stay on the device and are shown
-  without signal; caching otherwise follows the tile server's headers, the
-  app sends its own User-Agent and always shows the attribution, per the
-  OpenStreetMap tile usage policy. No bulk downloading. For an app with many
-  users, use a tile provider with a key instead of the free OSM servers.
+- **Map**: Mapbox Dark, Outdoors or Satellite tiles (or your own tile URL and
+  attribution), with the device's heading, track, home point and the running
+  sequence's waypoints. The Mapbox logo and credits are always shown; tiles
+  are cached as Mapbox's headers allow. Builds get the app's Mapbox token
+  from the `MAPBOX_TOKEN` secret (`--dart-define=MAPBOX_TOKEN=pk.…` for a
+  local build); users can paste their own in Settings > Map.
 - **Game controllers**: Xbox, PlayStation, Switch Pro and generic gamepads
   over USB or Bluetooth, and RC transmitters in joystick mode. Mode 2 by
   default, every axis and button can be learned, with dead zone and expo.

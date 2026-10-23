@@ -66,6 +66,8 @@ flutter:
     - compat.json
     # Script examples, copies of libs/python-dash-scripts/examples (kept equal by a test).
     - assets/script_examples/
+    # Mapbox's wordmark, required on its maps (from mapbox-gl-js).
+    - assets/mapbox-logo.svg
     # What AI assistants read through MCP: copies of protocol/*.md and the
     # koebelt-dash-scripts README (kept equal by a test).
     - assets/docs/
