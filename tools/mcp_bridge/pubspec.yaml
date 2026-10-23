@@ -1,7 +1,7 @@
 name: koebelt_dash_mcp
 description: The stdio bridge to koebelt dash's MCP server, for MCP clients that start a command.
 publish_to: none
-version: 1.3.0-beta.2
+version: 1.3.0-beta.3
 
 environment:
   sdk: ^3.9.0
