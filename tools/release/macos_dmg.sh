@@ -30,10 +30,14 @@ if [ -n "$identity" ]; then
     done
   # The MCP bridge, a second executable next to the app's.
   if [ -f "$app/Contents/MacOS/koebelt-dash-mcp" ]; then
-    codesign --force --timestamp --options runtime --sign "$identity" "$app/Contents/MacOS/koebelt-dash-mcp"
+    codesign --force --timestamp --options runtime --entitlements "$here/mcp-bridge.entitlements" --sign "$identity" "$app/Contents/MacOS/koebelt-dash-mcp"
   fi
   codesign --force --timestamp --options runtime --entitlements "$entitlements" --sign "$identity" "$app"
   codesign --verify --deep --strict --verbose=2 "$app"
+  # Signed with the hardened runtime, the bridge must still start.
+  if [ -f "$app/Contents/MacOS/koebelt-dash-mcp" ]; then
+    "$app/Contents/MacOS/koebelt-dash-mcp" --version >/dev/null || { echo "koebelt-dash-mcp does not run once signed" >&2; exit 1; }
+  fi
 fi
 
 dmgbuild=${DMGBUILD:-dmgbuild}

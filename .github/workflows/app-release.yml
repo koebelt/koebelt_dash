@@ -201,6 +201,7 @@ jobs:
         run: |
           cd tools/mcp_bridge && dart pub get
           dart compile exe bin/koebelt_dash_mcp.dart -o ../../apps/dash/build/windows/x64/runner/Release/koebelt-dash-mcp.exe
+          ../../apps/dash/build/windows/x64/runner/Release/koebelt-dash-mcp.exe --version
       - name: Installer
         run: |
           choco install innosetup --no-progress -y >/dev/null
@@ -224,6 +225,7 @@ jobs:
         run: |
           cd tools/mcp_bridge && dart pub get
           dart compile exe bin/koebelt_dash_mcp.dart -o ../../apps/dash/build/linux/x64/release/bundle/koebelt-dash-mcp
+          ../../apps/dash/build/linux/x64/release/bundle/koebelt-dash-mcp --version
       - name: Tarball
         run: |
           d=koebelt-dash-$V-linux-x64
