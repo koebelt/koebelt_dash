@@ -51,8 +51,10 @@ connects your hardware to it.
   attribution), with the device's heading, track, home point and the running
   sequence's waypoints. The Mapbox logo and credits are always shown; tiles
   are cached as Mapbox's headers allow. Builds get the app's Mapbox token
-  from the `MAPBOX_TOKEN` secret (`--dart-define=MAPBOX_TOKEN=pk.…` for a
-  local build); users can paste their own in Settings > Map.
+  from the `MAPBOX_TOKEN` secret; for a local build, copy
+  `apps/dash/defines.local.json.example` to `defines.local.json` (ignored by
+  git) with your token and run `flutter run --dart-define-from-file=defines.local.json`.
+  Users can paste their own token in Settings > Map.
 - **Game controllers**: Xbox, PlayStation, Switch Pro and generic gamepads
   over USB or Bluetooth, and RC transmitters in joystick mode. Mode 2 by
   default, every axis and button can be learned, with dead zone and expo.

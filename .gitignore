@@ -18,3 +18,6 @@ libs/rust/Cargo.lock
 libs/arduino/KoebeltLink/test/host_test
 libs/arduino/KoebeltLink/test/host_test.dSYM/
 apps/dash/test/fixtures/logs/
+
+# Local build settings with secrets (the Mapbox token): see apps/dash/README or the root README
+apps/dash/*.local.json
