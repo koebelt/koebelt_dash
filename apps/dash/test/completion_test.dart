@@ -43,7 +43,7 @@ def go_home():
     expect(at('${src}robot.run_program("ba', rover), ['Back home']);
     expect(at('${src}t.motor', rover), ['motor_temp']);
     expect(at('${src}robot.mode("', const CompletionContext(kind: 'drone')), containsAll(['RTH', 'LAND']));
-    expect(at('${src}@robot.trigger("Go", kind="s'), ['switch']);
+    expect(at('$src@robot.trigger("Go", kind="s'), ['switch']);
   });
 
   test('plain names: the API, the script\'s own names, keywords, builtins; fuzzy after prefixes', () {
@@ -54,7 +54,7 @@ def go_home():
     expect(at('${src}pid_'), isEmpty);
     expect(at('${src}_pid'), ['steer_pid'], reason: 'contains, after prefixes');
     expect(at('${src}x'), isEmpty, reason: 'one letter is not enough');
-    expect(at('${src}# rob'), isEmpty, reason: 'not in comments');
+    expect(at('$src# rob'), isEmpty, reason: 'not in comments');
   });
 
   test('signature help: the call, and the argument the cursor is on', () {
