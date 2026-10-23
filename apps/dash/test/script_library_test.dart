@@ -88,12 +88,15 @@ void main() {
   });
 
   test('the examples in the app are the package’s examples', () {
-    final app = Directory('assets/script_examples').listSync().whereType<File>().where((f) => f.path.endsWith('.py')).toList();
+    // name.py.txt in the app: the App Store refuses .py files in an iOS app as unsigned code.
+    final app = Directory('assets/script_examples').listSync().whereType<File>().toList();
+    expect(app.where((f) => f.path.endsWith('.py')), isEmpty, reason: 'no .py in the app bundle');
     final pkg = Directory('../../libs/python-dash-scripts/examples').listSync().whereType<File>().where((f) => f.path.endsWith('.py')).toList();
-    String names(List<File> l) => (l.map((f) => f.uri.pathSegments.last).toList()..sort()).join(', ');
-    expect(names(app), names(pkg), reason: 'copy libs/python-dash-scripts/examples/*.py to assets/script_examples/');
+    String names(List<File> l) => (l.map((f) => f.uri.pathSegments.last.replaceAll(RegExp(r'\.txt$'), '')).toList()..sort()).join(', ');
+    expect(names(app), names(pkg), reason: 'copy libs/python-dash-scripts/examples/X.py to assets/script_examples/X.py.txt');
     for (final f in app) {
-      expect(f.readAsStringSync(), File('../../libs/python-dash-scripts/examples/${f.uri.pathSegments.last}').readAsStringSync(), reason: f.path);
+      final src = f.uri.pathSegments.last.replaceAll(RegExp(r'\.txt$'), '');
+      expect(f.readAsStringSync(), File('../../libs/python-dash-scripts/examples/$src').readAsStringSync(), reason: f.path);
     }
   });
 

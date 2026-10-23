@@ -206,6 +206,8 @@ class McpServer {
     if (l.contains('claude-code') || l.contains('claude code')) return 'Claude Code';
     if (l.contains('claude')) return 'Claude';
     if (l.contains('cursor')) return 'Cursor';
+    if (l.contains('codex')) return 'Codex';
+    if (l.contains('opencode')) return 'OpenCode';
     return n;
   }
 

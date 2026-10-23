@@ -426,7 +426,7 @@ koebelt-dash-scripts host''',
   Guide(
     'assistants',
     'AI assistants',
-    'Let Claude, Cursor or another MCP client read the docs, write scripts, use the app and, with your approval, act on devices.',
+    'Let Claude, Codex, OpenCode, Cursor or another MCP client read the docs, write scripts, use the app and, with your approval, act on devices.',
     5,
     section: 'features',
     platforms: ['python'],

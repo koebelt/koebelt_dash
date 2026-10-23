@@ -69,7 +69,8 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
     lib = l;
     try {
       final manifest = await AssetManifest.loadFromAssetBundle(rootBundle);
-      examples = manifest.listAssets().where((a) => a.startsWith('assets/script_examples/') && a.endsWith('.py')).toList()..sort();
+      // Bundled as .py.txt: the App Store takes a .py in an app for unsigned code.
+      examples = manifest.listAssets().where((a) => a.startsWith('assets/script_examples/') && a.endsWith('.py.txt')).toList()..sort();
     } catch (_) {}
     await _reload();
     if (FileSystemEntity.isWatchSupported) {
@@ -205,7 +206,7 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
     final l = lib;
     if (l == null) return;
     final text = await rootBundle.loadString(asset);
-    final name = asset.split('/').last;
+    final name = asset.split('/').last.replaceAll(RegExp(r'\.txt$'), '');
     final f = await l.import(name, utf8.encode(text));
     await _reload();
     final s = files.where((x) => x.path == f.path).firstOrNull;
@@ -334,7 +335,7 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
           for (final e in examples)
             Pressable(
               onTap: () => _useExample(e),
-              builder: (_, _, _) => KTag(ScriptLibrary.titleOf(e.split('/').last.replaceAll('.py', '')), height: 28),
+              builder: (_, _, _) => KTag(ScriptLibrary.titleOf(e.split('/').last.replaceAll('.py.txt', '')), height: 28),
             ),
         ],
       ),

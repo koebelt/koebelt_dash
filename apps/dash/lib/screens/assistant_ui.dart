@@ -93,10 +93,15 @@ class _AssistantsSectionState extends State<AssistantsSection> {
         'Claude Desktop': bridge == null
             ? '{"mcpServers": {"koebelt-dash": {"command": "npx", "args": ["mcp-remote", "$url"]}}}'
             : '{"mcpServers": {"koebelt-dash": {"command": "${bridge.replaceAll(r'\', r'\\')}"}}}',
+        'Codex': '# ~/.codex/config.toml\n[mcp_servers.koebelt-dash]\nurl = "$url"',
+        'OpenCode': '// opencode.json\n{"mcp": {"koebelt-dash": {"type": "remote", "url": "$url", "enabled": true}}}',
         'Cursor': '{"mcpServers": {"koebelt-dash": {"url": "$url"}}}',
         'Other': url,
       } else ...{
         'Claude Code': 'claude mcp add --transport http koebelt-dash $netUrl --header "Authorization: Bearer ${m.lanToken}"',
+        'Codex': '# ~/.codex/config.toml\n[mcp_servers.koebelt-dash]\nurl = "$netUrl"\nhttp_headers = { Authorization = "Bearer ${m.lanToken}" }',
+        'OpenCode':
+            '// opencode.json\n{"mcp": {"koebelt-dash": {"type": "remote", "url": "$netUrl", "headers": {"Authorization": "Bearer ${m.lanToken}"}, "enabled": true}}}',
         'Other': '$netUrl\nAuthorization: Bearer ${m.lanToken}',
       },
     };
@@ -107,7 +112,7 @@ class _AssistantsSectionState extends State<AssistantsSection> {
       children: [
         _row(
           'Let assistants use koebelt dash',
-          'Claude, Cursor and other MCP clients can read the docs, write scripts, use the app and, with your approval, act on devices. dash itself sends nothing to any AI service; the assistant you connect talks to its own provider.',
+          'Claude, Codex, OpenCode, Cursor and other MCP clients can read the docs, write scripts, use the app and, with your approval, act on devices. dash itself sends nothing to any AI service; the assistant you connect talks to its own provider.',
           KSwitch(
             checked: m.enabled,
             onChanged: (v) async {

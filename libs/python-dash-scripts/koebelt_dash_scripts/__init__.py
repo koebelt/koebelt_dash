@@ -6,7 +6,7 @@
         dev.sticks(throttle=0.3)
 """
 
-__version__ = "1.3.0b1"
+__version__ = "1.3.0b2"
 
 from .camera import Camera, CameraError, decode_jpeg  # noqa: E402
 from .client import Device, Released, ScriptError, Setting, Telemetry, connect, every, wait  # noqa: E402

@@ -48,8 +48,8 @@ Future<List<Doc>> loadDocs(AssetBundle bundle) async {
   }
   try {
     final manifest = await AssetManifest.loadFromAssetBundle(bundle);
-    for (final a in manifest.listAssets().where((a) => a.startsWith('assets/script_examples/') && a.endsWith('.py'))) {
-      final name = a.split('/').last;
+    for (final a in manifest.listAssets().where((a) => a.startsWith('assets/script_examples/') && a.endsWith('.py.txt'))) {
+      final name = a.split('/').last.replaceAll(RegExp(r'\.txt$'), '');
       docs.add(Doc('example:$name', 'Example script: $name', await bundle.loadString(a)));
     }
   } catch (_) {}
