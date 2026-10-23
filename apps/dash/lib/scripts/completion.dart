@@ -3,7 +3,9 @@
 /// what dash knows about the device the script runs on.
 library;
 
-enum CompletionKind { method, field, function, variable, keyword, value, module }
+import 'introspect.dart' show Member;
+
+enum CompletionKind { method, field, function, variable, keyword, value, module, klass, file, folder }
 
 class Completion {
   const Completion(this.label, {this.detail = '', this.kind = CompletionKind.field, String? insert, this.cursorBack = 0})
@@ -27,10 +29,108 @@ class Signature {
 
 /// What dash knows about the device the script runs on.
 class CompletionContext {
-  const CompletionContext({this.kind, this.sticks = const [], this.tlm = const [], this.programs = const [], this.steps = const [], this.channels = const []});
+  const CompletionContext({
+    this.kind,
+    this.sticks = const [],
+    this.tlm = const [],
+    this.programs = const [],
+    this.steps = const [],
+    this.channels = const [],
+    this.members,
+    this.installed,
+    this.files,
+  });
   final String? kind;
   final List<String> sticks, tlm, programs, steps, channels;
+
+  /// The members of a module or class by dotted path (numpy.linalg,
+  /// cv2.VideoCapture), as the script's Python reports them; null while not
+  /// known yet (asking starts the lookup).
+  final Map<String, Member>? Function(String path)? members;
+
+  /// The installed top-level modules, null until known.
+  final List<String>? Function()? installed;
+
+  /// The entries of a folder relative to the script's: (name, is a folder).
+  final List<(String, bool)> Function(String dir)? files;
 }
+
+/// Calls that take a file, for path completion without a "/" typed yet.
+const _fileCalls = {
+  'open', 'Path', 'YOLO', 'imread', 'imwrite', 'VideoCapture', 'load', 'loadtxt', 'save', 'savetxt', 'read_csv', 'read_json', //
+  'to_csv', 'listdir', 'exists', 'isfile', 'isdir', 'join', 'mkdir', 'remove', 'rename', 'glob',
+};
+
+/// What the script's imports bind: name → dotted path. `import numpy as np`
+/// → np: numpy; `from cv2 import VideoCapture as VC` → VC: cv2.VideoCapture;
+/// `cap = cv2.VideoCapture(0)` → cap: cv2.VideoCapture (a class, for its members).
+Map<String, String> importsOf(String text, [Map<String, Member>? Function(String path)? members]) {
+  final out = <String, String>{};
+  for (final m in RegExp(r'^\s*import\s+([\w.]+(?:\s+as\s+\w+)?(?:\s*,\s*[\w.]+(?:\s+as\s+\w+)?)*)', multiLine: true).allMatches(text)) {
+    for (final part in m[1]!.split(',')) {
+      final p = part.trim().split(RegExp(r'\s+as\s+'));
+      if (p.length == 2) {
+        out[p[1]] = p[0];
+      } else {
+        out[p[0].split('.').first] = p[0].split('.').first;
+      }
+    }
+  }
+  for (final m in RegExp(r'^\s*from\s+([\w.]+)\s+import\s+\(?([\w\s,]+)', multiLine: true).allMatches(text)) {
+    if (m[1] == 'koebelt_dash_scripts' || m[1]!.startsWith('koebelt_dash_scripts.')) continue;
+    for (final part in m[2]!.split(',')) {
+      final p = part.trim().split(RegExp(r'\s+as\s+'));
+      if (p.first.isEmpty) continue;
+      out[p.length == 2 ? p[1] : p[0]] = '${m[1]}.${p[0]}';
+    }
+  }
+  // Instances of a library's classes: x = np.ndarray(…), cap = VideoCapture(0).
+  if (members != null) {
+    for (final m in RegExp(r'^\s*(\w+)\s*=\s*([\w.]+)\(', multiLine: true).allMatches(text)) {
+      final path = resolvePath(m[2]!, out);
+      if (path == null || out.containsKey(m[1])) continue;
+      final dot = path.lastIndexOf('.');
+      if (dot < 0) continue;
+      final owner = members(path.substring(0, dot));
+      if (owner?[path.substring(dot + 1)]?.kind == 'class') out[m[1]!] = path;
+    }
+  }
+  return out;
+}
+
+/// `np.linalg` → numpy.linalg, with the script's imports; null if the first
+/// name is not an import.
+String? resolvePath(String chain, Map<String, String> imports) {
+  final parts = chain.split('.');
+  final head = imports[parts.first];
+  if (head == null) return null;
+  return [head, ...parts.skip(1)].join('.');
+}
+
+/// "(a, b=1, *, c=None)" → its parameters, top-level commas only.
+List<(String, String)> _paramsOf(String sig) {
+  final inner = sig.startsWith('(') ? sig.substring(1, sig.lastIndexOf(')') < 0 ? sig.length : sig.lastIndexOf(')')) : sig;
+  final out = <(String, String)>[];
+  var depth = 0, start = 0;
+  for (var i = 0; i <= inner.length; i++) {
+    final ch = i < inner.length ? inner[i] : ',';
+    if ('([{'.contains(ch)) depth++;
+    if (')]}'.contains(ch)) depth--;
+    if (ch == ',' && depth == 0) {
+      final p = inner.substring(start, i).trim();
+      if (p.isNotEmpty && p != 'self' && p != '/' && p != '*') out.add((p, ''));
+      start = i + 1;
+    }
+  }
+  return out;
+}
+
+Completion _memberItem(String name, Member m) => switch (m.kind) {
+  'function' => Completion('$name()', detail: m.doc, kind: CompletionKind.function, insert: '$name()', cursorBack: _paramsOf(m.sig).isEmpty ? 0 : 1),
+  'class' => Completion(name, detail: m.doc, kind: CompletionKind.klass),
+  'module' => Completion(name, detail: m.doc.isEmpty ? 'module' : m.doc, kind: CompletionKind.module),
+  _ => Completion(name, detail: m.doc, kind: CompletionKind.field),
+};
 
 Signature _sig(String name, String params, String doc) => Signature(name, [
   for (final p in params.split(';').where((p) => p.trim().isNotEmpty))
@@ -208,6 +308,53 @@ Set<String> _ownNames(String text) => {
   if (RegExp(r'^\s*#').hasMatch(line)) return (items: const [], replace: 0);
   final types = _types(text);
 
+  // import x / from x import y: modules and their members, from the script's Python.
+  final imp = RegExp(r'^\s*(?:import|from)\s+([\w.]*)$').firstMatch(line);
+  if (imp != null) {
+    final path = imp[1]!, dot = path.lastIndexOf('.');
+    final typed = path.substring(dot + 1);
+    if (dot < 0) {
+      final mods = {'koebelt_dash_scripts', ...?ctx.installed?.call()};
+      return (items: [for (final n in _rank(mods, typed)) Completion(n, kind: CompletionKind.module)], replace: typed.length);
+    }
+    final m = ctx.members?.call(path.substring(0, dot)) ?? const {};
+    return (
+      items: [for (final n in _rank(m.keys.where((k) => m[k]!.kind == 'module'), typed)) Completion(n, kind: CompletionKind.module)],
+      replace: typed.length,
+    );
+  }
+  final from = RegExp(r'^\s*from\s+([\w.]+)\s+import\s+(?:\(?[\w\s,]*,\s*)?\(?(\w*)$').firstMatch(line);
+  if (from != null) {
+    final typed = from[2]!;
+    if (from[1] == 'koebelt_dash_scripts') {
+      return (items: [for (final n in _rank(topLevel.keys, typed)) Completion(n, detail: topLevel[n]?.doc ?? '', kind: CompletionKind.function)], replace: typed.length);
+    }
+    final m = ctx.members?.call(from[1]!) ?? const {};
+    return (items: [for (final n in _rank(m.keys, typed).take(40)) _memberItem(n, m[n]!)].map((c) => Completion(c.label.replaceAll('()', ''), detail: c.detail, kind: c.kind)).toList(), replace: typed.length);
+  }
+
+  // File paths, relative to the script's folder, inside a string.
+  final quote = RegExp(r'''(\w*)\(?\s*[rRbBfF]?(["'])([^"'\n]*)$''').firstMatch(line);
+  if (quote != null && ctx.files != null && RegExp(quote[2]!).allMatches(line).length.isOdd) {
+    final typed = quote[3]!, slash = typed.lastIndexOf('/');
+    // ./models and models are the same folder.
+    final dir = slash < 0 ? '' : typed.substring(0, slash).replaceFirst(RegExp(r'^\./?'), ''), prefix = typed.substring(slash + 1);
+    final entries = ctx.files!(dir);
+    final looksLikePath = typed.contains('/') || typed.startsWith('.') || _fileCalls.contains(quote[1]) || (prefix.isNotEmpty && entries.any((e) => e.$1.startsWith(prefix)));
+    if (looksLikePath) {
+      final hits = [
+        for (final e in entries)
+          if (e.$1.toLowerCase().startsWith(prefix.toLowerCase()) && (prefix.startsWith('.') || !e.$1.startsWith('.')) && e.$1 != prefix) e,
+      ]..sort((a, b) => a.$2 == b.$2 ? a.$1.compareTo(b.$1) : (a.$2 ? -1 : 1));
+      if (hits.isNotEmpty || typed.contains('/')) {
+        return (
+          items: [for (final e in hits.take(20)) Completion(e.$2 ? '${e.$1}/' : e.$1, kind: e.$2 ? CompletionKind.folder : CompletionKind.file)],
+          replace: prefix.length,
+        );
+      }
+    }
+  }
+
   // Inside a string argument: program names, trigger kinds, modes.
   final str = RegExp(r'(\w+)\.(run_program|mode|trigger|cmd)\(\s*(?:\w+\s*=\s*)?"([^"]*)$|kind\s*=\s*"([^"]*)$').firstMatch(line);
   if (str != null) {
@@ -257,6 +404,18 @@ Set<String> _ownNames(String text) => {
     }
     if (owner == 'next_tlm' || before.endsWith('next_tlm().$typed')) type = 'tlm';
     final items = <Completion>[];
+    if (type == null && ctx.members != null) {
+      // A library: np. / np.linalg. / cap. (an instance of a library class)
+      final chain = RegExp(r'([\w.]+)\.\w*$').firstMatch(before)![1]!;
+      final path = resolvePath(chain, importsOf(text, ctx.members));
+      final m = path == null ? null : ctx.members!(path);
+      if (m != null) {
+        for (final n in _rank(m.keys, typed).take(40)) {
+          items.add(_memberItem(n, m[n]!));
+        }
+        return (items: items, replace: typed.length);
+      }
+    }
     switch (type) {
       case 'device':
         for (final e in _rankMap(deviceApi, typed)) {
@@ -325,7 +484,7 @@ List<String> _rank(Iterable<String> names, String typed) {
 List<String> _rankMap(Map<String, Signature?> m, String typed) => _rank(m.keys, typed);
 
 /// The call the cursor is in, and which argument: for the hint above it.
-({Signature sig, int arg})? signatureAt(String text, int cursor) {
+({Signature sig, int arg})? signatureAt(String text, int cursor, [Map<String, Member>? Function(String path)? members]) {
   if (cursor < 0 || cursor > text.length) return null;
   final before = text.substring(0, cursor);
   // Back to the unclosed "(" of this call.
@@ -333,6 +492,9 @@ List<String> _rankMap(Map<String, Signature?> m, String typed) => _rank(m.keys, 
   for (var i = before.length - 1; i >= 0; i--) {
     final ch = before[i];
     if (ch == '\n' && depth == 0 && i < before.length - 200) return null;
+    // Commas inside [ ] and { } (a list, a dict) are not between arguments.
+    if (ch == ']' || ch == '}') depth++;
+    if ((ch == '[' || ch == '{') && depth > 0) depth--;
     if (ch == ')') depth++;
     if (ch == '(') {
       if (depth == 0) {
@@ -349,6 +511,15 @@ List<String> _rankMap(Map<String, Signature?> m, String typed) => _rank(m.keys, 
           sig = cameraApi[name];
         } else if (owner == 'params' || types[owner] == 'params') {
           sig = paramsApi[name];
+        }
+        if (sig == null && members != null) {
+          final chainM = RegExp(r'([\w.]+)$').firstMatch(before.substring(0, i));
+          final path = chainM == null ? null : resolvePath(chainM[1]!, importsOf(text, members));
+          if (path != null && path.contains('.')) {
+            final dot = path.lastIndexOf('.');
+            final mem = members(path.substring(0, dot))?[path.substring(dot + 1)];
+            if (mem != null && (mem.kind == 'function' || mem.kind == 'class')) sig = Signature(path.substring(dot + 1), _paramsOf(mem.sig), mem.doc);
+          }
         }
         if (sig == null) return null;
         return (sig: sig, arg: args.clamp(0, sig.params.isEmpty ? 0 : sig.params.length - 1));

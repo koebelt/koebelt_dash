@@ -14,6 +14,7 @@ import '../link/protocol.dart';
 import '../video/video_hub.dart' show resolveVideoUrl;
 import 'fields.dart';
 import 'hosts.dart';
+import 'introspect.dart';
 import 'requirements.dart';
 import 'script_runner.dart';
 import 'triggers.dart';
@@ -301,6 +302,10 @@ class ScriptHub {
     final have = envOf(path)?.packageVersion, latest = latestPackage;
     return have != null && latest != null && compareVersions(fromPep440(have), latest) < 0;
   }
+
+  /// What each Python's modules hold, for the editor's completion.
+  final Map<String, PythonIntrospector> _introspectors = {};
+  PythonIntrospector introspector(String python) => _introspectors.putIfAbsent(python, () => PythonIntrospector(python, onChange: d.emit));
 
   /// What dash knows of an interpreter, if it has looked at it.
   PythonEnv? envOf(String? path) => path == null ? null : pythons?.where((p) => p.path == path).firstOrNull;

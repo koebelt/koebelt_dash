@@ -296,9 +296,38 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
   CompletionContext _completionContext() {
     final cfg = d.scripts.configFor(selected ?? '');
     final l = (cfg.device == null ? null : d.links.values.where((x) => x.info.name == cfg.device).firstOrNull) ?? d.focus;
-    if (l == null) return const CompletionContext();
+    // Libraries: the script's own Python says what they hold (computers).
+    final py = ScriptHub.canRunHere ? d.scripts.pythonFor(cfg) : null;
+    final intro = py == null ? null : d.scripts.introspector(py);
+    // Files: the script's folder, where it runs.
+    final folder = selected == null ? null : File(selected!).parent.path;
+    List<(String, bool)> files(String dir) {
+      if (folder == null || dir.startsWith('/') || dir.split('/').contains('..')) return const [];
+      try {
+        return [
+          for (final e in Directory(dir.isEmpty ? folder : '$folder/$dir').listSync())
+            (e.uri.pathSegments.where((p) => p.isNotEmpty).last, e is Directory),
+        ];
+      } catch (_) {
+        return const [];
+      }
+    }
+
+    final common = (
+      members: intro == null ? null : (String p) => intro.membersOf(p),
+      installed: intro == null
+          ? null
+          : () {
+              intro.needModules();
+              return intro.installed;
+            },
+    );
+    if (l == null) return CompletionContext(members: common.members, installed: common.installed, files: files);
     final snap = l.tel.snapshot()..remove('seen');
     return CompletionContext(
+      members: common.members,
+      installed: common.installed,
+      files: files,
       kind: l.kind.name,
       sticks: [...?stickAxes[l.kind]?.keys],
       tlm: [...snap.keys, 'alt', 'speed', 'heading', if (l.tel.hasGps) 'gps'],

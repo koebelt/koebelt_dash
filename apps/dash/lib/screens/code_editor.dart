@@ -321,7 +321,7 @@ class CodeEditorState extends State<CodeEditor> {
         ),
       );
     } else {
-      final s = signatureAt(c.text, at);
+      final s = signatureAt(c.text, at, widget.context?.call().members);
       if (s != null && top > 0) {
         out.add(Positioned(left: x, bottom: box.maxHeight - top + 2, child: _SignatureHint(s.sig, s.arg)));
       }
@@ -406,6 +406,9 @@ const _kindIcon = {
   CompletionKind.keyword: 'k',
   CompletionKind.value: '=',
   CompletionKind.module: 'M',
+  CompletionKind.klass: 'C',
+  CompletionKind.file: '·',
+  CompletionKind.folder: '/',
 };
 
 /// A small popup's shadow: the overlay one is made for dialogs.
@@ -512,7 +515,7 @@ class CompletionBar extends StatelessWidget {
     builder: (ctx, _) {
       final at = controller.selection.isValid && controller.selection.isCollapsed ? controller.selection.start : -1;
       final s = completeAt(controller.text, at, this.context?.call() ?? const CompletionContext());
-      final sig = s.items.isEmpty ? signatureAt(controller.text, at) : null;
+      final sig = s.items.isEmpty ? signatureAt(controller.text, at, this.context?.call().members) : null;
       if (s.items.isEmpty && sig == null) return const SizedBox.shrink();
       return Container(
         height: 36,

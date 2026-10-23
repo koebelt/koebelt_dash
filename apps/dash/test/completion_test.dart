@@ -70,4 +70,74 @@ def go_home():
     final c4 = '${src}robot.goto(5, 0)\n';
     expect(signatureAt(c4, c4.length), isNull, reason: 'outside a call');
   });
+
+  group('libraries and files', () {
+    final lib = <String, Map<String, ({String kind, String sig, String doc})>>{
+      'numpy': {
+        'array': (kind: 'function', sig: '(object, dtype=None, *, copy=True)', doc: 'Create an array.'),
+        'linalg': (kind: 'module', sig: '', doc: ''),
+        'ndarray': (kind: 'class', sig: '(shape, dtype=float)', doc: 'An array object.'),
+        'pi': (kind: 'value', sig: '', doc: 'float'),
+      },
+      'numpy.linalg': {
+        'norm': (kind: 'function', sig: '(x, ord=None, axis=None)', doc: 'Matrix or vector norm.'),
+      },
+      'cv2': {
+        'VideoCapture': (kind: 'class', sig: '(index)', doc: 'Video capture.'),
+        'imread': (kind: 'function', sig: '(filename, flags=1)', doc: 'Loads an image.'),
+      },
+      'cv2.VideoCapture': {
+        'read': (kind: 'function', sig: '()', doc: 'Grabs a frame.'),
+        'release': (kind: 'function', sig: '()', doc: 'Closes the camera.'),
+      },
+    };
+    final asked = <String>[];
+    CompletionContext ctx() => CompletionContext(
+      members: (p) {
+        asked.add(p);
+        return lib[p];
+      },
+      installed: () => ['numpy', 'cv2', 'ultralytics', 'math'],
+      files: (dir) => switch (dir) {
+        '' => [('models', true), ('data.csv', false), ('main.py', false), ('.venv', true)],
+        'models' => [('yolov8n.pt', false), ('best.pt', false)],
+        _ => const <(String, bool)>[],
+      },
+    );
+    const imports = 'import numpy as np\nfrom cv2 import VideoCapture, imread\ncap = VideoCapture(0)\n';
+    List<String> at2(String code) => [for (final c in completeAt(code, code.length, ctx()).items) c.label];
+
+    test('import lines: installed modules, submodules, and names', () {
+      expect(at2('import nu'), ['numpy']);
+      expect(at2('import numpy.li'), ['linalg']);
+      expect(at2('from cv2 import Vi'), ['VideoCapture']);
+      expect(at2('from koebelt_dash_scripts import ev'), ['every']);
+    });
+
+    test('members of what the script imports, through aliases and instances', () {
+      expect(at2('${imports}np.ar').first, 'array()', reason: 'prefixes first, then ndarray');
+      expect(at2('${imports}np.linalg.no'), ['norm()']);
+      expect(at2('${imports}np.'), containsAll(['array()', 'linalg', 'ndarray', 'pi']));
+      expect(at2('${imports}cap.re'), ['read()', 'release()'], reason: 'cap is a cv2.VideoCapture');
+      expect(asked, contains('numpy.linalg'));
+    });
+
+    test('signature help from the library', () {
+      final code = '${imports}np.array([1, 2], ';
+      final s = signatureAt(code, code.length, ctx().members)!;
+      expect(s.sig.text, 'array(object, dtype=None, copy=True)');
+      expect(s.arg, 1);
+      expect(s.sig.doc, 'Create an array.');
+    });
+
+    test('file paths in strings, relative to the script', () {
+      expect(at2('${imports}model = YOLO("'), ['models/', 'data.csv', 'main.py'], reason: 'a call that takes files; folders first, no hidden ones');
+      expect(at2('${imports}model = YOLO("models/'), ['best.pt', 'yolov8n.pt']);
+      expect(at2('${imports}open("da'), ['data.csv']);
+      expect(at2('${imports}x = "./'), isNotEmpty);
+      expect(at2('${imports}dev.notify("Hello wo'), isEmpty, reason: 'not every string is a path');
+      final r = completeAt('${imports}YOLO("models/yo', '${imports}YOLO("models/yo'.length, ctx());
+      expect(r.replace, 2, reason: 'only the file name part is replaced');
+    });
+  });
 }
