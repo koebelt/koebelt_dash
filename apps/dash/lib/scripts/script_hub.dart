@@ -922,8 +922,13 @@ class ScriptHub {
 
   /// Runs a script file on this computer. The interpreter: [python], else the
   /// one the script names in its first lines (`# python: …`), else [fallback].
+  /// Why a script cannot start now: it drives a device, and none is
+  /// connected. Null if it can.
+  String? get whyNotRun => d.links.isEmpty ? 'No device connected: a script drives a device, connect one first.' : null;
+
   Future<ScriptRun> runFile(File file, {String? python, String fallback = 'python3'}) async {
     if (_server == null) throw StateError('The script API is not running.');
+    if (whyNotRun != null) throw StateError(whyNotRun!);
     final py = python ?? pythonFromHeader(await file.readAsString()) ?? fallback;
     final r = await LocalRun.start(file, py, url: 'ws://127.0.0.1:${_server!.port}/scripts', token: _newToken(), onChange: d.emit);
     _track(r);
@@ -932,6 +937,7 @@ class ScriptHub {
 
   /// Runs a script on a script host; it connects back over the network.
   Future<ScriptRun> runOnHost(File file, ScriptHost host) async {
+    if (whyNotRun != null) throw StateError(whyNotRun!);
     await start(lan: true);
     final r = await RemoteRun.start(file, host, dashPort: _server!.port, token: _newToken(), onChange: d.emit);
     _track(r);

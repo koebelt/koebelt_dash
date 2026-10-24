@@ -171,19 +171,38 @@ class ScriptRunPanel extends StatelessWidget {
   }
 
   /// The device the script would run on now, and what it lacks for it.
-  ({String? name, String? why}) _target(ScriptConfig cfg) {
-    final l = (cfg.device == null ? null : d.links.values.where((x) => x.info.name == cfg.device).firstOrNull) ?? d.focus;
-    return (name: l?.info.name, why: l == null ? null : requires.whyNot(l.info, l));
+  /// The device the script would run with, and why it cannot (title, why):
+  /// none connected, the one chosen for it gone, or one that does not fit.
+  ({String? name, String? title, String? why}) _target(ScriptConfig cfg) {
+    if (cfg.device != null) {
+      final l = d.links.values.where((x) => x.info.name == cfg.device).firstOrNull;
+      if (l == null) {
+        return (name: cfg.device, title: '${cfg.device} is not connected', why: 'Connect it, or choose another device above.');
+      }
+      final why = requires.whyNot(l.info, l);
+      return (name: l.info.name, title: why == null ? null : '${l.info.name} does not fit this script', why: why == null ? null : '$why Choose another device above, or change the # requires: line.');
+    }
+    final l = d.focus;
+    if (l == null) {
+      return (name: null, title: 'No device connected', why: 'A script drives a device: connect one first (Devices, or the device menu at the top).');
+    }
+    final why = requires.whyNot(l.info, l);
+    return (name: l.info.name, title: why == null ? null : '${l.info.name} does not fit this script', why: why == null ? null : '$why Choose another device above, or change the # requires: line.');
   }
 
   Widget _deviceChoice(ScriptConfig cfg) {
     final links = d.links.values.toList();
     final names = [for (final l in links) l.info.name];
-    final value = cfg.device != null && names.contains(cfg.device) ? cfg.device : null;
+    final value = cfg.device;
     String fit(dynamic l) => requires.isEmpty || l == null || requires.missing(l.info, l).isEmpty ? '' : ' · does not fit';
     return _Dropdown<String?>(
       value: value,
-      items: {null: 'Selected in dash${d.focus == null ? '' : ' (${d.focus!.info.name}${fit(d.focus)})'}', for (final l in links) l.info.name: '${l.info.name}${fit(l)}'},
+      items: {
+        null: 'Selected in dash${d.focus == null ? ' (none connected)' : ' (${d.focus!.info.name}${fit(d.focus)})'}',
+        for (final l in links) l.info.name: '${l.info.name}${fit(l)}',
+        // Chosen for this script but not connected now: still shown, as such.
+        if (cfg.device != null && !names.contains(cfg.device)) cfg.device: '${cfg.device} · not connected',
+      },
       onChanged: (v) {
         cfg.device = v;
         hub.saveConfigs();
@@ -422,8 +441,8 @@ class ScriptRunPanel extends StatelessWidget {
         const SizedBox(height: 12),
         KNotice(
           tone: Tone.warning,
-          title: '${t.name} does not fit this script',
-          child: Text('${t.why} Choose another device above, or change the # requires: line.'),
+          title: t.title,
+          child: Text(t.why!),
         ),
       ],
     );

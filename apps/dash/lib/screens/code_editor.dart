@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../scripts/check.dart' show ScriptProblem;
 import '../scripts/completion.dart';
 import '../theme/tokens.dart';
 import '../ui/components.dart';
@@ -47,35 +48,61 @@ class PythonController extends TextEditingController {
   int? errorLine;
   String? errorMessage;
 
+  /// What Check found, by 1-based line: underlined (errors red, warnings
+  /// amber) and shown when the line is hovered.
+  Map<int, List<ScriptProblem>> problems = const {};
+
+  /// What is wrong on 1-based [line], and whether it is only warnings.
+  (String, bool)? lineProblem(int line) {
+    final ps = problems[line];
+    if (ps != null && ps.isNotEmpty) return (ps.map((p) => p.message).join('\n'), ps.every((p) => p.warning));
+    if (line == errorLine && errorMessage != null) return (errorMessage!, false);
+    return null;
+  }
+
+  /// The colour a line is marked in, if any.
+  Color? markOf(int line) {
+    final ps = problems[line];
+    if (line == errorLine || (ps != null && ps.any((p) => !p.warning))) return K.negative;
+    return ps != null && ps.isNotEmpty ? K.warning : null;
+  }
+
   @override
   TextSpan buildTextSpan({required BuildContext context, TextStyle? style, required bool withComposing}) {
     final src = text;
-    var errStart = -1, errEnd = -1;
-    if (errorLine != null) {
-      var line = 1, i = 0;
-      while (line < errorLine! && i >= 0) {
-        i = src.indexOf('\n', i) + 1;
-        if (i == 0) i = -1;
-        line++;
-      }
-      if (i >= 0) {
-        errStart = i;
-        final e = src.indexOf('\n', i);
-        errEnd = e < 0 ? src.length : e;
+    // The marked lines' ranges in the text: (start, end, colour).
+    final marks = <(int, int, Color)>[];
+    if (errorLine != null || problems.isNotEmpty) {
+      var start = 0;
+      for (var line = 1; start <= src.length; line++) {
+        final e = src.indexOf('\n', start), end = e < 0 ? src.length : e;
+        final m = markOf(line);
+        if (m != null && end > start) marks.add((start, end, m));
+        if (e < 0) break;
+        start = e + 1;
       }
     }
     final children = <TextSpan>[];
     var at = 0;
-    TextStyle? errStyle(TextStyle? s) =>
-        s?.copyWith(decoration: TextDecoration.underline, decorationColor: K.negative, decorationStyle: TextDecorationStyle.wavy);
     void add(int a, int b, Color? c) {
-      // Split around the error line so it can be underlined.
-      final cuts = <int>{a, b, if (errStart > a && errStart < b) errStart, if (errEnd > a && errEnd < b) errEnd}.toList()..sort();
+      // Split around marked lines so they can be underlined.
+      final cuts = <int>{
+        a,
+        b,
+        for (final (s, e, _) in marks) ...[if (s > a && s < b) s, if (e > a && e < b) e],
+      }.toList()..sort();
       for (var k = 0; k < cuts.length - 1; k++) {
         final x = cuts[k], y = cuts[k + 1];
         final base = c == null ? const TextStyle() : TextStyle(color: c);
-        final inErr = errStart >= 0 && x >= errStart && y <= errEnd;
-        children.add(TextSpan(text: src.substring(x, y), style: inErr ? errStyle(base) : (c == null ? null : base)));
+        final mark = marks.where((m) => x >= m.$1 && y <= m.$2).firstOrNull;
+        children.add(
+          TextSpan(
+            text: src.substring(x, y),
+            style: mark != null
+                ? base.copyWith(decoration: TextDecoration.underline, decorationColor: mark.$3, decorationStyle: TextDecorationStyle.wavy)
+                : (c == null ? null : base),
+          ),
+        );
       }
     }
 
@@ -335,7 +362,7 @@ class CodeEditorState extends State<CodeEditor> {
       }
       return start;
     }
-    return line + 1 == c.errorLine ? 'error' : null;
+    return c.lineProblem(line + 1) != null ? 'problem' : null;
   }
 
   void _pointer(PointerHoverEvent e, double fs, double lh, double gutter) {
@@ -367,7 +394,7 @@ class CodeEditorState extends State<CodeEditor> {
     final (line, off) = _textAt(p, fs, lh, gutter);
     if (line < 0) return const [];
     final info = off == null ? null : hoverAt(c.text, off, widget.context?.call() ?? const CompletionContext());
-    final error = line + 1 == c.errorLine ? c.errorMessage : null;
+    final problem = c.lineProblem(line + 1), error = problem?.$1;
     if (info == null && error == null) return const [];
     final v = _v.hasClients ? _v.offset : 0.0, h = _h.hasClients ? _h.offset : 0.0;
     final lineStart = c.text.lastIndexOf('\n', math.max(0, (info?.start ?? 0) - 1)) + 1;
@@ -384,7 +411,7 @@ class CodeEditorState extends State<CodeEditor> {
         bottom: above ? box.maxHeight - top + 2 : null,
         child: ConstrainedBox(
           constraints: BoxConstraints(maxWidth: width, maxHeight: math.max(60, (above ? top : box.maxHeight - bottom) - 10)),
-          child: _HoverCard(key: _hoverCard, info: info, error: error, errorLine: c.errorLine),
+          child: _HoverCard(key: _hoverCard, info: info, error: error, errorLine: line + 1, warning: problem?.$2 ?? false),
         ),
       ),
     ];
@@ -449,7 +476,7 @@ class CodeEditorState extends State<CodeEditor> {
                       height: lh,
                       child: Text(
                         '$i',
-                        style: KText.mono(fs - 1, color: i == c.errorLine ? K.negative : (i == at ? K.textSecondary : K.textFaint), height: lh / (fs - 1)),
+                        style: KText.mono(fs - 1, color: c.markOf(i) ?? (i == at ? K.textSecondary : K.textFaint), height: lh / (fs - 1)),
                       ),
                     ),
                 ],
@@ -603,7 +630,10 @@ class _SignatureHint extends StatelessWidget {
 /// reflowed, sections, parameter tables, examples); on the error line, the
 /// error first.
 class _HoverCard extends StatelessWidget {
-  const _HoverCard({super.key, this.info, this.error, this.errorLine});
+  const _HoverCard({super.key, this.info, this.error, this.errorLine, this.warning = false});
+
+  /// The line's problems are only warnings: amber, not red.
+  final bool warning;
   final HoverInfo? info;
   final String? error;
   final int? errorLine;
@@ -648,7 +678,7 @@ class _HoverCard extends StatelessWidget {
           child: Container(
             decoration: BoxDecoration(
               color: K.surfaceRaised,
-              border: Border.all(color: error != null ? K.negative.withValues(alpha: .6) : K.borderSubtle),
+              border: Border.all(color: error != null ? (warning ? K.warning : K.negative).withValues(alpha: .6) : K.borderSubtle),
               borderRadius: BorderRadius.circular(K.radiusCard),
               boxShadow: _popupShadow,
             ),
@@ -684,8 +714,8 @@ class _HoverCard extends StatelessWidget {
         child: Text(letter, style: KText.mono(10.5, color: tint, w: FontWeight.w600)),
       ),
       const SizedBox(width: 8),
-      tint == K.negative
-          ? Text(kind, style: KText.mono(11, color: K.negative, w: FontWeight.w600))
+      tint == K.negative || tint == K.warning
+          ? Text(kind, style: KText.mono(11, color: tint, w: FontWeight.w600))
           : Text(kind.toUpperCase(), style: KText.label(size: 10, color: K.textMuted)),
       const SizedBox(width: 16),
       Expanded(
@@ -716,13 +746,19 @@ class _HoverCard extends StatelessWidget {
     ),
   ];
 
-  /// "NameError: name 'x' is not defined" → its kind, then the message.
+  /// "NameError: name 'x' is not defined" → its kind, then the message;
+  /// Check's problems one per line.
   List<Widget> _error(String e) {
     final m = RegExp(r'^(\w*(?:Error|Exception|Warning))\s*:\s*([\s\S]*)$').firstMatch(e);
+    final tint = warning ? K.warning : K.negative;
     return [
-      _badgeRow('!', m?[1] ?? 'Error', errorLine == null ? '' : 'line $errorLine', K.negative),
+      _badgeRow('!', m?[1] ?? (warning ? 'Warning' : 'Error'), errorLine == null ? '' : 'line $errorLine', tint),
       const SizedBox(height: 8),
-      Text.rich(_inline(m?[2] ?? e, KText.bodySm.copyWith(fontSize: 13, color: K.textPrimary, height: 1.45))),
+      for (final line in (m?[2] ?? e).split('\n'))
+        Padding(
+          padding: const EdgeInsets.only(bottom: 2),
+          child: Text.rich(_inline(line, KText.bodySm.copyWith(fontSize: 13, color: K.textPrimary, height: 1.45))),
+        ),
     ];
   }
 

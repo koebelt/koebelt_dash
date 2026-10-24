@@ -13,6 +13,7 @@ import '../core/device_link.dart';
 import '../core/export.dart';
 import '../core/sequence.dart';
 import '../link/protocol.dart';
+import '../scripts/check.dart';
 import '../scripts/conditions.dart';
 import '../scripts/library.dart';
 import '../scripts/script_hub.dart';
@@ -365,7 +366,7 @@ class McpServer {
     _tool('read_script', 'Read a script', 'A script\'s source.', {'name': _str}, required: ['name'], readOnly: true),
     _tool('write_script', 'Write a script', 'Creates or replaces a script (a replaced version goes to the trash). Start it with a docstring: its first line is the script\'s title.', {'name': _str, 'source': _str}, required: ['name', 'source']),
     _tool('delete_script', 'Delete a script', 'Moves a script to the trash folder, from which the operator can restore it.', {'name': _str}, required: ['name'], destructive: true),
-    _tool('check_script', 'Check a script', 'Syntax check with the scripts\' Python.', {'name': _str}, required: ['name'], readOnly: true),
+    _tool('check_script', 'Check a script', 'Checks a script with its Python without running it: syntax, imports, undefined names, and what it calls on the device and with which arguments.', {'name': _str}, required: ['name'], readOnly: true),
     _tool('list_sequences', 'List sequences', 'A device\'s sequences (Automate > Sequences), with their steps.', {'device': _dev}, readOnly: true),
     _tool(
       'write_sequence',
@@ -716,8 +717,9 @@ class McpServer {
         }
         final py2 = py ?? d.scripts.pythons?.firstOrNull?.path;
         if (py2 == null) throw McpError('No Python on this computer to check with.');
-        final r = await checkSyntax(py2, await f.file.readAsString());
-        return _text(r == null ? 'No syntax errors.' : 'Line ${r.line}: ${r.message}', error: r != null);
+        final r = await checkScript(py2, await f.file.readAsString(), folder: f.file.parent.path);
+        if (r == null) throw McpError('Could not check with $py2.');
+        return _text([describeCheck(r), ...r.map((p) => '${p.warning ? 'warning' : 'error'} · $p')].join('\n'), error: r.any((p) => !p.warning));
       // (Called *_program in 1.3.0-beta.1 to beta.3.)
       case 'list_sequences' || 'list_programs':
         final l = _link(a['device']);

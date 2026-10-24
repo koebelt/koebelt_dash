@@ -88,29 +88,6 @@ String? pythonFromHeader(String source) {
   return null;
 }
 
-/// Checks a script's syntax with [python]: null if it parses, else the line
-/// and message.
-Future<({int line, String message})?> checkSyntax(String python, String source) async {
-  const code = 'import ast, json, sys\n'
-      'src = sys.stdin.read()\n'
-      'try:\n'
-      '    ast.parse(src)\n'
-      'except SyntaxError as e:\n'
-      '    print(json.dumps({"line": e.lineno or 1, "msg": e.msg}))\n';
-  try {
-    final p = await Process.start(python, ['-c', code]);
-    p.stdin.write(source);
-    await p.stdin.close();
-    final out = await p.stdout.transform(utf8.decoder).join();
-    await p.exitCode.timeout(const Duration(seconds: 10));
-    if (out.trim().isEmpty) return null;
-    final j = jsonDecode(out) as Map;
-    return (line: (j['line'] as num).toInt(), message: '${j['msg']}');
-  } catch (_) {
-    return null;
-  }
-}
-
 /// Creates a virtual environment in [dir] with koebelt-dash-scripts, using
 /// [base] (any Python 3.9+). Returns its interpreter. [log] gets pip's output.
 Future<String> createScriptsVenv(String base, Directory dir, void Function(String) log) async {

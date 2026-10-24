@@ -9,6 +9,7 @@ import '../core/dash.dart';
 import '../core/save_io.dart';
 import '../mcp/docs.dart' show bundledExamples, exampleName, loadBundledText;
 import '../scripts/hosts.dart';
+import '../scripts/check.dart';
 import '../scripts/completion.dart';
 import '../scripts/imports.dart';
 import '../scripts/library.dart';
@@ -50,6 +51,11 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
   final code = PythonController();
   final _editor = GlobalKey<CodeEditorState>();
   String? _loaded, _diskText, _message;
+
+  /// What the last Check found (null: not checked since opening), and
+  /// whether one runs.
+  List<ScriptProblem>? _problems;
+  bool _checking = false;
   bool dirty = false;
   Timer? _autosave;
   StreamSubscription<FileSystemEvent>? _watch;
@@ -131,6 +137,8 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
       code.text = text;
       code.errorLine = null;
       code.errorMessage = null;
+      code.problems = const {};
+      _problems = null;
       _message = null;
       dirty = false;
       if (show && phone) phoneView = 'run';
@@ -156,18 +164,36 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
     _diskText = text;
     await File(path).writeAsString(text);
     if (mounted) setState(() => dirty = false);
+    // Checked already: check again, so what was fixed stops being marked.
+    if (_problems != null && mounted) unawaited(_check());
   }
 
+  /// Check: what would stop the script before it moves anything, with its
+  /// own Python (lib/scripts/check.dart). Problems are underlined and listed.
   Future<void> _check() async {
-    await _saveNow();
+    if (_checking) return;
+    if (dirty) await _saveNow();
     final py = d.scripts.pythonFor(d.scripts.configFor(selected ?? '')) ?? d.scripts.pythons?.firstOrNull?.path;
-    if (py == null) return;
-    final r = await checkSyntax(py, code.text);
+    if (py == null || selected == null) {
+      setState(() => _message = 'Check needs Python on this computer: Set up Python on the script\'s page.');
+      return;
+    }
+    setState(() => _checking = true);
+    final r = await checkScript(py, code.text, folder: File(selected!).parent.path);
     if (!mounted) return;
     setState(() {
-      code.errorLine = r?.line;
-      code.errorMessage = r?.message;
-      _message = r == null ? 'No syntax errors.' : 'Line ${r.line}: ${r.message}';
+      _checking = false;
+      if (r == null) {
+        _message = 'Could not check with $py.';
+        return;
+      }
+      _problems = r;
+      code.errorLine = null;
+      code.errorMessage = null;
+      code.problems = {
+        for (final p in r) p.line: [...r.where((q) => q.line == p.line)],
+      };
+      _message = describeCheck(r);
     });
   }
 
@@ -234,6 +260,8 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
     try {
       host == null ? await d.scripts.runFile(f.file, python: d.scripts.pythonFor(cfg)) : await d.scripts.runOnHost(f.file, host);
     } on HostError catch (e) {
+      setState(() => _message = e.message);
+    } on StateError catch (e) {
       setState(() => _message = e.message);
     } catch (e) {
       setState(() => _message = 'Could not start: $e');
@@ -523,8 +551,8 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
         ],
         if (ScriptHub.canRunHere)
           phone
-              ? KIconButton('check', label: 'Check', size: KSize.sm, variant: KIconButtonVariant.bare, onPressed: _check)
-              : KButton('Check', size: KSize.sm, variant: KButtonVariant.ghost, iconLeft: const KIcon('check', size: 14), onPressed: _check),
+              ? KIconButton('check', label: 'Check', size: KSize.sm, variant: KIconButtonVariant.bare, onPressed: _checking ? null : _check)
+              : KButton(_checking ? 'Checking…' : 'Check', size: KSize.sm, variant: KButtonVariant.ghost, iconLeft: const KIcon('check', size: 14), onPressed: _checking ? null : _check),
         if (!phone && ScriptHub.canRunHere) ...[
           const SizedBox(width: 4),
           KButton('Open in editor', size: KSize.sm, variant: KButtonVariant.ghost, iconLeft: const KIcon('arrow-up-right', size: 14), onPressed: () => _openInEditor(f.path)),
@@ -543,6 +571,8 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
 
   Widget _messageBar() => _message == null
       ? const SizedBox.shrink()
+      : _problems != null && _message == describeCheck(_problems!)
+      ? _checkBar(_problems!)
       : Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           color: code.errorLine != null || _message!.startsWith('Could') ? const Color(0x33EE7A63) : K.surfaceRaised,
@@ -553,6 +583,69 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
             ],
           ),
         );
+
+  /// What Check found: all fine, or each problem, a tap away from its line.
+  Widget _checkBar(List<ScriptProblem> ps) {
+    final errors = ps.any((p) => !p.warning);
+    final tone = ps.isEmpty ? K.positive : (errors ? K.negative : K.warning);
+    return Container(
+      constraints: const BoxConstraints(maxHeight: 180),
+      decoration: BoxDecoration(
+        color: tone.withValues(alpha: .1),
+        border: Border(left: BorderSide(color: tone, width: 2)),
+      ),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(14, 8, 16, 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                KIcon(ps.isEmpty ? 'check' : 'circle-alert', size: 14, color: tone),
+                const SizedBox(width: 8),
+                Expanded(child: Text(_message!, style: KText.mono(12, color: tone))),
+                if (_checking) ...[const PulseDot(color: K.textMuted), const SizedBox(width: 10)],
+                Pressable(
+                  onTap: () => setState(() {
+                    _message = null;
+                    _problems = null;
+                    code.problems = const {};
+                  }),
+                  builder: (_, _, _) => const KIcon('x', size: 14, color: K.textMuted),
+                ),
+              ],
+            ),
+            for (final p in ps)
+              Pressable(
+                onTap: () => _jumpTo(p.line),
+                builder: (_, h, _) => Padding(
+                  padding: const EdgeInsets.only(top: 6, left: 22),
+                  child: Text.rich(
+                    TextSpan(
+                      children: [
+                        TextSpan(text: 'line ${p.line}'.padRight(9), style: KText.mono(12, color: p.warning ? K.warning : K.negative)),
+                        TextSpan(text: p.message, style: KText.bodySm.copyWith(fontSize: 13, color: h ? K.textPrimary : K.textSecondary)),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Puts the cursor at the start of 1-based [line].
+  void _jumpTo(int line) {
+    final lines = code.text.split('\n');
+    var off = 0;
+    for (var i = 0; i < line - 1 && i < lines.length; i++) {
+      off += lines[i].length + 1;
+    }
+    code.selection = TextSelection.collapsed(offset: off.clamp(0, code.text.length));
+    setState(() {});
+  }
 
   void _goToLine(int line) {
     final lines = code.text.split('\n');

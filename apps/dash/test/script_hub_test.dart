@@ -362,4 +362,12 @@ void main() {
     await Future<void>.delayed(const Duration(milliseconds: 100));
     expect(l.views['tracking']!.ended, isTrue, reason: 'the last picture stays, marked as ended');
   });
+
+  test('a script does not start without a connected device', () async {
+    final file = File('${Directory.systemTemp.createTempSync('kdash_nodev').path}/s.py')..writeAsStringSync('print(1)\n');
+    await d.disconnectAll();
+    expect(d.scripts.whyNotRun, contains('No device connected'));
+    await expectLater(d.scripts.runFile(file, python: 'python3'), throwsA(isA<StateError>()));
+    expect(d.scripts.runs, isEmpty);
+  });
 }
