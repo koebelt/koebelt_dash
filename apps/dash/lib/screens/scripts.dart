@@ -358,7 +358,9 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
   Future<void> _openExternally(String path, {bool reveal = false}) async {
     try {
       if (Platform.isMacOS) {
-        await Process.run('open', reveal ? ['-R', path] : ['-t', path]);
+        // A folder opens in Finder; a file in the text editor (-t).
+        final folder = FileSystemEntity.isDirectorySync(path);
+        await Process.run('open', reveal ? ['-R', path] : [if (!folder) '-t', path]);
       } else if (Platform.isWindows) {
         await Process.run('explorer', reveal ? ['/select,', path] : [path]);
       } else {
