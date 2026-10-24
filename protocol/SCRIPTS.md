@@ -55,7 +55,8 @@ the limit that applies… `err` is the same in plain English.
 | `setting` | `name`, `value`, `min`, `max`, `label` | Declares a setting shown in dash. `value`: the current one (the operator's, if they changed it). |
 | `trigger` | `name`, `kind` (`button`, `switch`, `value`), `key`, `gamepad`, `min`, `max` | Declares a trigger the operator can fire and bind. |
 | `print` | `text`, `level` | A console line in dash. |
-| `plot` | `name`, `v` | A value shown and recorded as channel `script:<name>`. |
+| `plot` | `name`, `v`, `labels`? | A value, or several (`v` a list, named by `labels`), drawn over time in a Live widget named `name` and recorded as channel `script:<name>`. |
+| `view` | `name`, `kind`: `picture` with `data` (base64 JPEG or PNG), `w`, `h`; or `chart` with `chart` (`line`, `bar`, `scatter`), `series` `{name: [y…]}`, `x`? `[x…]`, `xlabel`?, `ylabel`? | A picture or a whole chart in a Live widget named `name`, replaced by the next one. Up to 8 series of 5000 points; `null` is a gap. When the script ends, the widget keeps the last one, marked so. |
 | `overlay` | `boxes`: `[[x, y, w, h, label], …]` | Boxes drawn over the device's camera in dash, normalised 0–1 from the top left; they fade a second after the last message. |
 | `mark` | `text` | An event on the recording's timeline. |
 | `notify` | `text`, `level` | A message to the operator. |

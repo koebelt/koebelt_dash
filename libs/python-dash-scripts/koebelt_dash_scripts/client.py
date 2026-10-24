@@ -8,6 +8,7 @@ out from their own thread every 100 ms.
 """
 from __future__ import annotations
 
+import base64
 import itertools
 import json
 import os
@@ -23,6 +24,7 @@ from websockets.sync.client import connect as ws_connect
 
 from .camera import Camera, boxes_of
 from .errors import Released, ScriptError, TelemetryFieldError, report, warn_once
+from .visuals import chart_message, encode_image
 
 API_VERSION = 1
 DISCOVERY = pathlib.Path.home() / ".koebelt" / "dash-api.json"
@@ -163,6 +165,7 @@ class Device:
         self._on_takeover: List[Callable] = []
         self._closed = threading.Event()
         self._store: Optional[_Store] = None
+        self._shown: Dict[str, float] = {}
         self.hz: Optional[float] = None
         self.released: Optional[str] = None
         """Why dash took the sticks away, until the operator resumes the script."""
@@ -469,9 +472,54 @@ class Device:
         self._on_takeover.append(fn)
         return fn
 
-    def plot(self, name: str, value: float) -> None:
-        """Shows a value in dash (channel ``script:<name>``) and records it."""
-        self._send({"t": "plot", "name": name, "v": float(value)})
+    def plot(self, name: str, value: Optional[float] = None, **series: float) -> None:
+        """Plots values over time in dash's Live view, a widget named
+        ``name``, and records them (channel ``script:<name>``). One value, or
+        several series on one chart::
+
+            dev.plot("altitude", dev.tlm.alt)
+            dev.plot("speed", target=2.0, actual=dev.tlm.speed)
+        """
+        if not series:
+            if value is None:
+                raise ScriptError("E0713", {"name": name})
+            self._send({"t": "plot", "name": name, "v": float(value)})
+            return
+        labels = ([name] if value is not None else []) + list(series)
+        values = ([float(value)] if value is not None else []) + [float(v) for v in series.values()]
+        self._send({"t": "plot", "name": name, "v": values, "labels": labels})
+
+    def show(self, name: str, image: Any, *, quality: int = 80, max_size: int = 960) -> bool:
+        """Shows a picture in dash's Live view, a widget named ``name``: a
+        numpy image (BGR, as OpenCV and dev.camera make them, or grey), a PIL
+        image, a matplotlib figure, or JPEG/PNG bytes. Its largest side is
+        scaled to ``max_size``. Up to 15 a second per name: calls in between
+        are skipped and return False, so a fast loop never queues pictures."""
+        now = time.monotonic()
+        if now - self._shown.get(name, 0.0) < 1 / 15:
+            return False
+        self._shown[name] = now
+        data, w, h = encode_image(image, quality, max_size)
+        self._send({"t": "view", "name": name, "kind": "picture", "data": base64.b64encode(data).decode("ascii"), "w": w, "h": h})
+        return True
+
+    def chart(self, name: str, y: Any, *, x: Any = None, kind: str = "line", xlabel: str = "", ylabel: str = "") -> bool:
+        """Draws a whole chart in dash's Live view, a widget named ``name``,
+        redrawn at each call: ``y`` a list of numbers (or a numpy array), or a
+        dict of named series; ``x`` their x values (else 0, 1, 2…); ``kind``
+        line, bar or scatter. Up to 10 a second per name (calls in between
+        are skipped and return False)::
+
+            dev.chart("scan", distances, x=angles, kind="scatter")
+            dev.chart("battery cells", {"volts": cells}, kind="bar")
+        """
+        msg = chart_message(name, y, x, kind, xlabel, ylabel)
+        now = time.monotonic()
+        if now - self._shown.get(name, 0.0) < 1 / 10:
+            return False
+        self._shown[name] = now
+        self._send(msg)
+        return True
 
     def mark(self, text: str) -> None:
         """An event on the recording's timeline."""

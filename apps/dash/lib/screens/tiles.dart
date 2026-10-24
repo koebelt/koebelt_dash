@@ -6,9 +6,11 @@ import '../core/dash.dart';
 import '../core/model.dart';
 import '../theme/tokens.dart';
 import '../ui/components.dart';
+import '../scripts/views.dart';
 import '../video/video_view.dart';
 import '../viz/map_view.dart';
 import '../viz/scene3d.dart';
+import '../viz/script_views.dart';
 import '../viz/viz.dart';
 
 String deg(double r) => '${f1(r * 57.3, 1)}°';
@@ -348,12 +350,53 @@ List<TileDef> customTiles(Dash d) => [
     ),
 ];
 
+/// What scripts show for the device: pictures and charts (dev.show,
+/// dev.chart), and plotted series (dev.plot) drawn over time like telemetry.
+List<TileDef> scriptTiles(Dash d) => [
+  for (final v in d.focus?.views.values ?? const <ScriptView>[])
+    if (v.kind == 'plot')
+      TileDef(
+        id: v.tileId,
+        title: v.name,
+        types: DeviceKind.values.toSet(),
+        val: (d) {
+          final x = d.tel.custom['script:${v.name}'];
+          return x == null || x.isEmpty ? '—' : x.map((e) => e.toStringAsFixed(e.abs() < 10 ? 2 : 1)).join(' · ');
+        },
+        body: (d) => LineChart(d, keys: [for (var i = 0; i < v.labels.length; i++) 'c:script:${v.name}:$i'], labels: v.labels, colors: v.labels.length > 3 ? j6 : const [VC.lime, VC.info, VC.warn]),
+        keys: [for (var i = 0; i < v.labels.length; i++) 'c:script:${v.name}:$i'],
+        labels: v.labels,
+        colors: v.labels.length > 3 ? j6 : const [VC.lime, VC.info, VC.warn],
+        unit: '',
+        src: 'Script · ${v.script}',
+      )
+    else
+      TileDef(
+        id: v.tileId,
+        title: v.name,
+        types: DeviceKind.values.toSet(),
+        val: (d) => v.ended
+            ? 'ended'
+            : v.kind == 'picture'
+            ? '${v.width}×${v.height} · ${v.fps.toStringAsFixed(0)} fps'
+            : v.series.length == 1
+            ? '${v.chart} · ${v.series.values.first.length} points'
+            : '${v.chart} · ${v.series.length} series',
+        body: (d) => ScriptViewBody(v),
+        keys: const [],
+        labels: const [],
+        unit: '',
+        src: 'Script · ${v.script}',
+      ),
+];
+
 List<TileDef> tilesFor(Dash d) => [
   ...tiles.where((t) => t.types.contains(d.kind) && !t.hudOnly && (t.needs.isEmpty || t.needs.any(d.tel.seen.contains)) && (t.when?.call(d) ?? true)),
   ...customTiles(d),
+  ...scriptTiles(d),
 ];
 List<TileDef> allTiles(Dash d) => [tiles.first, ...tilesFor(d)];
-TileDef? tileById(Dash d, String id) => [...tiles, ...customTiles(d)].where((t) => t.id == id).firstOrNull;
+TileDef? tileById(Dash d, String id) => [...tiles, ...customTiles(d), ...scriptTiles(d)].where((t) => t.id == id).firstOrNull;
 
 const phases = ['PAD', 'COUNT', 'BOOST', 'COAST', 'DROGUE', 'MAIN', 'LANDED'];
 const phaseLabel = {'PAD': 'On pad', 'COUNT': 'Countdown', 'BOOST': 'Boost', 'COAST': 'Coast', 'DROGUE': 'Drogue', 'MAIN': 'Main', 'LANDED': 'Landed'};

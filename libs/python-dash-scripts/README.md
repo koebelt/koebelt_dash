@@ -107,7 +107,10 @@ dash stays in charge, whatever the script does:
 | `dev.setting(name, default, min, max)` | A slider or switch in dash; read `.value`. |
 | `@dev.trigger(name, kind, key, gamepad)` | A button (`button`), switch (`switch`) or number (`value`) in dash. |
 | `@dev.on_trigger`, `@dev.on_stop`, `@dev.on_takeover` | Other events. |
-| `dev.plot(name, v)`, `dev.mark(text)`, `dev.notify(text)` | Shown in dash and recorded. |
+| `dev.show(name, image)` | A picture in dash's Live view, a widget named `name`: a numpy image (BGR or grey, as OpenCV makes them), a PIL image, a matplotlib figure, or JPEG/PNG bytes. Up to 15 a second. |
+| `dev.chart(name, y, x=None, kind="line")` | A whole chart in Live, redrawn at each call: `y` a list or a dict of named series; `kind` `line`, `bar` or `scatter`. |
+| `dev.plot(name, v)`, `dev.plot(name, target=…, actual=…)` | Values over time in Live, one or several series, recorded. |
+| `dev.mark(text)`, `dev.notify(text)` | An event on the recording; a message to the operator. |
 | `dev.store` | A dictionary kept between runs. |
 | `dev.run()` | Waits, for scripts that only react to triggers. |
 | `every(seconds)`, `wait(seconds)` | Steady loops; dash shows the real rate. |

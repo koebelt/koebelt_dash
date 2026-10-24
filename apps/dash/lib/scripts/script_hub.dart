@@ -18,6 +18,7 @@ import 'introspect.dart';
 import 'requirements.dart';
 import 'script_runner.dart';
 import 'triggers.dart';
+import 'views.dart';
 
 /// The script API: Python scripts (koebelt-dash-scripts) connect here over a
 /// WebSocket, and every command they send passes the safety layer below
@@ -577,9 +578,23 @@ class ScriptHub {
 
   DeviceLink? _link(ScriptConn c) => c.device == null ? null : d.links[c.device];
 
+  /// The view [name] on [l], made the first time (a new Live widget).
+  ScriptView _view(DeviceLink l, ScriptConn c, String name, String kind) {
+    final v = l.views[name];
+    if (v != null) return v;
+    final made = l.views[name] = ScriptView(name, kind, c.name);
+    d.emit();
+    return made;
+  }
+
   void _gone(ScriptConn c, String why) {
     if (!conns.remove(c)) return;
     _release(c, why);
+    for (final l in d.links.values) {
+      for (final v in l.views.values) {
+        if (v.script == c.name && !conns.any((o) => o.name == c.name)) v.end();
+      }
+    }
     d.emit();
   }
 
@@ -692,8 +707,22 @@ class ScriptHub {
           d.emit();
           return;
         case 'plot':
+          // One value, or several series: v [..], labels [..]. They go
+          // through telemetry, so Live draws them over time and recordings
+          // keep them.
           final l = _link(c);
-          if (l != null) l.tel.custom['script:${m['name']}'] = [(m['v'] as num).toDouble()];
+          if (l == null) return;
+          final name = '${m['name']}', v = m['v'];
+          l.tel.custom['script:$name'] = v is List ? [for (final x in v) (x as num?)?.toDouble() ?? double.nan] : [(v as num).toDouble()];
+          final labels = m['labels'] is List ? [for (final x in m['labels'] as List) '$x'] : [name];
+          _view(l, c, name, 'plot').plotFrom(labels, c.name);
+          return;
+        case 'view':
+          // A picture (base64 JPEG or PNG) or a whole chart, shown as a Live widget.
+          final l = _link(c);
+          if (l == null) return;
+          final view = _view(l, c, '${m['name']}', m['kind'] == 'chart' ? 'chart' : 'picture');
+          m['kind'] == 'chart' ? view.chartFrom(m, c.name) : view.picture(m, c.name);
           return;
         case 'overlay':
           final l = _link(c);

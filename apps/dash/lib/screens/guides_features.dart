@@ -421,6 +421,24 @@ for frame in dev.camera.frames():           # pip install opencv-python
           ],
         },
       ),
+      Step(
+        'Show what it sees',
+        'Pictures and charts go to the Live view as widgets, by name: show() a picture (a camera frame with what the script found drawn on it, a mask, a matplotlib figure), chart() a whole graph, redrawn at each call, plot() values over time. A new one appears on the HUD in a free spot, and on the wall; remove it, move it or resize it like any widget. When the script ends, the last picture stays, marked so.',
+        {
+          'python': [
+            'python',
+            r'''import cv2                                  # pip install opencv-python
+
+for frame in dev.camera.frames():
+    x, y, w, h = find_target(frame)         # your code
+    cv2.rectangle(frame, (x, y), (x + w, y + h), (71, 251, 220), 2)
+    dev.show("tracking", frame)             # the frame, as the script sees it
+
+    dev.plot("speed", target=2.0, actual=dev.tlm.speed)
+    dev.chart("range scan", ranges, x=angles, kind="scatter")''',
+          ],
+        },
+      ),
       Step.rich(
         'Triggers',
         'A script declares what it reacts to; you choose what fires it on the script\'s page: an on-screen button or switch (also on Control if pinned), a key, a controller button, a condition such as battery.pct < 25 for 3s, a device event, or a timer.',

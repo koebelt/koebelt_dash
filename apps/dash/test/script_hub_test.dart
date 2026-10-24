@@ -7,6 +7,7 @@ import 'package:koebelt_dash/core/dash.dart';
 import 'package:koebelt_dash/core/sequence.dart';
 import 'package:koebelt_dash/scripts/script_hub.dart';
 import 'package:koebelt_dash/scripts/triggers.dart';
+import 'package:koebelt_dash/screens/tiles.dart' show scriptTiles;
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// A script, as koebelt_dash_scripts talks to dash.
@@ -331,5 +332,34 @@ void main() {
       expect(k.limits.maxSpeed, .3);
       expect(k.bindings.map((b) => b.source.name), ['button', 'key', 'pad', 'toggle']);
     });
+  });
+
+  test('what a script shows: pictures, charts and plotted series, as Live widgets', () async {
+    final s = await _Script.open(d.scripts);
+    await s.call('use');
+    s.send('view', {'name': 'tracking', 'kind': 'picture', 'data': base64Encode([1, 2, 3]), 'w': 640, 'h': 480});
+    s.send('view', {
+      'name': 'scan',
+      'kind': 'chart',
+      'chart': 'scatter',
+      'series': {'d': [1, 2, null]},
+      'x': [0, 1, 2],
+    });
+    s.send('plot', {'name': 'speed', 'v': [2, 1.5], 'labels': ['target', 'actual']});
+    s.send('plot', {'name': 'alt', 'v': 4});
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+    final l = d.links.values.single;
+    expect(l.views.keys, ['tracking', 'scan', 'speed', 'alt']);
+    expect(l.views['tracking']!.width, 640);
+    expect(l.views['tracking']!.image, [1, 2, 3]);
+    expect(l.views['scan']!.chart, 'scatter');
+    expect(l.views['scan']!.series['d']![2].isNaN, isTrue, reason: 'a gap');
+    expect(l.tel.custom['script:speed'], [2, 1.5]);
+    expect(l.views['speed']!.labels, ['target', 'actual']);
+    expect(l.views['alt']!.labels, ['alt']);
+    expect([for (final t in scriptTiles(d)) t.id], ['sv:tracking', 'sv:scan', 'sv:speed', 'sv:alt']);
+    await s.ws.close();
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+    expect(l.views['tracking']!.ended, isTrue, reason: 'the last picture stays, marked as ended');
   });
 }

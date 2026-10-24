@@ -134,6 +134,16 @@ CATALOG: Dict[str, Tuple[str, str, str]] = {
     "E0703": ("every() needs a period above 0 s, not {seconds}",
               "it is the time between two turns of the loop",
               "for _ in every(0.05):   # 20 times a second"),
+    # Showing in dash
+    "E0711": ("show() cannot show {what}: {reason}",
+              "pictures go to dash as JPEG or PNG",
+              "dev.show(\"tracking\", frame)   # a numpy image, a PIL image, a matplotlib figure, or JPEG/PNG bytes"),
+    "E0712": ("chart “{what}”: {reason}",
+              "a chart is series of numbers, drawn as lines, bars or points",
+              "dev.chart(\"scan\", [1.2, 1.4, 1.1], kind=\"line\")   # or a dict of up to 8 named series"),
+    "E0713": ("plot “{name}” has no value",
+              "plot() draws values over time",
+              "dev.plot(\"{name}\", 3.2) or dev.plot(\"{name}\", target=2.0, actual=1.8)"),
     # Anything else dash refuses
     "E0900": ("koebelt dash refused: {message}", "", "if it looks like a bug, report it with the script on GitHub"),
     "E0901": ("koebelt dash does not know “{message}”",

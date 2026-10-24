@@ -420,6 +420,44 @@ Why: it is the time between two turns of the loop.
 
 Fix: for _ in every(0.05):   # 20 times a second.
 
+# Showing in dash
+
+## E0711
+
+**show() cannot show <what>: <reason>**
+
+```python
+dev.show("tracking", "frame.png")   # a file name, not a picture
+```
+
+Why: pictures go to dash as JPEG or PNG.
+
+Fix: dev.show("tracking", frame)   # a numpy image, a PIL image, a matplotlib figure, or JPEG/PNG bytes.
+
+## E0712
+
+**chart “<what>”: <reason>**
+
+```python
+dev.chart("scan", distances, kind="pie")
+```
+
+Why: a chart is series of numbers, drawn as lines, bars or points.
+
+Fix: dev.chart("scan", [1.2, 1.4, 1.1], kind="line")   # or a dict of up to 8 named series.
+
+## E0713
+
+**plot “<name>” has no value**
+
+```python
+dev.plot("speed")
+```
+
+Why: plot() draws values over time.
+
+Fix: dev.plot("<name>", 3.2) or dev.plot("<name>", target=2.0, actual=1.8).
+
 # Anything else
 
 ## E0900

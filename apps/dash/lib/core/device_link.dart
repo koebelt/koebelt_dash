@@ -5,6 +5,7 @@ import '../link/protocol.dart';
 import '../link/radio.dart';
 import '../link/session.dart';
 import '../scripts/script_hub.dart' show ScriptDrive;
+import '../scripts/views.dart';
 import '../video/video_hub.dart';
 import '../video/video_rec.dart';
 import 'alerts.dart';
@@ -35,6 +36,10 @@ class DeviceLink {
   /// Boxes a script draws over the camera (normalised x, y, w, h, label),
   /// and when: they fade a second after the last update.
   ({List<({double x, double y, double w, double h, String label})> boxes, DateTime at})? overlay;
+
+  /// Pictures, charts and plots scripts show for this device, by name: Live
+  /// widgets.
+  final Map<String, ScriptView> views = {};
   List<double> jog = List.filled(6, 0);
   double speed = .5;
 

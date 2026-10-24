@@ -4,6 +4,7 @@ import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 
 import '../core/dash.dart';
+import '../scripts/views.dart';
 import '../theme/tokens.dart';
 import '../ui/components.dart';
 import '../ui/icons.dart';
@@ -375,6 +376,37 @@ class _HudViewState extends State<HudView> {
     );
   }
 
+  /// Script views already placed this session ("device:class:widget").
+  static final _placed = <String>{};
+
+  /// A script showing something new (dev.show, dev.chart, dev.plot): its
+  /// widget appears in a free spot, once per session; remove it as any other.
+  void _placeScriptViews(Dash d, List<HudItem> lay) {
+    final fresh = [
+      for (final v in d.focus?.views.values ?? const <ScriptView>[])
+        if (!lay.any((l) => l.id == v.tileId) && _placed.add('${d.deviceId}:$cls:${v.tileId}')) v.tileId,
+    ];
+    if (fresh.isEmpty) return;
+    final next = [for (final e in lay) e.copy()];
+    final (w, h) = cls == 'phone' ? (6, 3) : (4, 4);
+    for (final id in fresh) {
+      final (x, y) = _freeSpot(next, w, h);
+      next.add(HudItem(id, x, y, w, h));
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) => d.saveHud(cls, next));
+  }
+
+  /// The first place a w×h widget fits, from the top right.
+  (int, int) _freeSpot(List<HudItem> lay, int w, int h) {
+    bool free(int x, int y) => !lay.any((l) => x < l.x + l.w && l.x < x + w && y < l.y + l.h && l.y < y + h);
+    for (var y = 0; y + h <= _grid; y++) {
+      for (var x = _grid - w; x >= 0; x--) {
+        if (free(x, y)) return (x, y);
+      }
+    }
+    return (_grid - w, 0);
+  }
+
   @override
   Widget build(BuildContext context) {
     final d = widget.d;
@@ -384,6 +416,7 @@ class _HudViewState extends State<HudView> {
       _cls = cls;
     }
     final edit = widget.edit, lay = layout, all = allTiles(d);
+    if (!edit) _placeScriptViews(d, lay);
     final unused = all.where((t) => !lay.any((l) => l.id == t.id)).toList();
     return Container(
       color: K.surfaceDeep,
