@@ -170,17 +170,18 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
 
   /// Check: what would stop the script before it moves anything, with its
   /// own Python (lib/scripts/check.dart). Problems are underlined and listed.
-  Future<void> _check() async {
-    if (_checking) return;
+  /// What it found, or null if it could not check.
+  Future<List<ScriptProblem>?> _check() async {
+    if (_checking) return null;
     if (dirty) await _saveNow();
     final py = d.scripts.pythonFor(d.scripts.configFor(selected ?? '')) ?? d.scripts.pythons?.firstOrNull?.path;
     if (py == null || selected == null) {
       setState(() => _message = 'Check needs Python on this computer: Set up Python on the script\'s page.');
-      return;
+      return null;
     }
     setState(() => _checking = true);
     final r = await checkScript(py, code.text, folder: File(selected!).parent.path);
-    if (!mounted) return;
+    if (!mounted) return null;
     setState(() {
       _checking = false;
       if (r == null) {
@@ -195,6 +196,66 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
       };
       _message = describeCheck(r);
     });
+    return r;
+  }
+
+  /// Before running here: Check, and if it finds errors (not the packages
+  /// the operator chose to run without), ask. False to not run.
+  Future<bool> _checkBeforeRun() async {
+    final cfg = d.scripts.configFor(current!.path), py = d.scripts.pythonFor(cfg);
+    if (!ScriptHub.canRunHere || d.scripts.hostFor(cfg) != null || py == null) return true;
+    final r = await _check();
+    if (r == null || !mounted) return true;
+    final errors = [
+      for (final p in r)
+        if (!p.warning && !(p.module != null && d.scripts.declinedImports.contains('$py|${p.module}'))) p,
+    ];
+    if (errors.isEmpty) return true;
+    final pick = await showKDialog<String>(
+      context,
+      builder: (ctx) => KDialogPanel(
+        title: errors.length == 1 ? 'This script has an error' : 'This script has ${errors.length} errors',
+        onClose: () => Navigator.pop(ctx),
+        footer: [
+          KButton('Cancel', variant: KButtonVariant.ghost, onPressed: () => Navigator.pop(ctx)),
+          KButton('Run anyway', variant: KButtonVariant.secondary, onPressed: () => Navigator.pop(ctx, 'run')),
+          KButton('Show them', onPressed: () => Navigator.pop(ctx, 'show')),
+        ],
+        children: [
+          const Text('Check found what would stop it, probably before it moves anything:'),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(color: K.surfaceSunken, borderRadius: BorderRadius.circular(K.radiusControl)),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (final p in errors.take(5))
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    child: Text.rich(
+                      TextSpan(
+                        children: [
+                          TextSpan(
+                            text: 'line ${p.line}'.padRight(9),
+                            style: KText.mono(12, color: K.negative),
+                          ),
+                          TextSpan(
+                            text: p.message,
+                            style: KText.bodySm.copyWith(fontSize: 13, color: K.textSecondary),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                if (errors.length > 5) Text('and ${errors.length - 5} more', style: KText.bodySm.copyWith(fontSize: 13, color: K.textMuted)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+    if (pick == 'show') _jumpTo(errors.first.line);
+    return pick == 'run';
   }
 
   /// Modules the open script imports (as saved) that its Python lacks, but
@@ -256,6 +317,7 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
     if (f == null) return;
     await _saveNow();
     if (!await _askMissing()) return;
+    if (!await _checkBeforeRun()) return;
     final cfg = d.scripts.configFor(f.path), host = d.scripts.hostFor(cfg);
     try {
       host == null ? await d.scripts.runFile(f.file, python: d.scripts.pythonFor(cfg)) : await d.scripts.runOnHost(f.file, host);
