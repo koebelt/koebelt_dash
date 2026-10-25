@@ -233,7 +233,15 @@ class KBadge extends StatelessWidget {
           const SizedBox(width: K.s3),
         ],
         // Ends in … where a row is too narrow for it, rather than overflowing.
-        Flexible(child: Text(text.toUpperCase(), style: KText.label(color: c), maxLines: 1, softWrap: false, overflow: TextOverflow.ellipsis)),
+        Flexible(
+          child: Text(
+            text.toUpperCase(),
+            style: KText.label(color: c),
+            maxLines: 1,
+            softWrap: false,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
       ],
     );
   }

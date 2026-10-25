@@ -8,8 +8,7 @@ import 'introspect.dart' show Member;
 enum CompletionKind { method, field, function, variable, keyword, value, module, klass, file, folder }
 
 class Completion {
-  const Completion(this.label, {this.detail = '', this.kind = CompletionKind.field, String? insert, this.cursorBack = 0})
-    : insert = insert ?? label;
+  const Completion(this.label, {this.detail = '', this.kind = CompletionKind.field, String? insert, this.cursorBack = 0}) : insert = insert ?? label;
 
   /// What the list shows, what goes into the code, and how far back the
   /// cursor goes after it (inside the parentheses, inside quotes).
@@ -137,15 +136,18 @@ Completion _memberItem(String name, Member m) => switch (m.kind) {
 };
 
 Signature _sig(String name, String params, String doc) => Signature(name, [
-  for (final p in params.split(';').where((p) => p.trim().isNotEmpty))
-    (p.split('—').first.trim(), p.contains('—') ? p.split('—').last.trim() : ''),
+  for (final p in params.split(';').where((p) => p.trim().isNotEmpty)) (p.split('—').first.trim(), p.contains('—') ? p.split('—').last.trim() : ''),
 ], doc);
 
 /// The device's API (koebelt_dash_scripts.client.Device).
 final deviceApi = <String, Signature?>{
   'tlm': null,
   'next_tlm': _sig('next_tlm', 'timeout=1.0 — seconds to wait', 'Waits for the next telemetry and returns it.'),
-  'sticks': _sig('sticks', '**axes — throttle, yaw, pitch, roll (drone) or throttle, steer (rover), −1…1', 'Sets the sticks until changed; scaled to the script\'s speed limit; the operator\'s sticks win.'),
+  'sticks': _sig(
+    'sticks',
+    '**axes — throttle, yaw, pitch, roll (drone) or throttle, steer (rover), −1…1',
+    'Sets the sticks until changed; scaled to the script\'s speed limit; the operator\'s sticks win.',
+  ),
   'release': _sig('release', '', 'Hands the sticks back; the device holds.'),
   'mode': _sig('mode', 'mode — "HOLD", "MANUAL", "AUTO", "RTH"…', 'Switches the device\'s mode.'),
   'arm': _sig('arm', '', 'Arms (needs Allow arming in the script\'s Limits).'),
@@ -168,16 +170,40 @@ final deviceApi = <String, Signature?>{
   'stop_sequence': _sig('stop_sequence', '', 'Stops it.'),
   'camera': null,
   'cameras': null,
-  'overlay': _sig('overlay', 'boxes — (x, y, w, h, label) tuples or an ultralytics result; width=None; height=None — for boxes in pixels', 'Draws boxes over the camera in dash.'),
+  'overlay': _sig(
+    'overlay',
+    'boxes — (x, y, w, h, label) tuples or an ultralytics result; width=None; height=None — for boxes in pixels',
+    'Draws boxes over the camera in dash.',
+  ),
   'params': null,
-  'setting': _sig('setting', 'name — shown in dash; default — a number or True/False; min=None; max=None; label=None', 'A slider or switch in dash; read .value.'),
-  'trigger': _sig('trigger', 'name — the event; kind="button" — "button", "switch" or "value"; key=None — e.g. "D"; gamepad=None — e.g. "LT"', 'Decorator: runs the function when the trigger fires.'),
+  'setting': _sig(
+    'setting',
+    'name — shown in dash; default — a number or True/False; min=None; max=None; label=None',
+    'A slider or switch in dash; read .value.',
+  ),
+  'trigger': _sig(
+    'trigger',
+    'name — the event; kind="button" — "button", "switch" or "value"; key=None — e.g. "D"; gamepad=None — e.g. "LT"',
+    'Decorator: runs the function when the trigger fires.',
+  ),
   'on_trigger': null,
   'on_stop': null,
   'on_takeover': null,
-  'plot': _sig('plot', 'name — the Live widget; value — a number; **series — or several: target=…, actual=…', 'Values over time in a Live widget, recorded (channel script:<name>).'),
-  'show': _sig('show', 'name — the Live widget; image — numpy (BGR or grey), PIL, a matplotlib figure, or JPEG/PNG bytes; quality=80; max_size=960', 'A picture in a Live widget, up to 15 a second.'),
-  'chart': _sig('chart', 'name — the Live widget; y — numbers, or a dict of named series; x=None; kind="line" — "line", "bar", "scatter"; xlabel=""; ylabel=""', 'A whole chart in a Live widget, redrawn at each call.'),
+  'plot': _sig(
+    'plot',
+    'name — the Live widget; value — a number; **series — or several: target=…, actual=…',
+    'Values over time in a Live widget, recorded (channel script:<name>).',
+  ),
+  'show': _sig(
+    'show',
+    'name — the Live widget; image — numpy (BGR or grey), PIL, a matplotlib figure, or JPEG/PNG bytes; quality=80; max_size=960',
+    'A picture in a Live widget, up to 15 a second.',
+  ),
+  'chart': _sig(
+    'chart',
+    'name — the Live widget; y — numbers, or a dict of named series; x=None; kind="line" — "line", "bar", "scatter"; xlabel=""; ylabel=""',
+    'A whole chart in a Live widget, redrawn at each call.',
+  ),
   'mark': _sig('mark', 'text', 'An event on the recording\'s timeline.'),
   'notify': _sig('notify', 'text; level="info" — "info", "warn", "err"', 'A message to the operator in dash.'),
   'store': null,
@@ -275,7 +301,25 @@ const _keywords = [
   'and', 'as', 'assert', 'break', 'class', 'continue', 'def', 'del', 'elif', 'else', 'except', 'False', 'finally', 'for', 'from', //
   'global', 'if', 'import', 'in', 'is', 'lambda', 'None', 'nonlocal', 'not', 'or', 'pass', 'raise', 'return', 'True', 'try', 'while', 'with', 'yield',
 ];
-const _builtins = ['print', 'range', 'len', 'abs', 'min', 'max', 'round', 'int', 'float', 'str', 'list', 'dict', 'enumerate', 'zip', 'sorted', 'sum', 'isinstance'];
+const _builtins = [
+  'print',
+  'range',
+  'len',
+  'abs',
+  'min',
+  'max',
+  'round',
+  'int',
+  'float',
+  'str',
+  'list',
+  'dict',
+  'enumerate',
+  'zip',
+  'sorted',
+  'sum',
+  'isinstance',
+];
 
 /// Names in the script bound to a type of the API: `dev = connect()`,
 /// `t = dev.tlm`, `cam = dev.camera`, `speed = dev.setting(…)`.
@@ -333,10 +377,18 @@ Set<String> _ownNames(String text) => {
   if (from != null) {
     final typed = from[2]!;
     if (from[1] == 'koebelt_dash_scripts') {
-      return (items: [for (final n in _rank(topLevel.keys, typed)) Completion(n, detail: topLevel[n]?.doc ?? '', kind: CompletionKind.function)], replace: typed.length);
+      return (
+        items: [for (final n in _rank(topLevel.keys, typed)) Completion(n, detail: topLevel[n]?.doc ?? '', kind: CompletionKind.function)],
+        replace: typed.length,
+      );
     }
     final m = ctx.members?.call(from[1]!) ?? const {};
-    return (items: [for (final n in _rank(m.keys, typed).take(40)) _memberItem(n, m[n]!)].map((c) => Completion(c.label.replaceAll('()', ''), detail: c.detail, kind: c.kind)).toList(), replace: typed.length);
+    return (
+      items: [for (final n in _rank(m.keys, typed).take(40)) _memberItem(n, m[n]!)]
+          .map((c) => Completion(c.label.replaceAll('()', ''), detail: c.detail, kind: c.kind))
+          .toList(),
+      replace: typed.length,
+    );
   }
 
   // File paths, relative to the script's folder, inside a string.
@@ -346,7 +398,8 @@ Set<String> _ownNames(String text) => {
     // ./models and models are the same folder.
     final dir = slash < 0 ? '' : typed.substring(0, slash).replaceFirst(RegExp(r'^\./?'), ''), prefix = typed.substring(slash + 1);
     final entries = ctx.files!(dir);
-    final looksLikePath = typed.contains('/') || typed.startsWith('.') || _fileCalls.contains(quote[1]) || (prefix.isNotEmpty && entries.any((e) => e.$1.startsWith(prefix)));
+    final looksLikePath =
+        typed.contains('/') || typed.startsWith('.') || _fileCalls.contains(quote[1]) || (prefix.isNotEmpty && entries.any((e) => e.$1.startsWith(prefix)));
     if (looksLikePath) {
       final hits = [
         for (final e in entries)
@@ -369,7 +422,12 @@ Set<String> _ownNames(String text) => {
         ? ['button', 'switch', 'value']
         : switch (str[2]) {
             'run_sequence' || 'run_program' => ctx.sequences,
-            'mode' => ['HOLD', 'MANUAL', 'AUTO', if (ctx.kind == 'drone') ...['RTH', 'LAND', 'TAKEOFF']],
+            'mode' => [
+              'HOLD',
+              'MANUAL',
+              'AUTO',
+              if (ctx.kind == 'drone') ...['RTH', 'LAND', 'TAKEOFF'],
+            ],
             _ => const <String>[],
           };
     return (items: [for (final p in _rank(pool, typed)) Completion(p, kind: CompletionKind.value)], replace: typed.length);
@@ -385,9 +443,7 @@ Set<String> _ownNames(String text) => {
     if (!args.split(',').last.contains('=')) {
       final axes = ctx.sticks.isEmpty ? ['throttle', 'yaw', 'pitch', 'roll', 'steer'] : ctx.sticks;
       return (
-        items: [
-          for (final a in _rank(axes.where((a) => !used.contains(a)), typed)) Completion('$a=', detail: '−1…1', kind: CompletionKind.value),
-        ],
+        items: [for (final a in _rank(axes.where((a) => !used.contains(a)), typed)) Completion('$a=', detail: '−1…1', kind: CompletionKind.value)],
         replace: typed.length,
       );
     }
@@ -433,14 +489,20 @@ Set<String> _ownNames(String text) => {
           );
         }
       case 'tlm':
-        final fields = {...tlmFields, for (final f in ctx.tlm) f: tlmFields[f] ?? 'sent by this device', for (final c in ctx.channels) c: 'this device\'s channel'};
+        final fields = {
+          ...tlmFields,
+          for (final f in ctx.tlm) f: tlmFields[f] ?? 'sent by this device',
+          for (final c in ctx.channels) c: 'this device\'s channel',
+        };
         for (final f in _rank(fields.keys, typed)) {
           items.add(Completion(f, detail: fields[f]!, kind: CompletionKind.field));
         }
       case 'camera':
         for (final e in _rankMap(cameraApi, typed)) {
           final s = cameraApi[e];
-          items.add(s == null ? Completion(e) : Completion('$e()', detail: s.doc, kind: CompletionKind.method, insert: '$e()', cursorBack: s.params.isEmpty ? 0 : 1));
+          items.add(
+            s == null ? Completion(e) : Completion('$e()', detail: s.doc, kind: CompletionKind.method, insert: '$e()', cursorBack: s.params.isEmpty ? 0 : 1),
+          );
         }
       case 'params':
         for (final e in _rankMap(paramsApi, typed)) {
@@ -655,7 +717,9 @@ HoverInfo? hoverAt(String text, int offset, [CompletionContext ctx = const Compl
     }
     switch (type) {
       case 'device':
-        if (deviceApi.containsKey(name)) return api('$owner.', deviceApi[name] == null ? 'device property' : 'device method', deviceApi[name], _deviceDocs[name]);
+        if (deviceApi.containsKey(name)) {
+          return api('$owner.', deviceApi[name] == null ? 'device property' : 'device method', deviceApi[name], _deviceDocs[name]);
+        }
       case 'tlm':
         final d =
             tlmFields[name] ??
@@ -670,7 +734,9 @@ HoverInfo? hoverAt(String text, int offset, [CompletionContext ctx = const Compl
       case 'params':
         if (paramsApi.containsKey(name)) return api('$owner.', 'parameters method', paramsApi[name], null);
       case 'setting':
-        if (name == 'value') return HoverInfo('$owner.value', kind: 'setting value', source: lib, doc: 'The operator\'s current value.', start: start, end: end);
+        if (name == 'value') {
+          return HoverInfo('$owner.value', kind: 'setting value', source: lib, doc: 'The operator\'s current value.', start: start, end: end);
+        }
     }
     final path = resolvePath('$owner.$name', importsOf(text, ctx.members));
     return path == null ? null : library(path);
@@ -678,7 +744,12 @@ HoverInfo? hoverAt(String text, int offset, [CompletionContext ctx = const Compl
 
   // A name of its own.
   if (topLevel.containsKey(name) && RegExp(r'koebelt_dash_scripts').hasMatch(text)) {
-    return api('', topLevel[name] == null ? 'class' : 'function', topLevel[name], name == 'ScriptError' ? 'What the library raises, with a code (E0001…) and how to fix it.' : null);
+    return api(
+      '',
+      topLevel[name] == null ? 'class' : 'function',
+      topLevel[name],
+      name == 'ScriptError' ? 'What the library raises, with a code (E0001…) and how to fix it.' : null,
+    );
   }
   int lineOf(int i) => '\n'.allMatches(text.substring(0, i)).length + 1;
   final def = RegExp('^([ \\t]*)(def|class)\\s+${RegExp.escape(name)}\\s*(\\([^)]*\\))?\\s*(?:->[^:]*)?:', multiLine: true).firstMatch(text);

@@ -90,7 +90,9 @@ void main() {
         key: key,
         child: MaterialApp(
           theme: ThemeData(brightness: Brightness.dark),
-          home: Scaffold(body: DashApp(dash: dash, initial: 'settings')),
+          home: Scaffold(
+            body: DashApp(dash: dash, initial: 'settings'),
+          ),
         ),
       ),
     );
@@ -136,7 +138,14 @@ void main() {
     final store = Store();
     final dash = Dash(
       store: store,
-      updater: Updater(store, current: '1.0.0', os: 'macos', enabled: true, client: _github(utf8.encode('x')), installer: (os, f, v) async => fail('must not install')),
+      updater: Updater(
+        store,
+        current: '1.0.0',
+        os: 'macos',
+        enabled: true,
+        client: _github(utf8.encode('x')),
+        installer: (os, f, v) async => fail('must not install'),
+      ),
     );
     await tester.runAsync(() async {
       await dash.init();
@@ -150,7 +159,13 @@ void main() {
     tester.view.physicalSize = const Size(1440, 900);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
-    await tester.pumpWidget(MaterialApp(home: Scaffold(body: DashApp(dash: dash, initial: 'settings'))));
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: DashApp(dash: dash, initial: 'settings'),
+        ),
+      ),
+    );
     await tester.pump(const Duration(milliseconds: 200));
     await tester.tap(find.text('UPDATE 1.1.0'));
     await tester.pump(const Duration(milliseconds: 300));

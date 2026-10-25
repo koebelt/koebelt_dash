@@ -40,7 +40,10 @@ void main() {
     final py = await lib.import('Colour tracker.py', utf8.encode('"""Track a colour."""\n'));
     expect(py.uri.pathSegments.last, 'colour_tracker.py');
 
-    final z = await lib.import('vision.zip', zip({'vision/main.py': '"""Follow with YOLO."""', 'vision/model/yolo.pt': 'weights', '__MACOSX/vision/._main.py': 'junk'}));
+    final z = await lib.import(
+      'vision.zip',
+      zip({'vision/main.py': '"""Follow with YOLO."""', 'vision/model/yolo.pt': 'weights', '__MACOSX/vision/._main.py': 'junk'}),
+    );
     expect(z.path, endsWith('/vision/main.py'));
     expect(File('${z.parent.path}/model/yolo.pt').existsSync(), isTrue);
     expect(Directory('${z.parent.path}/__MACOSX').existsSync(), isFalse);
@@ -96,7 +99,11 @@ void main() {
     expect(names(app), names(pkg), reason: 'run tools/assets/sync_app_assets.py');
     for (final f in app) {
       final src = f.uri.pathSegments.last.replaceAll(RegExp(r'\.gz$'), '');
-      expect(utf8.decode(gzip.decode(f.readAsBytesSync())), File('../../libs/python-dash-scripts/examples/$src').readAsStringSync(), reason: 'run tools/assets/sync_app_assets.py');
+      expect(
+        utf8.decode(gzip.decode(f.readAsBytesSync())),
+        File('../../libs/python-dash-scripts/examples/$src').readAsStringSync(),
+        reason: 'run tools/assets/sync_app_assets.py',
+      );
     }
   });
 
@@ -110,5 +117,4 @@ void main() {
       expect(utf8.decode(gzip.decode(File(e.key).readAsBytesSync())), File(e.value).readAsStringSync(), reason: 'run tools/assets/sync_app_assets.py');
     }
   });
-
 }

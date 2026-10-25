@@ -39,7 +39,9 @@ void main() {
           child: MaterialApp(
             debugShowCheckedModeBanner: false,
             theme: ThemeData(brightness: Brightness.dark),
-            home: Scaffold(body: DashApp(key: UniqueKey(), dash: d, initial: 'settings')),
+            home: Scaffold(
+              body: DashApp(key: UniqueKey(), dash: d, initial: 'settings'),
+            ),
           ),
         ),
       );
@@ -69,7 +71,9 @@ void main() {
     }
     expect(find.text('Let assistants use koebelt dash'), findsOneWidget);
     expect(tester.getTopLeft(find.text('AI ASSISTANTS (MCP)')).dy, lessThan(900), reason: 'the section is in view');
-    Color? highlight(String label) => (tester.widget<AnimatedContainer>(find.ancestor(of: find.text(label), matching: find.byType(AnimatedContainer)).first).decoration as BoxDecoration?)?.color;
+    Color? highlight(String label) =>
+        (tester.widget<AnimatedContainer>(find.ancestor(of: find.text(label), matching: find.byType(AnimatedContainer)).first).decoration as BoxDecoration?)
+            ?.color;
     expect(highlight('AI assistants'), isNot(Colors.transparent), reason: 'the clicked section stays highlighted, though the page cannot scroll it to the top');
     expect(highlight('Updates'), Colors.transparent);
     await shot('settings_aside_jump', 1);

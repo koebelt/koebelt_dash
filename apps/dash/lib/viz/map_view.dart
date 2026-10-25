@@ -48,7 +48,11 @@ class TileSource {
 const appMapboxToken = String.fromEnvironment('MAPBOX_TOKEN');
 
 /// Mapbox styles: (id, name, Mapbox style).
-const mapboxStyles = [('dark', 'Dark', 'mapbox/dark-v11'), ('outdoors', 'Outdoors', 'mapbox/outdoors-v12'), ('satellite', 'Satellite', 'mapbox/satellite-streets-v12')];
+const mapboxStyles = [
+  ('dark', 'Dark', 'mapbox/dark-v11'),
+  ('outdoors', 'Outdoors', 'mapbox/outdoors-v12'),
+  ('satellite', 'Satellite', 'mapbox/satellite-streets-v12'),
+];
 
 /// The token for Mapbox tiles: the user's own, else the app's; empty without either.
 String mapboxTokenFor(Settings st) => st.mapboxToken.trim().isNotEmpty ? st.mapboxToken.trim() : appMapboxToken;
@@ -64,7 +68,9 @@ const contactEmail = 'contact@koebelt.com';
 /// tiles, a bad custom URL, or Mapbox without a token).
 TileSource? tileSourceFor(Settings st) {
   if (st.mapTiles == 'custom') {
-    return st.mapUrl.contains('{z}') ? TileSource('custom', 'Custom', st.mapUrl, st.mapAttribution.trim().isEmpty ? 'Custom tiles' : st.mapAttribution.trim()) : null;
+    return st.mapUrl.contains('{z}')
+        ? TileSource('custom', 'Custom', st.mapUrl, st.mapAttribution.trim().isEmpty ? 'Custom tiles' : st.mapAttribution.trim())
+        : null;
   }
   final style = mapboxStyles.where((s) => s.$1 == st.mapTiles).firstOrNull;
   final token = mapboxTokenFor(st);

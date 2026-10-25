@@ -77,7 +77,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
-        with: { channel: stable }
+        with: { channel: stable, flutter-version: 3.47.2 }
       # The libserialport pod builds from source with autotools.
       - run: brew install automake libtool
       - run: flutter build macos --release --build-number=${{ needs.version.outputs.build }} --dart-define=KDASH_UPDATES=github --dart-define=MAPBOX_TOKEN=${{ secrets.MAPBOX_TOKEN }}
@@ -117,7 +117,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
-        with: { channel: stable }
+        with: { channel: stable, flutter-version: 3.47.2 }
       - name: Build without signing (no secrets)
         if: env.HAS_SIGNING != 'true'
         run: |
@@ -185,7 +185,7 @@ jobs:
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: "17" }
       - uses: subosito/flutter-action@v2
-        with: { channel: stable }
+        with: { channel: stable, flutter-version: 3.47.2 }
       - name: Upload key
         env:
           KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -217,7 +217,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
-        with: { channel: stable }
+        with: { channel: stable, flutter-version: 3.47.2 }
       - run: flutter build windows --release --build-number=${{ needs.version.outputs.build }} --dart-define=KDASH_UPDATES=github --dart-define=MAPBOX_TOKEN=${{ secrets.MAPBOX_TOKEN }}
         working-directory: apps/dash
       - name: MCP bridge
@@ -241,7 +241,7 @@ jobs:
       - uses: actions/checkout@v4
       - run: sudo apt-get update && sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev libudev-dev
       - uses: subosito/flutter-action@v2
-        with: { channel: stable }
+        with: { channel: stable, flutter-version: 3.47.2 }
       - run: flutter build linux --release --build-number=${{ needs.version.outputs.build }} --dart-define=KDASH_UPDATES=github --dart-define=MAPBOX_TOKEN=${{ secrets.MAPBOX_TOKEN }}
         working-directory: apps/dash
       - name: MCP bridge

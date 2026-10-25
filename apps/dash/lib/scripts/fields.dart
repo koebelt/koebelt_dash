@@ -15,10 +15,7 @@ List<({String field, String label, String unit})> conditionFields(DeviceKind kin
     (field: 'speed', label: 'Speed', unit: 'm/s'),
     (field: 'heading', label: 'Heading', unit: '°'),
   ],
-  if (kind == DeviceKind.drone) ...[
-    (field: 'roll', label: 'Roll', unit: '°'),
-    (field: 'pitch', label: 'Pitch', unit: '°'),
-  ],
+  if (kind == DeviceKind.drone) ...[(field: 'roll', label: 'Roll', unit: '°'), (field: 'pitch', label: 'Pitch', unit: '°')],
   if (kind == DeviceKind.arm) (field: 'gripper', label: 'Gripper', unit: '%'),
   if (kind == DeviceKind.bench) ...[
     (field: 'thrust', label: 'Thrust', unit: 'N'),

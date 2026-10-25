@@ -37,7 +37,10 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: ScriptsLibraryScope(library: lib, child: DashApp(dash: d, initial: 'scripts')),
+            body: ScriptsLibraryScope(
+              library: lib,
+              child: DashApp(dash: d, initial: 'scripts'),
+            ),
           ),
         ),
       );

@@ -13,7 +13,10 @@ Set<String> importedModules(String source) {
   for (var n = 0; n < lines.length; n++) {
     final l = lines[n];
     // Skip docstrings and other triple-quoted text.
-    final quotes = RegExp(r'"""|' "'''").allMatches(l).length;
+    final quotes = RegExp(
+      r'"""|'
+      "'''",
+    ).allMatches(l).length;
     if (inString) {
       if (quotes.isOdd) inString = false;
       continue;

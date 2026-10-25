@@ -50,7 +50,9 @@ class _AssistantsSectionState extends State<AssistantsSection> {
     );
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 20),
-      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: K.borderHairline))),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: K.borderHairline)),
+      ),
       child: widget.phone
           ? Column(crossAxisAlignment: CrossAxisAlignment.start, children: [text, const SizedBox(height: 12), child])
           : Row(
@@ -73,9 +75,20 @@ class _AssistantsSectionState extends State<AssistantsSection> {
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(child: SelectableText(s, style: KText.mono(12, color: K.textSecondary, height: 1.6, w: FontWeight.w400))),
+        Expanded(
+          child: SelectableText(
+            s,
+            style: KText.mono(12, color: K.textSecondary, height: 1.6, w: FontWeight.w400),
+          ),
+        ),
         const SizedBox(width: 12),
-        KIconButton('copy', label: 'Copy', size: KSize.sm, variant: KIconButtonVariant.bare, onPressed: () => Clipboard.setData(ClipboardData(text: s))),
+        KIconButton(
+          'copy',
+          label: 'Copy',
+          size: KSize.sm,
+          variant: KIconButtonVariant.bare,
+          onPressed: () => Clipboard.setData(ClipboardData(text: s)),
+        ),
       ],
     ),
   );
@@ -133,7 +146,9 @@ class _AssistantsSectionState extends State<AssistantsSection> {
                 Text('Connect a client', style: KText.bodyMd),
                 const SizedBox(height: 6),
                 Text(
-                  local ? 'Paste this into the assistant’s setup.' : 'Assistants run on a computer: they reach this ${widget.phone ? 'phone' : 'tablet'} over the network, with its token.',
+                  local
+                      ? 'Paste this into the assistant’s setup.'
+                      : 'Assistants run on a computer: they reach this ${widget.phone ? 'phone' : 'tablet'} over the network, with its token.',
                   style: KText.bodySm.copyWith(color: K.textMuted),
                 ),
                 const SizedBox(height: 12),
@@ -177,7 +192,9 @@ class _AssistantsSectionState extends State<AssistantsSection> {
           if (local)
             _row(
               'From this network',
-              m.lan ? 'Assistants on other computers: $netUrl with the token ${m.lanToken.substring(0, 8)}… (copy it from the Other tab).' : 'Let an assistant on another computer use this dash, with a token.',
+              m.lan
+                  ? 'Assistants on other computers: $netUrl with the token ${m.lanToken.substring(0, 8)}… (copy it from the Other tab).'
+                  : 'Let an assistant on another computer use this dash, with a token.',
               KSwitch(
                 checked: m.lan,
                 onChanged: (v) async {
@@ -235,8 +252,18 @@ Future<void> showActivity(BuildContext context, Dash d) => showKDialog<void>(
                   width: 70,
                   child: Text('${two(e.at.hour)}:${two(e.at.minute)}:${two(e.at.second)}', style: KText.mono(11, color: K.textFaint, height: 1.6)),
                 ),
-                SizedBox(width: 130, child: Text(e.tool, style: KText.mono(11, color: e.ok ? K.textPrimary : K.negative, height: 1.6))),
-                Expanded(child: Text(e.summary, maxLines: 2, overflow: TextOverflow.ellipsis, style: KText.bodySm.copyWith(color: K.textSecondary, height: 1.4))),
+                SizedBox(
+                  width: 130,
+                  child: Text(e.tool, style: KText.mono(11, color: e.ok ? K.textPrimary : K.negative, height: 1.6)),
+                ),
+                Expanded(
+                  child: Text(
+                    e.summary,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: KText.bodySm.copyWith(color: K.textSecondary, height: 1.4),
+                  ),
+                ),
               ],
             ),
         ],
@@ -331,7 +358,9 @@ class _ApprovalCardState extends State<ApprovalCard> {
               children: [
                 KSwitch(checked: session, onChanged: (v) => setState(() => session = v)),
                 const SizedBox(width: 12),
-                Expanded(child: Text('Allow this kind of action on ${a.device} for this session', style: KText.bodySm.copyWith(color: K.textSecondary))),
+                Expanded(
+                  child: Text('Allow this kind of action on ${a.device} for this session', style: KText.bodySm.copyWith(color: K.textSecondary)),
+                ),
               ],
             ),
           ],

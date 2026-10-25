@@ -66,11 +66,11 @@ List<double> sticksFor(DeviceKind kind, Map a, List<double> current) {
   for (final e in a.entries) {
     final i = names[e.key] ?? const {'lx': 0, 'ly': 1, 'rx': 2, 'ry': 3}[e.key];
     if (i == null) {
-      throw ScriptRefusal(
-        'E0201',
-        '"${e.key}" is not a stick of a ${kind.name}${names.isEmpty ? '' : ' (${names.keys.join(', ')})'}',
-        {'name': e.key, 'names': [...names.keys, 'lx', 'ly', 'rx', 'ry'], 'kind': kind.name},
-      );
+      throw ScriptRefusal('E0201', '"${e.key}" is not a stick of a ${kind.name}${names.isEmpty ? '' : ' (${names.keys.join(', ')})'}', {
+        'name': e.key,
+        'names': [...names.keys, 'lx', 'ly', 'rx', 'ry'],
+        'kind': kind.name,
+      });
     }
     out[i] = (e.value as num).toDouble().clamp(-1.0, 1.0);
   }
@@ -349,7 +349,10 @@ class ScriptHub {
     final v = envOf(python)?.packageVersion;
     _result(
       failed == null && v != null,
-      failed ?? (v == null ? 'pip finished, but koebelt-dash-scripts is still not in this Python.' : 'koebelt-dash-scripts ${fromPep440(v)} is ${upgrade ? 'up to date' : 'installed'} in this Python.'),
+      failed ??
+          (v == null
+              ? 'pip finished, but koebelt-dash-scripts is still not in this Python.'
+              : 'koebelt-dash-scripts ${fromPep440(v)} is ${upgrade ? 'up to date' : 'installed'} in this Python.'),
     );
   }
 
@@ -470,6 +473,7 @@ class ScriptHub {
     if (c != null) configs[to] = c;
     saveConfigs();
   }
+
   String token = _newToken();
   double _tlmAcc = 0;
 
@@ -505,7 +509,13 @@ class ScriptHub {
     if (discovery != null) {
       await discovery.parent.create(recursive: true);
       await discovery.writeAsString(
-        jsonEncode({'url': 'ws://127.0.0.1:${_server!.port}/scripts', 'mcp': 'http://127.0.0.1:${_server!.port}/mcp', 'token': token, 'pid': pid, 'app': appVersion}),
+        jsonEncode({
+          'url': 'ws://127.0.0.1:${_server!.port}/scripts',
+          'mcp': 'http://127.0.0.1:${_server!.port}/mcp',
+          'token': token,
+          'pid': pid,
+          'app': appVersion,
+        }),
       );
     }
   }
@@ -679,7 +689,13 @@ class ScriptHub {
           if (c.blocked != null) return _res(c, id, err: '${c.blocked} The operator must resume the script in dash.', code: 'E0102', data: {'why': c.blocked});
           final other = l.drive;
           if (other != null && other.conn != c) {
-            return _res(c, id, err: 'Another script (${other.conn.name}) drives ${l.info.name}.', code: 'E0103', data: {'other': other.conn.name, 'device': l.info.name});
+            return _res(
+              c,
+              id,
+              err: 'Another script (${other.conn.name}) drives ${l.info.name}.',
+              code: 'E0103',
+              data: {'other': other.conn.name, 'device': l.info.name},
+            );
           }
           final dr = c.drive ??= ScriptDrive(c, l);
           l.drive = dr;
@@ -784,7 +800,13 @@ class ScriptHub {
         final q = d.sequencesFor(l.id).where((x) => x.name.toLowerCase() == name.toLowerCase() || x.id == name).firstOrNull;
         if (q == null) {
           final names = [for (final x in d.sequencesFor(l.id)) x.name];
-          return _res(c, id, err: 'No sequence called "$name" on ${l.info.name} (${names.join(', ')}).', code: 'E0402', data: {'name': name, 'names': names, 'device': l.info.name});
+          return _res(
+            c,
+            id,
+            err: 'No sequence called "$name" on ${l.info.name} (${names.join(', ')}).',
+            code: 'E0402',
+            data: {'name': name, 'names': names, 'device': l.info.name},
+          );
         }
         if (q.steps.any((st) => st.type == 'takeoff' || st.type == 'arm') && !lim.allowArm) {
           return _res(c, id, err: '"${q.name}" arms or takes off, which is not allowed for this script (Limits in dash).', code: 'E0301');
@@ -825,22 +847,42 @@ class ScriptHub {
     final def = stepDef(l.kind, type);
     if (def == null) {
       final names = [for (final s in stepDefs(l.kind)) s.type];
-      return _res(c, id, err: '"$type" is not a step a ${l.kind.name} has (${names.join(', ')}).', code: 'E0401', data: {'name': type, 'names': names, 'kind': l.kind.name});
+      return _res(
+        c,
+        id,
+        err: '"$type" is not a step a ${l.kind.name} has (${names.join(', ')}).',
+        code: 'E0401',
+        data: {'name': type, 'names': names, 'kind': l.kind.name},
+      );
     }
     final lim = c.limits;
-    if ((type == 'takeoff' || type == 'arm') && !lim.allowArm) return _res(c, id, err: 'Take-off and arming are not allowed for this script (Limits in dash).', code: 'E0301');
+    if ((type == 'takeoff' || type == 'arm') && !lim.allowArm) {
+      return _res(c, id, err: 'Take-off and arming are not allowed for this script (Limits in dash).', code: 'E0301');
+    }
     double n(String k) => (a[k] as num?)?.toDouble() ?? 0;
     if (type == 'goto') {
       final dist = math.sqrt(n('x') * n('x') + n('y') * n('y'));
       if (lim.fence > 0 && dist > lim.fence) {
-        return _res(c, id, err: 'That is ${dist.round()} m from home, beyond the ${lim.fence.round()} m geofence.', code: 'E0303', data: {'distance': dist, 'fence': lim.fence});
+        return _res(
+          c,
+          id,
+          err: 'That is ${dist.round()} m from home, beyond the ${lim.fence.round()} m geofence.',
+          code: 'E0303',
+          data: {'distance': dist, 'fence': lim.fence},
+        );
       }
       if (lim.ceiling > 0 && l.kind == DeviceKind.drone && n('z') > lim.ceiling) {
         return _res(c, id, err: '${n('z')} m is above the ${lim.ceiling.round()} m ceiling.', code: 'E0304', data: {'height': n('z'), 'ceiling': lim.ceiling});
       }
     }
     if (type == 'takeoff' && lim.ceiling > 0 && n('alt') > lim.ceiling) {
-      return _res(c, id, err: '${n('alt')} m is above the ${lim.ceiling.round()} m ceiling.', code: 'E0304', data: {'height': n('alt'), 'ceiling': lim.ceiling});
+      return _res(
+        c,
+        id,
+        err: '${n('alt')} m is above the ${lim.ceiling.round()} m ceiling.',
+        code: 'E0304',
+        data: {'height': n('alt'), 'ceiling': lim.ceiling},
+      );
     }
     final st = SeqStep.fresh(def);
     for (final e in a.entries) {

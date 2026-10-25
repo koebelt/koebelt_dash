@@ -76,7 +76,9 @@ class ScriptRunPanel extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Text('This device sends them to a script host: a computer on the same network running koebelt-dash-scripts, which can use any Python package (OpenCV, PyTorch…).'),
+                const Text(
+                  'This device sends them to a script host: a computer on the same network running koebelt-dash-scripts, which can use any Python package (OpenCV, PyTorch…).',
+                ),
                 const SizedBox(height: 10),
                 Align(
                   alignment: Alignment.centerLeft,
@@ -99,7 +101,10 @@ class ScriptRunPanel extends StatelessWidget {
     padding: const EdgeInsets.symmetric(vertical: 4),
     child: Row(
       children: [
-        SizedBox(width: 72, child: Text(k, style: KText.bodySm.copyWith(color: K.textMuted))),
+        SizedBox(
+          width: 72,
+          child: Text(k, style: KText.bodySm.copyWith(color: K.textMuted)),
+        ),
         Expanded(child: v),
       ],
     ),
@@ -180,14 +185,22 @@ class ScriptRunPanel extends StatelessWidget {
         return (name: cfg.device, title: '${cfg.device} is not connected', why: 'Connect it, or choose another device above.');
       }
       final why = requires.whyNot(l.info, l);
-      return (name: l.info.name, title: why == null ? null : '${l.info.name} does not fit this script', why: why == null ? null : '$why Choose another device above, or change the # requires: line.');
+      return (
+        name: l.info.name,
+        title: why == null ? null : '${l.info.name} does not fit this script',
+        why: why == null ? null : '$why Choose another device above, or change the # requires: line.',
+      );
     }
     final l = d.focus;
     if (l == null) {
       return (name: null, title: 'No device connected', why: 'A script drives a device: connect one first (Devices, or the device menu at the top).');
     }
     final why = requires.whyNot(l.info, l);
-    return (name: l.info.name, title: why == null ? null : '${l.info.name} does not fit this script', why: why == null ? null : '$why Choose another device above, or change the # requires: line.');
+    return (
+      name: l.info.name,
+      title: why == null ? null : '${l.info.name} does not fit this script',
+      why: why == null ? null : '$why Choose another device above, or change the # requires: line.',
+    );
   }
 
   Widget _deviceChoice(ScriptConfig cfg) {
@@ -216,11 +229,7 @@ class ScriptRunPanel extends StatelessWidget {
     final current = hub.hostFor(cfg);
     return _Dropdown<String?>(
       value: current?.key,
-      items: {
-        if (ScriptHub.canRunHere) null: 'This computer',
-        for (final h in hub.hosts) h.key: h.name,
-        add: 'Add a script host…',
-      },
+      items: {if (ScriptHub.canRunHere) null: 'This computer', for (final h in hub.hosts) h.key: h.name, add: 'Add a script host…'},
       onChanged: (v) async {
         if (v == add) {
           final h = await showAddHostDialog(context, d);
@@ -269,7 +278,12 @@ class ScriptRunPanel extends StatelessWidget {
           child: Row(
             children: [
               const Expanded(child: Text('Install it from python.org, then come back here.')),
-              KButton('python.org', size: KSize.sm, variant: KButtonVariant.secondary, onPressed: () => launchUrl(Uri.parse('https://www.python.org/downloads/'))),
+              KButton(
+                'python.org',
+                size: KSize.sm,
+                variant: KButtonVariant.secondary,
+                onPressed: () => launchUrl(Uri.parse('https://www.python.org/downloads/')),
+              ),
             ],
           ),
         ),
@@ -319,7 +333,12 @@ class ScriptRunPanel extends StatelessWidget {
                 runSpacing: 8,
                 children: [
                   if (env != null) KButton('Install here', size: KSize.sm, onPressed: () => hub.installInto(chosen)),
-                  KButton('Scripts environment', size: KSize.sm, variant: KButtonVariant.secondary, onPressed: () => hub.setupPython(scriptsDir, cfg: cfg)),
+                  KButton(
+                    'Scripts environment',
+                    size: KSize.sm,
+                    variant: KButtonVariant.secondary,
+                    onPressed: () => hub.setupPython(scriptsDir, cfg: cfg),
+                  ),
                   KButton('Check again', size: KSize.sm, variant: KButtonVariant.ghost, onPressed: () => hub.recheckPython(chosen)),
                 ],
               ),
@@ -337,15 +356,17 @@ class ScriptRunPanel extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              hub.settingUp
-                  ? (hub.setupLog.lastOrNull ?? '…')
-                  : 'Scripts need the koebelt-dash-scripts package. dash can create a Python environment for them in the scripts folder (.venv) and install it there; your own packages (OpenCV, PyTorch…) go there too.',
+              hub.settingUp ? (hub.setupLog.lastOrNull ?? '…') : 'Scripts need the koebelt-dash-scripts package. dash can create a Python environment for them in the scripts folder (.venv) and install it there; your own packages (OpenCV, PyTorch…) go there too.',
             ),
             if (!hub.settingUp) ...[
               const SizedBox(height: 10),
               Align(
                 alignment: Alignment.centerLeft,
-                child: KButton('Set up Python', size: KSize.sm, onPressed: () => hub.setupPython(scriptsDir, cfg: cfg)),
+                child: KButton(
+                  'Set up Python',
+                  size: KSize.sm,
+                  onPressed: () => hub.setupPython(scriptsDir, cfg: cfg),
+                ),
               ),
             ],
           ],
@@ -417,8 +438,19 @@ class ScriptRunPanel extends StatelessWidget {
       children: [
         Expanded(
           child: running
-              ? KButton('Stop script', variant: KButtonVariant.secondary, fullWidth: true, iconLeft: const KIcon('square', size: 16), onPressed: () => run!.stop())
-              : KButton('Run', fullWidth: true, iconLeft: const KIcon('play', size: 14, color: K.textOnAccent), onPressed: canRun ? onRun : null),
+              ? KButton(
+                  'Stop script',
+                  variant: KButtonVariant.secondary,
+                  fullWidth: true,
+                  iconLeft: const KIcon('square', size: 16),
+                  onPressed: () => run!.stop(),
+                )
+              : KButton(
+                  'Run',
+                  fullWidth: true,
+                  iconLeft: const KIcon('play', size: 14, color: K.textOnAccent),
+                  onPressed: canRun ? onRun : null,
+                ),
         ),
         if (running) ...[
           const SizedBox(width: 8),
@@ -439,11 +471,7 @@ class ScriptRunPanel extends StatelessWidget {
       children: [
         button,
         const SizedBox(height: 12),
-        KNotice(
-          tone: Tone.warning,
-          title: t.title,
-          child: Text(t.why!),
-        ),
+        KNotice(tone: Tone.warning, title: t.title, child: Text(t.why!)),
       ],
     );
   }
@@ -457,7 +485,9 @@ class ScriptRunPanel extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: 6),
             child: Row(
               children: [
-                Expanded(child: Text('${e.value['label'] ?? e.key}', style: KText.bodySm.copyWith(color: K.textPrimary))),
+                Expanded(
+                  child: Text('${e.value['label'] ?? e.key}', style: KText.bodySm.copyWith(color: K.textPrimary)),
+                ),
                 KSwitch(checked: e.value['value'] == true, onChanged: (v) => hub.setSetting(c, e.key, v)),
               ],
             ),
@@ -475,7 +505,9 @@ class ScriptRunPanel extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: 6),
             child: Row(
               children: [
-                Expanded(child: Text(e.key, style: KText.bodySm.copyWith(color: K.textPrimary))),
+                Expanded(
+                  child: Text(e.key, style: KText.bodySm.copyWith(color: K.textPrimary)),
+                ),
                 Text('${e.value['value']}', style: KText.mono(12)),
               ],
             ),
@@ -499,7 +531,10 @@ class ScriptRunPanel extends StatelessWidget {
       right: KButton('Add', size: KSize.sm, variant: KButtonVariant.ghost, iconLeft: const KIcon('plus', size: 14), onPressed: () => edit()),
       children: [
         if (events.isEmpty)
-          Text('Buttons, keys, controller buttons, conditions and timers that send events to the script. Declare them with @dev.trigger(…), or add them here.', style: KText.bodySm.copyWith(color: K.textMuted)),
+          Text(
+            'Buttons, keys, controller buttons, conditions and timers that send events to the script. Declare them with @dev.trigger(…), or add them here.',
+            style: KText.bodySm.copyWith(color: K.textMuted),
+          ),
         for (final ev in events) _TriggerRow(d: d, cfg: cfg, conn: conn, event: ev, decl: conn?.triggers[ev], onEdit: edit),
       ],
     );
@@ -511,7 +546,9 @@ class ScriptRunPanel extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
-          Expanded(child: Text(k, style: KText.bodySm.copyWith(color: K.textMuted))),
+          Expanded(
+            child: Text(k, style: KText.bodySm.copyWith(color: K.textMuted)),
+          ),
           Text(v, style: KText.mono(12, color: muted ? K.textMuted : K.textPrimary)),
         ],
       ),
@@ -580,7 +617,9 @@ class _NumberSetting extends StatelessWidget {
         children: [
           Row(
             children: [
-              Expanded(child: Text(label, style: KText.bodySm.copyWith(color: K.textPrimary))),
+              Expanded(
+                child: Text(label, style: KText.bodySm.copyWith(color: K.textPrimary)),
+              ),
               Text(value.abs() >= 100 ? value.toStringAsFixed(0) : value.toStringAsFixed(2), style: KText.mono(12)),
             ],
           ),
@@ -615,13 +654,17 @@ class _TriggerRow extends StatelessWidget {
     }
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 10),
-      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: K.borderHairline))),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: K.borderHairline)),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(
             children: [
-              Expanded(child: Text(event, style: KText.bodySm.copyWith(color: K.textPrimary))),
+              Expanded(
+                child: Text(event, style: KText.bodySm.copyWith(color: K.textPrimary)),
+              ),
               control,
             ],
           ),
@@ -667,7 +710,10 @@ class _TriggerRow extends StatelessWidget {
           children: [
             Tooltip(
               message: w?.error ?? (w?.now == null ? '' : 'Now ${w!.now}'),
-              child: Text(b.source == TriggerSource.condition ? b.describe(padSourceLabel) : b.describe(padSourceLabel).toUpperCase(), style: KText.mono(11, color: color)),
+              child: Text(
+                b.source == TriggerSource.condition ? b.describe(padSourceLabel) : b.describe(padSourceLabel).toUpperCase(),
+                style: KText.mono(11, color: color),
+              ),
             ),
             const SizedBox(width: 4),
             Pressable(
@@ -707,7 +753,11 @@ class _Dropdown<T> extends StatelessWidget {
         icon: const KIcon('chevron-down', size: 14, color: K.textMuted),
         style: KText.mono(12),
         items: [
-          for (final e in items.entries) DropdownMenuItem<T>(value: e.key, child: Text(e.value, overflow: TextOverflow.ellipsis, style: KText.mono(12))),
+          for (final e in items.entries)
+            DropdownMenuItem<T>(
+              value: e.key,
+              child: Text(e.value, overflow: TextOverflow.ellipsis, style: KText.mono(12)),
+            ),
         ],
         onChanged: (v) => onChanged(v as T),
       ),
@@ -784,7 +834,10 @@ class _ScriptConsoleState extends State<ScriptConsole> {
                         };
                         // A traceback's line, or an error's --> script.py:14.
                         final line = RegExp(r'File ".*?", line (\d+)|--> .*?:(\d+)\s*$').firstMatch(l.text);
-                        final text = Text(l.text, style: KText.mono(12, color: c, height: 1.5, w: FontWeight.w400));
+                        final text = Text(
+                          l.text,
+                          style: KText.mono(12, color: c, height: 1.5, w: FontWeight.w400),
+                        );
                         return Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -834,7 +887,11 @@ class ScriptControls extends StatelessWidget {
             if (b.source == TriggerSource.toggle)
               Pressable(
                 onTap: () => hub.setToggle(c, b.event, c.config.values[b.event] != true),
-                builder: (_, _, _) => KTag('${b.event} · ${c.config.values[b.event] == true ? 'on' : 'off'}', tone: c.config.values[b.event] == true ? TagTone.accent : TagTone.neutral, height: 32),
+                builder: (_, _, _) => KTag(
+                  '${b.event} · ${c.config.values[b.event] == true ? 'on' : 'off'}',
+                  tone: c.config.values[b.event] == true ? TagTone.accent : TagTone.neutral,
+                  height: 32,
+                ),
               )
             else if (b.source == TriggerSource.button)
               KButton(b.event, size: KSize.sm, variant: KButtonVariant.secondary, onPressed: () => hub.press(c, b.event)),
@@ -867,10 +924,7 @@ class ScriptControls extends StatelessWidget {
             PulseDot(color: color, animate: dr != null && !dr.paused),
             const SizedBox(width: 8),
             Text(text.toUpperCase(), style: KText.label(color: color)),
-            if (resume != null) ...[
-              const SizedBox(width: 8),
-              KButton('Resume', size: KSize.sm, variant: KButtonVariant.ghost, onPressed: resume),
-            ],
+            if (resume != null) ...[const SizedBox(width: 8), KButton('Resume', size: KSize.sm, variant: KButtonVariant.ghost, onPressed: resume)],
           ],
         ),
       ),

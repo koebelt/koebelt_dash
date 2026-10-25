@@ -104,7 +104,10 @@ void main() {
     expect(api['contents'][0]['text'], contains('koebelt-dash-scripts'));
     final prompts = [for (final p in (await c.rpc('prompts/list'))['prompts'] as List) p['name']];
     expect(prompts, contains('write_script'));
-    final p = await c.rpc('prompts/get', {'name': 'write_script', 'arguments': {'task': 'follow a line'}});
+    final p = await c.rpc('prompts/get', {
+      'name': 'write_script',
+      'arguments': {'task': 'follow a line'},
+    });
     expect(p['messages'][0]['content']['text'], contains('follow a line'));
   });
 
@@ -148,13 +151,19 @@ void main() {
   test('write, check and read scripts; deletes go to the trash', () async {
     await init();
     expect(_Client.text(await c.tool('write_script', {'name': 'Circle', 'source': '"""Circle home."""\nprint(1)\n'})), contains('Created circle.py'));
-    expect(_Client.text(await c.tool('write_script', {'name': 'Circle home', 'source': '"""Circle home."""\nprint(2)\n'})), contains('previous version is in the trash'));
+    expect(
+      _Client.text(await c.tool('write_script', {'name': 'Circle home', 'source': '"""Circle home."""\nprint(2)\n'})),
+      contains('previous version is in the trash'),
+    );
     expect(_Client.text(await c.tool('read_script', {'name': 'circle'})), contains('print(2)'));
     final list = (await c.tool('list_scripts'))['structuredContent']['scripts'] as List;
     expect(list.single['name'], 'Circle home');
     final t = await c.tool('set_trigger', {'script': 'circle', 'event': 'Low', 'source': 'condition', 'expr': 'battery.pct <'});
     expect(_Client.text(t), contains('does not parse'));
-    expect(_Client.text(await c.tool('set_trigger', {'script': 'circle', 'event': 'Low', 'source': 'condition', 'expr': 'battery.pct < 20'})), contains('battery.pct < 20'));
+    expect(
+      _Client.text(await c.tool('set_trigger', {'script': 'circle', 'event': 'Low', 'source': 'condition', 'expr': 'battery.pct < 20'})),
+      contains('battery.pct < 20'),
+    );
     await c.tool('delete_script', {'name': 'Circle home'});
     expect((await c.tool('list_scripts'))['structuredContent']['scripts'], isEmpty);
   });

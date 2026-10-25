@@ -21,7 +21,13 @@ void main() {
         // A slow tool, as one waiting for the operator.
         if (m['method'] == 'tools/call') await Future<void>.delayed(const Duration(milliseconds: 400));
         req.response.headers.contentType = ContentType.json;
-        req.response.write(jsonEncode({'jsonrpc': '2.0', 'id': m['id'], 'result': {'echo': m['method']}}));
+        req.response.write(
+          jsonEncode({
+            'jsonrpc': '2.0',
+            'id': m['id'],
+            'result': {'echo': m['method']},
+          }),
+        );
       }
       await req.response.close();
     });
@@ -30,11 +36,11 @@ void main() {
   tearDown(() => dash.close(force: true));
 
   Future<List<Map>> talk(List<Map> msgs, {String? url}) async {
-    final p = await Process.start(Platform.resolvedExecutable, [
-      'run',
-      'bin/koebelt_dash_mcp.dart',
-      '--no-launch',
-    ], environment: {'KOEBELT_DASH_MCP_URL': url ?? 'http://127.0.0.1:${dash.port}/mcp'});
+    final p = await Process.start(
+      Platform.resolvedExecutable,
+      ['run', 'bin/koebelt_dash_mcp.dart', '--no-launch'],
+      environment: {'KOEBELT_DASH_MCP_URL': url ?? 'http://127.0.0.1:${dash.port}/mcp'},
+    );
     for (final m in msgs) {
       p.stdin.writeln(jsonEncode(m));
     }

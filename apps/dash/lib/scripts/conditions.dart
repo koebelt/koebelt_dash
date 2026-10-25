@@ -156,7 +156,11 @@ class _Parser {
   static const _keywords = {'and', 'or', 'not', 'for', 'true', 'false'};
 
   void _lex() {
-    final re = RegExp(r'\s*(?:(\d+(?:\.\d+)?|\.\d+)|("[^"]*"|' "'[^']*'" r')|([A-Za-z_][A-Za-z0-9_]*)|(<=|>=|==|!=|<|>|\+|-|\*|/|\(|\)|,|\.|\[|\])|(\S))');
+    final re = RegExp(
+      r'\s*(?:(\d+(?:\.\d+)?|\.\d+)|("[^"]*"|'
+      "'[^']*'"
+      r')|([A-Za-z_][A-Za-z0-9_]*)|(<=|>=|==|!=|<|>|\+|-|\*|/|\(|\)|,|\.|\[|\])|(\S))',
+    );
     var pos = 0;
     while (pos < src.length) {
       final m = re.matchAsPrefix(src, pos);
@@ -206,7 +210,13 @@ class _Parser {
     final n = double.parse(_next().text);
     var unit = 's';
     if (_peek.kind == 'id' && const {'s', 'ms', 'min'}.contains(_peek.text)) unit = _next().text;
-    final ms = n * (unit == 'ms' ? 1 : unit == 'min' ? 60000 : 1000);
+    final ms =
+        n *
+        (unit == 'ms'
+            ? 1
+            : unit == 'min'
+            ? 60000
+            : 1000);
     return Duration(milliseconds: ms.round());
   }
 

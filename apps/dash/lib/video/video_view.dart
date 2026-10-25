@@ -179,12 +179,16 @@ class _BoxPainter extends CustomPainter {
       ..strokeWidth = 2;
     for (final b in boxes) {
       // Normalised image coordinates → the part of the image on screen.
-      Offset at(double x, double y) => Offset(dst.left + (x * image.width - src.left) / src.width * dst.width, dst.top + (y * image.height - src.top) / src.height * dst.height);
+      Offset at(double x, double y) =>
+          Offset(dst.left + (x * image.width - src.left) / src.width * dst.width, dst.top + (y * image.height - src.top) / src.height * dst.height);
       final r = Rect.fromPoints(at(b.x, b.y), at(b.x + b.w, b.y + b.h));
       canvas.drawRect(r, line);
       if (b.label.isEmpty) continue;
       final tp = TextPainter(
-        text: TextSpan(text: b.label.toUpperCase(), style: KText.mono(10, color: K.textOnAccent)),
+        text: TextSpan(
+          text: b.label.toUpperCase(),
+          style: KText.mono(10, color: K.textOnAccent),
+        ),
         textDirection: TextDirection.ltr,
       )..layout();
       final tag = Rect.fromLTWH(r.left - 1, r.top - tp.height - 4, tp.width + 8, tp.height + 4);

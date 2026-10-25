@@ -35,7 +35,13 @@ def go_home():
   });
 
   test('what dash knows about the device: its sticks, fields, sequences, channels', () {
-    const rover = CompletionContext(kind: 'rover', sticks: ['throttle', 'steer'], tlm: ['pos', 'battery'], sequences: ['Survey square', 'Back home'], channels: ['motor_temp']);
+    const rover = CompletionContext(
+      kind: 'rover',
+      sticks: ['throttle', 'steer'],
+      tlm: ['pos', 'battery'],
+      sequences: ['Survey square', 'Back home'],
+      channels: ['motor_temp'],
+    );
     expect(at('${src}robot.sticks(', rover), ['throttle=', 'steer=']);
     expect(at('${src}robot.sticks(throttle=0.4, ', rover), ['steer='], reason: 'not the one already given');
     expect(at('${src}robot.sticks(throttle=0.', rover), isEmpty, reason: 'typing a value');
@@ -79,17 +85,12 @@ def go_home():
         'ndarray': (kind: 'class', sig: '(shape, dtype=float)', doc: 'An array object.'),
         'pi': (kind: 'value', sig: '', doc: 'float'),
       },
-      'numpy.linalg': {
-        'norm': (kind: 'function', sig: '(x, ord=None, axis=None)', doc: 'Matrix or vector norm.'),
-      },
+      'numpy.linalg': {'norm': (kind: 'function', sig: '(x, ord=None, axis=None)', doc: 'Matrix or vector norm.')},
       'cv2': {
         'VideoCapture': (kind: 'class', sig: '(index)', doc: 'Video capture.'),
         'imread': (kind: 'function', sig: '(filename, flags=1)', doc: 'Loads an image.'),
       },
-      'cv2.VideoCapture': {
-        'read': (kind: 'function', sig: '()', doc: 'Grabs a frame.'),
-        'release': (kind: 'function', sig: '()', doc: 'Closes the camera.'),
-      },
+      'cv2.VideoCapture': {'read': (kind: 'function', sig: '()', doc: 'Grabs a frame.'), 'release': (kind: 'function', sig: '()', doc: 'Closes the camera.')},
     };
     final asked = <String>[];
     CompletionContext ctx() => CompletionContext(
@@ -163,7 +164,9 @@ for t in every(0.05):
         'numpy.linalg' => {'norm': (kind: 'function', sig: '(x, ord=None, axis=None)', doc: 'Matrix or vector norm.')},
         _ => null,
       },
-      doc: (p) => p == 'numpy.linalg.norm' ? (kind: 'function', sig: '(x, ord=None, axis=None)', doc: 'Matrix or vector norm.\n\nThis function returns one of eight norms.') : null,
+      doc: (p) => p == 'numpy.linalg.norm'
+          ? (kind: 'function', sig: '(x, ord=None, axis=None)', doc: 'Matrix or vector norm.\n\nThis function returns one of eight norms.')
+          : null,
     );
 
     test('the API, with what each parameter does', () {

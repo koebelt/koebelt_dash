@@ -128,7 +128,13 @@ class McpServer {
     Future<void> fail(int status, String text) async {
       res.statusCode = status;
       res.headers.contentType = ContentType.json;
-      res.write(jsonEncode({'jsonrpc': '2.0', 'id': null, 'error': {'code': -32000, 'message': text}}));
+      res.write(
+        jsonEncode({
+          'jsonrpc': '2.0',
+          'id': null,
+          'error': {'code': -32000, 'message': text},
+        }),
+      );
       await res.close();
     }
 
@@ -236,7 +242,8 @@ class McpServer {
         final docs = await _allDocs();
         return {
           'resources': [
-            for (final x in docs) {'uri': 'koebelt://docs/${x.id}', 'name': x.id, 'title': x.title, 'mimeType': x.id.startsWith('example:') ? 'text/x-python' : 'text/markdown'},
+            for (final x in docs)
+              {'uri': 'koebelt://docs/${x.id}', 'name': x.id, 'title': x.title, 'mimeType': x.id.startsWith('example:') ? 'text/x-python' : 'text/markdown'},
           ],
         };
       case 'resources/read':
@@ -320,12 +327,21 @@ class McpServer {
       [
         {'name': 'device', 'description': 'The board and what it is (ESP32 rover, Raspberry Pi arm…)', 'required': true},
       ],
-      (a) => 'I want to connect this to koebelt dash: ${a['device']}. Use search_docs and read_doc on the guides to give me the steps and the code for my board.',
+      (a) =>
+          'I want to connect this to koebelt dash: ${a['device']}. Use search_docs and read_doc on the guides to give me the steps and the code for my board.',
     ),
   };
 
   // ------------------------------------------------------------------ tools
-  static Map<String, dynamic> _tool(String name, String title, String description, Map<String, dynamic> props, {List<String> required = const [], bool readOnly = false, bool destructive = false}) => {
+  static Map<String, dynamic> _tool(
+    String name,
+    String title,
+    String description,
+    Map<String, dynamic> props, {
+    List<String> required = const [],
+    bool readOnly = false,
+    bool destructive = false,
+  }) => {
     'name': name,
     'title': title,
     'description': description,
@@ -339,12 +355,34 @@ class McpServer {
 
   static final _tools = [
     // Learn
-    _tool('search_docs', 'Search the docs', 'Search the guides, the koebelt/link and script API references and the example scripts.', {'query': _str}, required: ['query'], readOnly: true),
-    _tool('read_doc', 'Read a doc', 'Read a whole guide, reference or example by id (from search_docs or resources). id "index" lists them all.', {'id': _str}, required: ['id'], readOnly: true),
+    _tool(
+      'search_docs',
+      'Search the docs',
+      'Search the guides, the koebelt/link and script API references and the example scripts.',
+      {'query': _str},
+      required: ['query'],
+      readOnly: true,
+    ),
+    _tool(
+      'read_doc',
+      'Read a doc',
+      'Read a whole guide, reference or example by id (from search_docs or resources). id "index" lists them all.',
+      {'id': _str},
+      required: ['id'],
+      readOnly: true,
+    ),
     // Look
     _tool('list_devices', 'List devices', 'Paired and connected devices: name, kind, connection, mode, armed, simulated, library.', {}, readOnly: true),
-    _tool('get_telemetry', 'Get telemetry', 'Latest telemetry of a device: position (m from home), attitude, speed, mode, battery, sensors, link.', {'device': _dev}, readOnly: true),
-    _tool('get_history', 'Get recent history', 'The last 10 seconds of a channel (alt, spd, volt, cur, ax, gz, j0…, custom channels), downsampled. Omit channel to list them.', {'device': _dev, 'channel': _str}, readOnly: true),
+    _tool('get_telemetry', 'Get telemetry', 'Latest telemetry of a device: position (m from home), attitude, speed, mode, battery, sensors, link.', {
+      'device': _dev,
+    }, readOnly: true),
+    _tool(
+      'get_history',
+      'Get recent history',
+      'The last 10 seconds of a channel (alt, spd, volt, cur, ax, gz, j0…, custom channels), downsampled. Omit channel to list them.',
+      {'device': _dev, 'channel': _str},
+      readOnly: true,
+    ),
     _tool('get_camera_frame', 'Get a camera frame', 'The current picture from the device\'s camera.', {'device': _dev}, readOnly: true),
     _tool('get_params', 'Get parameters', 'The device\'s parameters with their values.', {'device': _dev}, readOnly: true),
     _tool('get_alerts', 'Get alerts', 'Current alerts, and recent messages from the device.', {'device': _dev}, readOnly: true),
@@ -364,9 +402,29 @@ class McpServer {
     // Write
     _tool('list_scripts', 'List scripts', 'Scripts in the scripts folder, with their state.', {}, readOnly: true),
     _tool('read_script', 'Read a script', 'A script\'s source.', {'name': _str}, required: ['name'], readOnly: true),
-    _tool('write_script', 'Write a script', 'Creates or replaces a script (a replaced version goes to the trash). Start it with a docstring: its first line is the script\'s title.', {'name': _str, 'source': _str}, required: ['name', 'source']),
-    _tool('delete_script', 'Delete a script', 'Moves a script to the trash folder, from which the operator can restore it.', {'name': _str}, required: ['name'], destructive: true),
-    _tool('check_script', 'Check a script', 'Checks a script with its Python without running it: syntax, imports, undefined names, and what it calls on the device and with which arguments.', {'name': _str}, required: ['name'], readOnly: true),
+    _tool(
+      'write_script',
+      'Write a script',
+      'Creates or replaces a script (a replaced version goes to the trash). Start it with a docstring: its first line is the script\'s title.',
+      {'name': _str, 'source': _str},
+      required: ['name', 'source'],
+    ),
+    _tool(
+      'delete_script',
+      'Delete a script',
+      'Moves a script to the trash folder, from which the operator can restore it.',
+      {'name': _str},
+      required: ['name'],
+      destructive: true,
+    ),
+    _tool(
+      'check_script',
+      'Check a script',
+      'Checks a script with its Python without running it: syntax, imports, undefined names, and what it calls on the device and with which arguments.',
+      {'name': _str},
+      required: ['name'],
+      readOnly: true,
+    ),
     _tool('list_sequences', 'List sequences', 'A device\'s sequences (Automate > Sequences), with their steps.', {'device': _dev}, readOnly: true),
     _tool(
       'write_sequence',
@@ -431,7 +489,15 @@ class McpServer {
     ),
     _tool('connect', 'Connect a device', 'Connects a paired device.', {'device': _str}, required: ['device']),
     _tool('disconnect', 'Disconnect a device', 'Disconnects a device.', {'device': _str}, required: ['device']),
-    _tool('record', 'Record', 'Starts or stops recording the connected devices.', {'on': {'type': 'boolean'}}, required: ['on']),
+    _tool(
+      'record',
+      'Record',
+      'Starts or stops recording the connected devices.',
+      {
+        'on': {'type': 'boolean'},
+      },
+      required: ['on'],
+    ),
     _tool(
       'export_recording',
       'Export a recording',
@@ -447,13 +513,37 @@ class McpServer {
       readOnly: true,
     ),
     _tool('get_settings', 'Get settings', 'The app\'s settings.', {}, readOnly: true),
-    _tool('set_setting', 'Change a setting', 'Changes one setting: control, invertY, haptics, rateHz, mapTiles, recordVideo. Safety settings cannot be changed by an assistant.', {'name': _str, 'value': {}}, required: ['name', 'value']),
+    _tool(
+      'set_setting',
+      'Change a setting',
+      'Changes one setting: control, invertY, haptics, rateHz, mapTiles, recordVideo. Safety settings cannot be changed by an assistant.',
+      {'name': _str, 'value': {}},
+      required: ['name', 'value'],
+    ),
     // Act
-    _tool('run_script', 'Run a script', 'Runs a script on a device. On real hardware the operator approves first.', {'name': _str, 'device': _dev}, required: ['name']),
+    _tool(
+      'run_script',
+      'Run a script',
+      'Runs a script on a device. On real hardware the operator approves first.',
+      {'name': _str, 'device': _dev},
+      required: ['name'],
+    ),
     _tool('stop_script', 'Stop a script', 'Stops a running script; the device holds.', {'name': _str}, required: ['name']),
     _tool('script_output', 'Script output', 'A script\'s state and its last console lines.', {'name': _str, 'lines': _num}, required: ['name'], readOnly: true),
-    _tool('fire_trigger', 'Fire a trigger', 'Fires a running script\'s trigger, with an optional value.', {'script': _str, 'event': _str, 'value': {}}, required: ['script', 'event']),
-    _tool('run_sequence', 'Run a sequence', 'Runs a sequence on a device. On real hardware the operator approves first.', {'device': _dev, 'name': _str}, required: ['name']),
+    _tool(
+      'fire_trigger',
+      'Fire a trigger',
+      'Fires a running script\'s trigger, with an optional value.',
+      {'script': _str, 'event': _str, 'value': {}},
+      required: ['script', 'event'],
+    ),
+    _tool(
+      'run_sequence',
+      'Run a sequence',
+      'Runs a sequence on a device. On real hardware the operator approves first.',
+      {'device': _dev, 'name': _str},
+      required: ['name'],
+    ),
     _tool(
       'command',
       'Command a device',
@@ -472,7 +562,16 @@ class McpServer {
       },
       required: ['action'],
     ),
-    _tool('set_params', 'Write parameters', 'Writes parameters: {"KEY": value}. On real hardware the operator approves first.', {'device': _dev, 'values': {'type': 'object'}}, required: ['values']),
+    _tool(
+      'set_params',
+      'Write parameters',
+      'Writes parameters: {"KEY": value}. On real hardware the operator approves first.',
+      {
+        'device': _dev,
+        'values': {'type': 'object'},
+      },
+      required: ['values'],
+    ),
     _tool('stop', 'STOP', 'Emergency stop of every device. Never asks.', {}, destructive: true),
   ];
 
@@ -498,7 +597,13 @@ class McpServer {
     }
     if (s != null) s.actions++;
     final first = (r['content'] as List).first as Map;
-    activity.add((at: DateTime.now(), client: client, tool: tool, summary: first['type'] == 'text' ? '${first['text']}'.split('\n').first : 'image', ok: r['isError'] != true));
+    activity.add((
+      at: DateTime.now(),
+      client: client,
+      tool: tool,
+      summary: first['type'] == 'text' ? '${first['text']}'.split('\n').first : 'image',
+      ok: r['isError'] != true,
+    ));
     if (activity.length > 200) activity.removeAt(0);
     d.emit();
     return r;
@@ -637,7 +742,8 @@ class McpServer {
           'device': l.info.name,
           'params': [
             for (final g in groups)
-              for (final p in g.params) {'key': p.key, 'label': p.label, 'value': values[p.key] ?? p.def, 'min': p.min, 'max': p.max, 'unit': p.unit, 'group': g.name},
+              for (final p in g.params)
+                {'key': p.key, 'label': p.label, 'value': values[p.key] ?? p.def, 'min': p.min, 'max': p.max, 'unit': p.unit, 'group': g.name},
           ],
         });
       case 'get_alerts':
@@ -648,7 +754,10 @@ class McpServer {
         });
       case 'list_recordings':
         return _json({
-          'recordings': [for (final r in d.sessions.take(50)) {'id': r.id, 'name': r.name, 'device': r.deviceName, 'kind': r.kind.name, 'date': r.date, 'seconds': r.dur.round(), 'sample': r.demo}],
+          'recordings': [
+            for (final r in d.sessions.take(50))
+              {'id': r.id, 'name': r.name, 'device': r.deviceName, 'kind': r.kind.name, 'date': r.date, 'seconds': r.dur.round(), 'sample': r.demo},
+          ],
         });
       case 'get_recording':
         final r = _recording(a['recording']);
@@ -725,9 +834,17 @@ class McpServer {
         final l = _link(a['device']);
         return _json({
           'device': l.info.name,
-          'stepTypes': {for (final s in stepDefs(l.kind)) s.type: [for (final f in s.fields) f.key]},
+          'stepTypes': {
+            for (final s in stepDefs(l.kind)) s.type: [for (final f in s.fields) f.key],
+          },
           'sequences': [
-            for (final q in d.sequencesFor(l.id)) {'name': q.name, 'steps': [for (final st in q.steps) {'type': st.type, ...st.p}]},
+            for (final q in d.sequencesFor(l.id))
+              {
+                'name': q.name,
+                'steps': [
+                  for (final st in q.steps) {'type': st.type, ...st.p},
+                ],
+              },
           ],
         });
       case 'write_sequence' || 'write_program':
@@ -800,7 +917,10 @@ class McpServer {
         final dev = d.devices.where((x) => x.name.toLowerCase() == n || x.id.toLowerCase() == n).firstOrNull;
         if (dev == null) throw McpError('No paired device called "${a['device']}".');
         await d.connect(dev.id);
-        return _text(d.links.containsKey(dev.id) ? 'Connected ${dev.name}.' : 'Could not connect ${dev.name}: ${d.connectError ?? 'it does not answer'}.', error: !d.links.containsKey(dev.id));
+        return _text(
+          d.links.containsKey(dev.id) ? 'Connected ${dev.name}.' : 'Could not connect ${dev.name}: ${d.connectError ?? 'it does not answer'}.',
+          error: !d.links.containsKey(dev.id),
+        );
       case 'disconnect':
         final l = _link(a['device']);
         await d.disconnect(id: l.id);
@@ -832,7 +952,13 @@ class McpServer {
         final l = _link(a['device']);
         cfg.device = l.info.name;
         d.scripts.saveConfigs();
-        await _approve(client, l, 'script', 'Run “${f.name}” on ${l.info.name}', 'Limits: ${_limitsText(cfg.limits)}. The script stops when you take over or press STOP.');
+        await _approve(
+          client,
+          l,
+          'script',
+          'Run “${f.name}” on ${l.info.name}',
+          'Limits: ${_limitsText(cfg.limits)}. The script stops when you take over or press STOP.',
+        );
         final host = d.scripts.hostFor(cfg);
         if (host == null && d.scripts.pythons == null) await d.scripts.refreshPythons(near: (await _lib()).dir);
         final run = host == null ? await d.scripts.runFile(f.file, python: d.scripts.pythonFor(cfg)) : await d.scripts.runOnHost(f.file, host);
@@ -869,7 +995,14 @@ class McpServer {
         final q = d.sequencesFor(l.id).where((x) => x.name.toLowerCase() == '${a['name']}'.toLowerCase()).firstOrNull;
         if (q == null) throw McpError('No sequence "${a['name']}" on ${l.info.name}.');
         final arms = q.steps.any((st) => st.type == 'takeoff' || st.type == 'arm');
-        await _approve(client, l, 'program', 'Run “${q.name}” on ${l.info.name}', '${q.steps.length} steps: ${q.steps.map((st) => st.summary(l.kind)).take(4).join(', ')}${q.steps.length > 4 ? '…' : ''}', always: arms);
+        await _approve(
+          client,
+          l,
+          'program',
+          'Run “${q.name}” on ${l.info.name}',
+          '${q.steps.length} steps: ${q.steps.map((st) => st.summary(l.kind)).take(4).join(', ')}${q.steps.length > 4 ? '…' : ''}',
+          always: arms,
+        );
         d.runSequenceOn(l, q);
         return _text('Running “${q.name}” on ${l.info.name}.');
       case 'command':
@@ -877,7 +1010,13 @@ class McpServer {
       case 'set_params':
         final l = _link(a['device']);
         final v = (a['values'] as Map? ?? const {}).map((k, x) => MapEntry('$k', (x as num).toDouble()));
-        await _approve(client, l, 'params', 'Write ${v.length} parameter${v.length == 1 ? '' : 's'} on ${l.info.name}', v.entries.map((e) => '${e.key} = ${e.value}').join(', '));
+        await _approve(
+          client,
+          l,
+          'params',
+          'Write ${v.length} parameter${v.length == 1 ? '' : 's'} on ${l.info.name}',
+          v.entries.map((e) => '${e.key} = ${e.value}').join(', '),
+        );
         d.sendTo(l, {'t': 'pset', 'p': v});
         return _text('Wrote ${v.keys.join(', ')}. It is not saved to flash: the operator can save it in Tune.');
       case 'stop':
@@ -925,7 +1064,13 @@ class McpServer {
       case 'takeoff':
         return _text(await step('takeoff', {'alt': n('alt', 6)}, 'Take off to ${n('alt', 6)} m', always: true));
       case 'goto':
-        return _text(await step('goto', {'x': n('x', 0), 'y': n('y', 0), if (a['z'] != null) 'z': n('z', 8)}, 'Go to ${n('x', 0)}, ${n('y', 0)}${a['z'] == null ? '' : ', ${n('z', 8)}'} m'));
+        return _text(
+          await step('goto', {
+            'x': n('x', 0),
+            'y': n('y', 0),
+            if (a['z'] != null) 'z': n('z', 8),
+          }, 'Go to ${n('x', 0)}, ${n('y', 0)}${a['z'] == null ? '' : ', ${n('z', 8)}'} m'),
+        );
       case 'land':
         return _text(await step('land', {}, 'Land'));
       case 'rth':
@@ -950,7 +1095,9 @@ class McpServer {
     final n = '${name ?? 'latest'}'.toLowerCase();
     if (d.sessions.isEmpty) throw McpError('There are no recordings.');
     if (n == 'latest') return d.sessions.first;
-    final r = d.sessions.where((x) => x.id.toLowerCase() == n || x.name.toLowerCase() == n).firstOrNull ?? d.sessions.where((x) => x.name.toLowerCase().contains(n)).firstOrNull;
+    final r =
+        d.sessions.where((x) => x.id.toLowerCase() == n || x.name.toLowerCase() == n).firstOrNull ??
+        d.sessions.where((x) => x.name.toLowerCase().contains(n)).firstOrNull;
     if (r == null) throw McpError('No recording "$name". list_recordings shows them.');
     return r;
   }

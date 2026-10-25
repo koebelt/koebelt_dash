@@ -19,7 +19,12 @@ Future<void> main() async {
   await initMapCache();
   final dash = Dash();
   // The boundary lets an assistant take a screenshot (MCP).
-  runApp(RepaintBoundary(key: dash.mcp.screenKey, child: KoebeltDash(dash: dash)));
+  runApp(
+    RepaintBoundary(
+      key: dash.mcp.screenKey,
+      child: KoebeltDash(dash: dash),
+    ),
+  );
   await dash.init();
   // The script API, for Python scripts on this computer.
   if (Platform.isMacOS || Platform.isWindows || Platform.isLinux) {

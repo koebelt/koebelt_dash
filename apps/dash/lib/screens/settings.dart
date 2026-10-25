@@ -123,7 +123,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _aside() => Container(
     width: 220,
     padding: const EdgeInsets.fromLTRB(16, 32, 8, 32),
-    decoration: const BoxDecoration(border: Border(right: BorderSide(color: K.borderHairline))),
+    decoration: const BoxDecoration(
+      border: Border(right: BorderSide(color: K.borderHairline)),
+    ),
     child: ListView(
       children: [
         const Padding(padding: EdgeInsets.fromLTRB(12, 0, 0, 12), child: MonoLabel('Settings')),
@@ -145,10 +147,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       : Colors.transparent,
                   border: Border(left: BorderSide(color: on ? K.accent : Colors.transparent, width: 2)),
                 ),
-                child: Text(
-                  _names[label] ?? label,
-                  style: KText.bodySm.copyWith(color: on ? K.textPrimary : K.textSecondary),
-                ),
+                child: Text(_names[label] ?? label, style: KText.bodySm.copyWith(color: on ? K.textPrimary : K.textSecondary)),
               );
             },
           ),
@@ -210,7 +209,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ]),
             SizedBox(height: phone ? 20 : 32),
-            KeyedSubtree(key: _key('Game controller'), child: ControllerSection(d, phone: phone)),
+            KeyedSubtree(
+              key: _key('Game controller'),
+              child: ControllerSection(d, phone: phone),
+            ),
             SizedBox(height: phone ? 20 : 32),
             section('Link and safety', [
               SetRow(
@@ -302,7 +304,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   onChanged: (v) => d.updateSettings((s) => s.mapTiles = v.toLowerCase()),
                 ),
               ),
-              if (tilesProblem(st) != null) Padding(padding: const EdgeInsets.only(top: 12), child: KNotice(tone: Tone.warning, child: Text(tilesProblem(st)!))),
+              if (tilesProblem(st) != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 12),
+                  child: KNotice(tone: Tone.warning, child: Text(tilesProblem(st)!)),
+                ),
               if (st.mapTiles != 'custom' && st.mapTiles != 'none')
                 SetRow(
                   phone: phone,
@@ -330,12 +336,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   desc: 'The credit your provider requires, shown on the map.',
                   child: SizedBox(
                     width: phone ? double.infinity : 320,
-                    child: _TextSetting(
-                      d,
-                      get: (s) => s.mapAttribution,
-                      set: (s, v) => s.mapAttribution = v,
-                      placeholder: '© Provider',
-                    ),
+                    child: _TextSetting(d, get: (s) => s.mapAttribution, set: (s, v) => s.mapAttribution = v, placeholder: '© Provider'),
                   ),
                 ),
             ]),
@@ -380,7 +381,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               SetRow(
                 phone: phone,
                 title: 'Script hosts',
-                desc: 'Computers on the network that run scripts for this ${phone ? 'phone' : 'device'}, with any Python package. On the computer: pip install koebelt-dash-scripts, then koebelt-dash-scripts host.',
+                desc:
+                    'Computers on the network that run scripts for this ${phone ? 'phone' : 'device'}, with any Python package. On the computer: pip install koebelt-dash-scripts, then koebelt-dash-scripts host.',
                 child: KButton('Add', size: KSize.sm, variant: KButtonVariant.secondary, onPressed: () => showAddHostDialog(context, d)),
               ),
               if (ScriptHub.canRunHere)

@@ -80,12 +80,8 @@ class ScriptView extends ChangeNotifier {
     kind = 'chart';
     const kinds = {'line', 'bar', 'scatter'};
     chart = kinds.contains(m['chart']) ? '${m['chart']}' : 'line';
-    List<double> nums(Object? l) => [
-      for (final v in (l as List? ?? const []).take(5000)) (v is num && v.isFinite) ? v.toDouble() : double.nan,
-    ];
-    series = {
-      for (final e in ((m['series'] as Map?) ?? const {}).entries.take(8)) '${e.key}': nums(e.value),
-    };
+    List<double> nums(Object? l) => [for (final v in (l as List? ?? const []).take(5000)) (v is num && v.isFinite) ? v.toDouble() : double.nan];
+    series = {for (final e in ((m['series'] as Map?) ?? const {}).entries.take(8)) '${e.key}': nums(e.value)};
     x = m['x'] is List ? nums(m['x']) : null;
     xLabel = '${m['xlabel'] ?? ''}';
     yLabel = '${m['ylabel'] ?? ''}';

@@ -70,7 +70,9 @@ void main() {
           child: MaterialApp(
             debugShowCheckedModeBanner: false,
             theme: ThemeData(brightness: Brightness.dark),
-            home: Scaffold(body: DashApp(key: UniqueKey(), dash: d, initial: screen)),
+            home: Scaffold(
+              body: DashApp(key: UniqueKey(), dash: d, initial: screen),
+            ),
           ),
         ),
       );
@@ -94,7 +96,12 @@ void main() {
     }
 
     addTearDown(tester.view.reset);
-    await tester.runAsync(() => rpc('initialize', {'protocolVersion': '2025-06-18', 'clientInfo': {'name': 'claude-code'}}));
+    await tester.runAsync(
+      () => rpc('initialize', {
+        'protocolVersion': '2025-06-18',
+        'clientInfo': {'name': 'claude-code'},
+      }),
+    );
 
     await show('settings', phone: false);
     await settle();
@@ -107,7 +114,10 @@ void main() {
     await settle();
     late Future<Map> call;
     await tester.runAsync(() async {
-      call = rpc('tools/call', {'name': 'command', 'arguments': {'action': 'mode', 'm': 'hold'}});
+      call = rpc('tools/call', {
+        'name': 'command',
+        'arguments': {'action': 'mode', 'm': 'hold'},
+      });
       await Future<void>.delayed(const Duration(milliseconds: 300));
     });
     await settle();

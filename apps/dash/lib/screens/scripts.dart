@@ -316,9 +316,11 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
     }
   }
 
-
   Future<void> _rename(ScriptFile s) async {
-    final name = await showKDialog<String>(context, builder: (ctx) => _NameDialog(title: 'Rename', initial: s.name));
+    final name = await showKDialog<String>(
+      context,
+      builder: (ctx) => _NameDialog(title: 'Rename', initial: s.name),
+    );
     if (name == null || lib == null) return;
     await _saveNow();
     final to = await lib!.rename(s, name);
@@ -394,8 +396,7 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
       if (folder == null || dir.startsWith('/') || dir.split('/').contains('..')) return const [];
       try {
         return [
-          for (final e in Directory(dir.isEmpty ? folder : '$folder/$dir').listSync())
-            (e.uri.pathSegments.where((p) => p.isNotEmpty).last, e is Directory),
+          for (final e in Directory(dir.isEmpty ? folder : '$folder/$dir').listSync()) (e.uri.pathSegments.where((p) => p.isNotEmpty).last, e is Directory),
         ];
       } catch (_) {
         return const [];
@@ -423,7 +424,10 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
       sticks: [...?stickAxes[l.kind]?.keys],
       tlm: [...snap.keys, 'alt', 'speed', 'heading', if (l.tel.hasGps) 'gps'],
       sequences: [for (final q in d.sequencesFor(l.id)) q.name],
-      channels: [for (final k in l.tel.custom.keys) if (!k.startsWith('script:')) k],
+      channels: [
+        for (final k in l.tel.custom.keys)
+          if (!k.startsWith('script:')) k,
+      ],
     );
   }
 
@@ -463,7 +467,12 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(f.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: KText.bodySm.copyWith(color: K.textPrimary, height: 1.3)),
+                  Text(
+                    f.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: KText.bodySm.copyWith(color: K.textPrimary, height: 1.3),
+                  ),
                   const SizedBox(height: 4),
                   Text(
                     f.requires.isEmpty ? f.label : '${f.label} · ${[...f.requires.kinds.map((k) => k.name), ...f.requires.needs].join(', ')}',
@@ -491,10 +500,7 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
         runSpacing: 6,
         children: [
           for (final e in examples)
-            Pressable(
-              onTap: () => _useExample(e),
-              builder: (_, _, _) => KTag(ScriptLibrary.titleOf(exampleName(e).replaceAll('.py', '')), height: 28),
-            ),
+            Pressable(onTap: () => _useExample(e), builder: (_, _, _) => KTag(ScriptLibrary.titleOf(exampleName(e).replaceAll('.py', '')), height: 28)),
         ],
       ),
     ],
@@ -517,7 +523,9 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
                 children: [
                   const PulseDot(color: K.positive, animate: false),
                   const SizedBox(width: 8),
-                  Expanded(child: Text(c.name, style: KText.mono(12, color: K.textSecondary))),
+                  Expanded(
+                    child: Text(c.name, style: KText.mono(12, color: K.textSecondary)),
+                  ),
                   if (c.blocked != null) KButton('Resume', size: KSize.sm, variant: KButtonVariant.ghost, onPressed: () => d.scripts.unblock(c)),
                 ],
               ),
@@ -530,22 +538,34 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
   Widget _editorHeader(ScriptFile f) => Container(
     height: 52,
     padding: EdgeInsets.symmetric(horizontal: phone ? 8 : 16),
-    decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: K.borderHairline))),
+    decoration: const BoxDecoration(
+      border: Border(bottom: BorderSide(color: K.borderHairline)),
+    ),
     child: Row(
       children: [
         if (phone) ...[
           KIconButton('arrow-left', label: 'Back', variant: KIconButtonVariant.bare, onPressed: () => setState(() => phoneView = 'run')),
           const SizedBox(width: 4),
-          Expanded(child: Text(f.label, overflow: TextOverflow.ellipsis, style: KText.labelMd())),
+          Expanded(
+            child: Text(f.label, overflow: TextOverflow.ellipsis, style: KText.labelMd()),
+          ),
         ] else ...[
           Expanded(
             child: Row(
               children: [
-                Flexible(flex: 3, child: Text(f.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: KText.headingXs)),
+                Flexible(
+                  flex: 3,
+                  child: Text(f.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: KText.headingXs),
+                ),
                 const SizedBox(width: 12),
                 Flexible(
                   flex: 2,
-                  child: Text('${f.label} · ${dirty ? 'editing' : 'saved'}', maxLines: 1, overflow: TextOverflow.ellipsis, style: KText.mono(12, color: K.textMuted)),
+                  child: Text(
+                    '${f.label} · ${dirty ? 'editing' : 'saved'}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: KText.mono(12, color: K.textMuted),
+                  ),
                 ),
               ],
             ),
@@ -554,11 +574,29 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
         if (ScriptHub.canRunHere)
           phone
               ? KIconButton('check', label: 'Check', size: KSize.sm, variant: KIconButtonVariant.bare, onPressed: _checking ? null : _check)
-              : KButton(_checking ? 'Checking…' : 'Check', size: KSize.sm, variant: KButtonVariant.ghost, iconLeft: const KIcon('check', size: 14), onPressed: _checking ? null : _check),
+              : KButton(
+                  _checking ? 'Checking…' : 'Check',
+                  size: KSize.sm,
+                  variant: KButtonVariant.ghost,
+                  iconLeft: const KIcon('check', size: 14),
+                  onPressed: _checking ? null : _check,
+                ),
         if (!phone && ScriptHub.canRunHere) ...[
           const SizedBox(width: 4),
-          KButton('Open in editor', size: KSize.sm, variant: KButtonVariant.ghost, iconLeft: const KIcon('arrow-up-right', size: 14), onPressed: () => _openInEditor(f.path)),
-          _ScriptMenu(onRename: () => _rename(f), onDuplicate: () => _duplicate(f), onExport: () => _export(f), onReveal: () => _openExternally(f.path, reveal: true), onDelete: () => _delete(f)),
+          KButton(
+            'Open in editor',
+            size: KSize.sm,
+            variant: KButtonVariant.ghost,
+            iconLeft: const KIcon('arrow-up-right', size: 14),
+            onPressed: () => _openInEditor(f.path),
+          ),
+          _ScriptMenu(
+            onRename: () => _rename(f),
+            onDuplicate: () => _duplicate(f),
+            onExport: () => _export(f),
+            onReveal: () => _openExternally(f.path, reveal: true),
+            onDelete: () => _delete(f),
+          ),
         ],
       ],
     ),
@@ -580,8 +618,13 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
           color: code.errorLine != null || _message!.startsWith('Could') ? const Color(0x33EE7A63) : K.surfaceRaised,
           child: Row(
             children: [
-              Expanded(child: Text(_message!, style: KText.mono(12, color: code.errorLine != null ? K.negative : K.textSecondary))),
-              Pressable(onTap: () => setState(() => _message = null), builder: (_, _, _) => const KIcon('x', size: 14, color: K.textMuted)),
+              Expanded(
+                child: Text(_message!, style: KText.mono(12, color: code.errorLine != null ? K.negative : K.textSecondary)),
+              ),
+              Pressable(
+                onTap: () => setState(() => _message = null),
+                builder: (_, _, _) => const KIcon('x', size: 14, color: K.textMuted),
+              ),
             ],
           ),
         );
@@ -605,7 +648,9 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
               children: [
                 KIcon(ps.isEmpty ? 'check' : 'circle-alert', size: 14, color: tone),
                 const SizedBox(width: 8),
-                Expanded(child: Text(_message!, style: KText.mono(12, color: tone))),
+                Expanded(
+                  child: Text(_message!, style: KText.mono(12, color: tone)),
+                ),
                 if (_checking) ...[const PulseDot(color: K.textMuted), const SizedBox(width: 10)],
                 Pressable(
                   onTap: () => setState(() {
@@ -625,8 +670,14 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
                   child: Text.rich(
                     TextSpan(
                       children: [
-                        TextSpan(text: 'line ${p.line}'.padRight(9), style: KText.mono(12, color: p.warning ? K.warning : K.negative)),
-                        TextSpan(text: p.message, style: KText.bodySm.copyWith(fontSize: 13, color: h ? K.textPrimary : K.textSecondary)),
+                        TextSpan(
+                          text: 'line ${p.line}'.padRight(9),
+                          style: KText.mono(12, color: p.warning ? K.warning : K.negative),
+                        ),
+                        TextSpan(
+                          text: p.message,
+                          style: KText.bodySm.copyWith(fontSize: 13, color: h ? K.textPrimary : K.textSecondary),
+                        ),
                       ],
                     ),
                   ),
@@ -672,7 +723,9 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
     final f = current;
     final list = Container(
       width: 260,
-      decoration: const BoxDecoration(border: Border(right: BorderSide(color: K.borderHairline))),
+      decoration: const BoxDecoration(
+        border: Border(right: BorderSide(color: K.borderHairline)),
+      ),
       child: ListView(
         padding: const EdgeInsets.symmetric(vertical: 20),
         children: [
@@ -716,7 +769,10 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
           list,
           Expanded(
             child: Center(
-              child: Text('Scripts drive your devices from Python. Create one, import one, or start from an example.', style: KText.bodyMd.copyWith(color: K.textMuted)),
+              child: Text(
+                'Scripts drive your devices from Python. Create one, import one, or start from an example.',
+                style: KText.bodyMd.copyWith(color: K.textMuted),
+              ),
             ),
           ),
         ],
@@ -730,15 +786,30 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
         Expanded(
           child: CodeEditor(key: _editor, controller: code, onChanged: _edited, onSave: _saveNow, context: _completionContext),
         ),
-        SizedBox(height: 200, child: ScriptConsole(lines: _consoleOf(f), hz: _hzOf(f), onLine: _goToLine)),
+        SizedBox(
+          height: 200,
+          child: ScriptConsole(lines: _consoleOf(f), hz: _hzOf(f), onLine: _goToLine),
+        ),
       ],
     );
     final run = Container(
       width: 340,
-      decoration: const BoxDecoration(border: Border(left: BorderSide(color: K.borderHairline))),
+      decoration: const BoxDecoration(
+        border: Border(left: BorderSide(color: K.borderHairline)),
+      ),
       child: ListView(
         padding: const EdgeInsets.all(20),
-        children: [ScriptRunPanel(d: d, script: f, scriptsDir: lib!.dir, onRun: _run, phone: false, requires: ScriptRequirements.parse(code.text), missing: _missingImports())],
+        children: [
+          ScriptRunPanel(
+            d: d,
+            script: f,
+            scriptsDir: lib!.dir,
+            onRun: _run,
+            phone: false,
+            requires: ScriptRequirements.parse(code.text),
+            missing: _missingImports(),
+          ),
+        ],
       ),
     );
     return Row(
@@ -781,12 +852,30 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
             children: [
               KIconButton('arrow-left', label: 'Back', variant: KIconButtonVariant.bare, onPressed: () => setState(() => phoneView = 'list')),
               const SizedBox(width: 8),
-              Expanded(child: Text(f.name, overflow: TextOverflow.ellipsis, style: KText.headingSm)),
-              KButton('Edit', size: KSize.sm, variant: KButtonVariant.secondary, iconLeft: const KIcon('pencil', size: 14), onPressed: () => setState(() => phoneView = 'edit')),
+              Expanded(
+                child: Text(f.name, overflow: TextOverflow.ellipsis, style: KText.headingSm),
+              ),
+              KButton(
+                'Edit',
+                size: KSize.sm,
+                variant: KButtonVariant.secondary,
+                iconLeft: const KIcon('pencil', size: 14),
+                onPressed: () => setState(() => phoneView = 'edit'),
+              ),
             ],
           ),
           const SizedBox(height: 20),
-          Panel(child: ScriptRunPanel(d: d, script: f, scriptsDir: lib!.dir, onRun: _run, phone: true, requires: ScriptRequirements.parse(code.text), missing: _missingImports())),
+          Panel(
+            child: ScriptRunPanel(
+              d: d,
+              script: f,
+              scriptsDir: lib!.dir,
+              onRun: _run,
+              phone: true,
+              requires: ScriptRequirements.parse(code.text),
+              missing: _missingImports(),
+            ),
+          ),
           const SizedBox(height: 24),
           SizedBox(height: 220, child: ScriptConsole(lines: _consoleOf(f), phone: true)),
           const SizedBox(height: 16),
@@ -838,8 +927,17 @@ class _ScriptMenu extends StatelessWidget {
     icon: const KIcon('chevron-down', size: 16, color: K.textSecondary),
     onSelected: (f) => f(),
     itemBuilder: (_) => [
-      for (final (label, f) in [('Rename', onRename), ('Duplicate', onDuplicate), ('Export', onExport), (Platform.isMacOS ? 'Show in Finder' : 'Show in folder', onReveal), ('Delete', onDelete)])
-        PopupMenuItem(value: f, child: Text(label, style: KText.bodySm.copyWith(color: K.textPrimary))),
+      for (final (label, f) in [
+        ('Rename', onRename),
+        ('Duplicate', onDuplicate),
+        ('Export', onExport),
+        (Platform.isMacOS ? 'Show in Finder' : 'Show in folder', onReveal),
+        ('Delete', onDelete),
+      ])
+        PopupMenuItem(
+          value: f,
+          child: Text(label, style: KText.bodySm.copyWith(color: K.textPrimary)),
+        ),
     ],
   );
 }

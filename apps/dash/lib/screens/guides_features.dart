@@ -335,7 +335,11 @@ if (startCamera()) {                        // esp_camera_init + httpd on port 8
           ['', 'Sequence', 'Script'],
           ['You write', 'Steps, in the app', 'Python, in the app or any editor'],
           ['Decides', 'No: the same steps each time', 'Yes: conditions, loops, sensors, the camera'],
-          ['Runs on', 'The device, when it can store sequences; otherwise dash runs the steps', 'A computer: this one, or a script host for phones and tablets'],
+          [
+            'Runs on',
+            'The device, when it can store sequences; otherwise dash runs the steps',
+            'A computer: this one, or a script host for phones and tablets',
+          ],
           ['If the link drops', 'A sequence stored on the device carries on', 'It can no longer drive: the device\'s failsafe takes over'],
           ['Packages', 'None needed', 'Any: NumPy, OpenCV, PyTorch, YOLO'],
           ['Started by', 'Run, on its page', 'Run, or a trigger: a button, a key, a controller, a condition, a timer'],
@@ -508,13 +512,9 @@ koebelt-dash-scripts host''',
         ],
         note: 'koebelt dash sends nothing to any AI service. The assistant you connect talks to its own provider, and what it reads in dash goes there.',
       ),
-      Step(
-        'Connect an assistant',
-        'Settings > AI assistants shows the line for your client, with a copy button. Claude Code, for example:',
-        {
-          'python': ['bash', 'claude mcp add --transport http koebelt-dash http://127.0.0.1:47920/mcp'],
-        },
-      ),
+      Step('Connect an assistant', 'Settings > AI assistants shows the line for your client, with a copy button. Claude Code, for example:', {
+        'python': ['bash', 'claude mcp add --transport http koebelt-dash http://127.0.0.1:47920/mcp'],
+      }),
       Step.rich(
         'Then ask',
         'For example:',

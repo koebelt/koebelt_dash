@@ -92,7 +92,9 @@ void main() {
               debugShowCheckedModeBanner: false,
               theme: ThemeData(brightness: Brightness.dark),
               home: Scaffold(
-                body: SafeArea(child: DashApp(key: UniqueKey(), dash: dash, initial: s.screen)),
+                body: SafeArea(
+                  child: DashApp(key: UniqueKey(), dash: dash, initial: s.screen),
+                ),
               ),
             ),
           ),

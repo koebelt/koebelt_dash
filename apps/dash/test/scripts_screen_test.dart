@@ -124,7 +124,10 @@ void main() {
             debugShowCheckedModeBanner: false,
             theme: ThemeData(brightness: Brightness.dark),
             home: Scaffold(
-              body: ScriptsLibraryScope(library: lib, child: DashApp(key: UniqueKey(), dash: d, initial: screen)),
+              body: ScriptsLibraryScope(
+                library: lib,
+                child: DashApp(key: UniqueKey(), dash: d, initial: screen),
+              ),
             ),
           ),
         ),

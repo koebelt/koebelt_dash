@@ -39,7 +39,9 @@ void main() {
           theme: ThemeData(brightness: Brightness.dark),
           home: Builder(
             builder: (context) => Scaffold(
-              body: Center(child: TextButton(onPressed: () => showAddHostDialog(context, d), child: const Text('open'))),
+              body: Center(
+                child: TextButton(onPressed: () => showAddHostDialog(context, d), child: const Text('open')),
+              ),
             ),
           ),
         ),

@@ -125,7 +125,10 @@ class _AutomateHomeState extends State<AutomateHome> {
           TextSpan(
             children: [
               const TextSpan(text: 'Together: a script can start a sequence, '),
-              TextSpan(text: 'dev.run_sequence("…")', style: KText.mono(12.5, color: K.textPrimary, w: FontWeight.w400)),
+              TextSpan(
+                text: 'dev.run_sequence("…")',
+                style: KText.mono(12.5, color: K.textPrimary, w: FontWeight.w400),
+              ),
               const TextSpan(text: ', and decide when.'),
             ],
           ),
@@ -219,7 +222,9 @@ class _Door extends StatelessWidget {
                     child: Container(width: 6, height: 6, color: K.accent),
                   ),
                   const SizedBox(width: 12),
-                  Expanded(child: Text(p, style: KText.bodySm.copyWith(color: K.textSecondary))),
+                  Expanded(
+                    child: Text(p, style: KText.bodySm.copyWith(color: K.textSecondary)),
+                  ),
                 ],
               ),
             ),

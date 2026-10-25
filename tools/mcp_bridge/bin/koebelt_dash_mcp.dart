@@ -63,7 +63,7 @@ class Bridge {
   }
 
   Future<void> _send(String line, Object? id) async {
-    for (var attempt = 0;; attempt++) {
+    for (var attempt = 0; ; attempt++) {
       try {
         final req = await http.postUrl(url);
         req.headers.contentType = ContentType.json;

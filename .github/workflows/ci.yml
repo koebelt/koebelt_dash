@@ -8,7 +8,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
-        with: { channel: stable }
+        with: { channel: stable, flutter-version: 3.47.2 }
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
       # Rust guide examples build with the `ble` feature (BlueZ needs D-Bus headers)
@@ -17,11 +17,14 @@ jobs:
       # Scripts: dash runs Python with koebelt-dash-scripts (test/script_run_test.dart).
       - run: python -m venv ../../libs/python-dash-scripts/.venv && ../../libs/python-dash-scripts/.venv/bin/pip install -e "../../libs/python-dash-scripts[dev]"
       - run: flutter pub get
+      # The code is formatted as dart format does it (page width 160, in
+      # analysis_options.yaml); Flutter is pinned so its formatter does not move.
+      - run: dart format --output=none --set-exit-if-changed .
       - run: flutter analyze
       - run: flutter test
       - name: MCP bridge
         working-directory: tools/mcp_bridge
-        run: dart pub get && dart analyze && dart test
+        run: dart pub get && dart format --output=none --set-exit-if-changed . && dart analyze && dart test
 
   # The app against every published koebelt/link release (PyPI, crates.io):
   # devices people already run must keep working with each new app.
@@ -30,7 +33,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
-        with: { channel: stable }
+        with: { channel: stable, flutter-version: 3.47.2 }
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
       - uses: dtolnay/rust-toolchain@stable

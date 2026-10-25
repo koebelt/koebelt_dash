@@ -73,7 +73,13 @@ void main() {
     List<Map<String, dynamic>> rel(List<String> vs) => [
       for (final v in vs) _release('app-v$v', files: ['koebelt-dash-$v-macos.dmg'], pre: v.contains('-')),
     ];
-    final stable = Updater(await _store(), current: '1.2.3', os: 'macos', enabled: true, client: _github(releases: rel(['1.3.0-beta.1', '1.2.3'])));
+    final stable = Updater(
+      await _store(),
+      current: '1.2.3',
+      os: 'macos',
+      enabled: true,
+      client: _github(releases: rel(['1.3.0-beta.1', '1.2.3'])),
+    );
     await stable.check();
     expect(stable.state, UpdateState.upToDate, reason: 'a stable user is not offered a beta');
     expect(stable.betas, isFalse);
@@ -81,12 +87,24 @@ void main() {
     await stable.check();
     expect(stable.available!.version, '1.3.0-beta.1');
 
-    final tester = Updater(await _store(), current: '1.3.0-beta.1', os: 'macos', enabled: true, client: _github(releases: rel(['1.3.0-beta.2', '1.3.0-beta.1'])));
+    final tester = Updater(
+      await _store(),
+      current: '1.3.0-beta.1',
+      os: 'macos',
+      enabled: true,
+      client: _github(releases: rel(['1.3.0-beta.2', '1.3.0-beta.1'])),
+    );
     expect(tester.betas, isTrue, reason: 'running a beta');
     await tester.check();
     expect(tester.available!.version, '1.3.0-beta.2');
 
-    final done = Updater(await _store(), current: '1.3.0-beta.2', os: 'macos', enabled: true, client: _github(releases: rel(['1.3.0', '1.3.0-beta.2'])));
+    final done = Updater(
+      await _store(),
+      current: '1.3.0-beta.2',
+      os: 'macos',
+      enabled: true,
+      client: _github(releases: rel(['1.3.0', '1.3.0-beta.2'])),
+    );
     await done.check();
     expect(done.available!.version, '1.3.0', reason: 'the release after its betas');
   });
@@ -162,9 +180,12 @@ void main() {
     });
 
     test('a release without checksums is not installed', () async {
-      final (u, installed) = await ready(null, rel: [
-        _release('app-v1.1.0', files: ['koebelt-dash-1.1.0-macos.dmg']),
-      ]);
+      final (u, installed) = await ready(
+        null,
+        rel: [
+          _release('app-v1.1.0', files: ['koebelt-dash-1.1.0-macos.dmg']),
+        ],
+      );
       await u.install();
       expect(installed, isEmpty);
       expect(u.error, contains('without checksums'));

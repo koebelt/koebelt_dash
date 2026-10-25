@@ -363,7 +363,12 @@ List<TileDef> scriptTiles(Dash d) => [
           final x = d.tel.custom['script:${v.name}'];
           return x == null || x.isEmpty ? '—' : x.map((e) => e.toStringAsFixed(e.abs() < 10 ? 2 : 1)).join(' · ');
         },
-        body: (d) => LineChart(d, keys: [for (var i = 0; i < v.labels.length; i++) 'c:script:${v.name}:$i'], labels: v.labels, colors: v.labels.length > 3 ? j6 : const [VC.lime, VC.info, VC.warn]),
+        body: (d) => LineChart(
+          d,
+          keys: [for (var i = 0; i < v.labels.length; i++) 'c:script:${v.name}:$i'],
+          labels: v.labels,
+          colors: v.labels.length > 3 ? j6 : const [VC.lime, VC.info, VC.warn],
+        ),
         keys: [for (var i = 0; i < v.labels.length; i++) 'c:script:${v.name}:$i'],
         labels: v.labels,
         colors: v.labels.length > 3 ? j6 : const [VC.lime, VC.info, VC.warn],

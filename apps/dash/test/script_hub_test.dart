@@ -75,10 +75,17 @@ void main() {
 
   test('a device that does not fit the script is refused, with what it lacks', () async {
     final s = await _Script.open(d.scripts);
-    final r = await s.call('use', {'requires': ['drone', 'gps']});
+    final r = await s.call('use', {
+      'requires': ['drone', 'gps'],
+    });
     expect(r['code'], 'E0004');
     expect(r['data']['missing'], ['a drone (Mule is a rover)']);
-    expect((await s.call('use', {'requires': ['rover', 'lidar']}))['ok'], isTrue);
+    expect(
+      (await s.call('use', {
+        'requires': ['rover', 'lidar'],
+      }))['ok'],
+      isTrue,
+    );
   });
 
   test('a script drives with named sticks, scaled by its speed limit, and gets telemetry', () async {
@@ -89,12 +96,19 @@ void main() {
     expect(use['value']['sim'], isTrue);
     final l = d.links.values.single;
 
-    expect((await s.call('sticks', {'a': {'throttle': 1, 'steer': -.5}}))['ok'], isTrue);
+    expect(
+      (await s.call('sticks', {
+        'a': {'throttle': 1, 'steer': -.5},
+      }))['ok'],
+      isTrue,
+    );
     expect(l.drive, isNotNull);
     // Limit 60 %: forward is the right stick's y, steering the left stick's x.
     expect(l.drive!.axes(l.input), [closeTo(-.3, 1e-9), 0, 0, closeTo(.6, 1e-9)]);
 
-    final bad = await s.call('sticks', {'a': {'pitch': 1}});
+    final bad = await s.call('sticks', {
+      'a': {'pitch': 1},
+    });
     expect(bad['err'], contains('not a stick of a rover'));
 
     await run(.3);
@@ -105,7 +119,9 @@ void main() {
   test('the operator’s sticks take over until Resume', () async {
     final s = await _Script.open(d.scripts);
     await s.call('use');
-    await s.call('sticks', {'a': {'throttle': 1}});
+    await s.call('sticks', {
+      'a': {'throttle': 1},
+    });
     final l = d.links.values.single;
     l.input[3] = -.8;
     expect(l.drive!.axes(l.input)[3], -.8, reason: 'the operator wins');
@@ -120,14 +136,21 @@ void main() {
   test('a script that goes quiet loses the device, which holds', () async {
     final s = await _Script.open(d.scripts);
     await s.call('use');
-    await s.call('sticks', {'a': {'throttle': 1}});
+    await s.call('sticks', {
+      'a': {'throttle': 1},
+    });
     final l = d.links.values.single;
     await run(.3);
     expect(l.drive, isNotNull, reason: 'within the watchdog');
     await run(.6);
     expect(l.drive, isNull);
     expect(l.tel.mode, 'HOLD');
-    expect((await s.call('sticks', {'a': {'throttle': 1}}))['err'], contains('stopped responding'));
+    expect(
+      (await s.call('sticks', {
+        'a': {'throttle': 1},
+      }))['err'],
+      contains('stopped responding'),
+    );
     await Future<void>.delayed(const Duration(milliseconds: 50));
     expect(s.got.lastWhere((m) => m['t'] == 'released')['why'], contains('stopped responding'));
   });
@@ -135,7 +158,9 @@ void main() {
   test('a script that disconnects loses the device too', () async {
     final s = await _Script.open(d.scripts);
     await s.call('use');
-    await s.call('sticks', {'a': {'throttle': 1}});
+    await s.call('sticks', {
+      'a': {'throttle': 1},
+    });
     await s.ws.close();
     await Future<void>.delayed(const Duration(milliseconds: 100));
     expect(d.links.values.single.drive, isNull);
@@ -145,23 +170,54 @@ void main() {
   test('STOP releases every script and refuses their commands until cleared', () async {
     final s = await _Script.open(d.scripts);
     await s.call('use');
-    await s.call('sticks', {'a': {'throttle': 1}});
+    await s.call('sticks', {
+      'a': {'throttle': 1},
+    });
     d.emergencyStop();
     expect(d.links.values.single.drive, isNull);
-    final r = await s.call('sticks', {'a': {'throttle': 1}});
+    final r = await s.call('sticks', {
+      'a': {'throttle': 1},
+    });
     expect(r['err'], contains('STOP is on'));
-    expect((await s.call('cmd', {'c': 'mode', 'a': {'m': 'AUTO'}}))['ok'], isFalse);
+    expect(
+      (await s.call('cmd', {
+        'c': 'mode',
+        'a': {'m': 'AUTO'},
+      }))['ok'],
+      isFalse,
+    );
   });
 
   test('limits: no arming or parameter writes unless the operator allows them; speed capped', () async {
     final s = await _Script.open(d.scripts);
     await s.call('use');
     expect((await s.call('cmd', {'c': 'arm'}))['err'], contains('not allowed'));
-    expect((await s.call('cmd', {'c': 'mode', 'a': {'m': 'TAKEOFF'}}))['err'], contains('not allowed'));
-    expect((await s.call('cmd', {'c': 'pset', 'a': {'MAX_SPD': 9}}))['err'], contains('not allowed'));
-    expect((await s.call('cmd', {'c': 'mode', 'a': {'m': 'manual'}}))['ok'], isTrue);
+    expect(
+      (await s.call('cmd', {
+        'c': 'mode',
+        'a': {'m': 'TAKEOFF'},
+      }))['err'],
+      contains('not allowed'),
+    );
+    expect(
+      (await s.call('cmd', {
+        'c': 'pset',
+        'a': {'MAX_SPD': 9},
+      }))['err'],
+      contains('not allowed'),
+    );
+    expect(
+      (await s.call('cmd', {
+        'c': 'mode',
+        'a': {'m': 'manual'},
+      }))['ok'],
+      isTrue,
+    );
     expect(d.links.values.single.tel.mode, 'MANUAL');
-    await s.call('cmd', {'c': 'speed', 'a': {'v': 1}});
+    await s.call('cmd', {
+      'c': 'speed',
+      'a': {'v': 1},
+    });
     expect(d.links.values.single.speed, .6);
     d.scripts.conns.single.limits.allowArm = true;
     expect((await s.call('cmd', {'c': 'arm'}))['ok'], isTrue);
@@ -170,7 +226,9 @@ void main() {
   test('leaving the geofence ends the script’s control', () async {
     final s = await _Script.open(d.scripts);
     await s.call('use');
-    await s.call('sticks', {'a': {'throttle': 1}});
+    await s.call('sticks', {
+      'a': {'throttle': 1},
+    });
     final l = d.links.values.single;
     d.scripts.conns.single.limits.fence = 5;
     for (var i = 0; i < 40; i++) {
@@ -181,9 +239,19 @@ void main() {
     expect(l.drive, isNull);
     expect(s.got.lastWhere((m) => m['t'] == 'released')['why'], contains('geofence'));
     // It cannot simply take the sticks again: the operator decides.
-    expect((await s.call('sticks', {'a': {'throttle': 1}}))['err'], contains('must resume'));
+    expect(
+      (await s.call('sticks', {
+        'a': {'throttle': 1},
+      }))['err'],
+      contains('must resume'),
+    );
     d.scripts.unblock(d.scripts.conns.single);
-    expect((await s.call('sticks', {'a': {'throttle': 0}}))['ok'], isTrue);
+    expect(
+      (await s.call('sticks', {
+        'a': {'throttle': 0},
+      }))['ok'],
+      isTrue,
+    );
   });
 
   test('settings and triggers declared by the script, changed and fired from dash', () async {
@@ -217,19 +285,50 @@ void main() {
       final s = await _Script.open(d.scripts);
       await s.call('use');
       final sw = Stopwatch()..start();
-      final r = await callWhileTicking(s, 'cmd', {'c': 'step', 'a': {'type': 'wait', 's': .4}}, 3);
+      final r = await callWhileTicking(s, 'cmd', {
+        'c': 'step',
+        'a': {'type': 'wait', 's': .4},
+      }, 3);
       expect(r['ok'], isTrue, reason: '$r');
       expect(sw.elapsedMilliseconds, greaterThan(350), reason: 'answered when done');
-      expect((await s.call('cmd', {'c': 'step', 'a': {'type': 'takeoff'}}))['err'], contains('not a step a rover has'));
-      expect((await s.call('cmd', {'c': 'step', 'a': {'type': 'goto', 'x': 80, 'y': 0}}))['err'], contains('beyond the 50 m geofence'));
-      expect((await s.call('cmd', {'c': 'step', 'a': {'type': 'wait', 's': 5, 'wait': false}}))['ok'], isTrue, reason: 'returns at once');
-      expect((await s.call('cmd', {'c': 'step', 'a': {'type': 'wait', 's': 1}}))['err'], contains('is running on Mule'));
+      expect(
+        (await s.call('cmd', {
+          'c': 'step',
+          'a': {'type': 'takeoff'},
+        }))['err'],
+        contains('not a step a rover has'),
+      );
+      expect(
+        (await s.call('cmd', {
+          'c': 'step',
+          'a': {'type': 'goto', 'x': 80, 'y': 0},
+        }))['err'],
+        contains('beyond the 50 m geofence'),
+      );
+      expect(
+        (await s.call('cmd', {
+          'c': 'step',
+          'a': {'type': 'wait', 's': 5, 'wait': false},
+        }))['ok'],
+        isTrue,
+        reason: 'returns at once',
+      );
+      expect(
+        (await s.call('cmd', {
+          'c': 'step',
+          'a': {'type': 'wait', 's': 1},
+        }))['err'],
+        contains('is running on Mule'),
+      );
     });
 
     test('the operator taking over interrupts the step the script waits on', () async {
       final s = await _Script.open(d.scripts);
       await s.call('use');
-      final f = s.call('cmd', {'c': 'step', 'a': {'type': 'goto', 'x': 20, 'y': 0}});
+      final f = s.call('cmd', {
+        'c': 'step',
+        'a': {'type': 'goto', 'x': 20, 'y': 0},
+      });
       await run(.3);
       d.goManual();
       await run(.2);
@@ -240,9 +339,29 @@ void main() {
       final s = await _Script.open(d.scripts);
       await s.call('use');
       final l = d.links.values.single;
-      d.sequencesFor(l.id).add(Sequence(id: 'q1', name: 'Short wait', kind: l.kind, steps: [SeqStep('wait', {'s': .3})]));
-      expect((await s.call('cmd', {'c': 'program', 'a': {'name': 'nope'}}))['err'], contains('No sequence called "nope"'));
-      final r = await callWhileTicking(s, 'cmd', {'c': 'program', 'a': {'name': 'short wait'}}, 3);
+      d
+          .sequencesFor(l.id)
+          .add(
+            Sequence(
+              id: 'q1',
+              name: 'Short wait',
+              kind: l.kind,
+              steps: [
+                SeqStep('wait', {'s': .3}),
+              ],
+            ),
+          );
+      expect(
+        (await s.call('cmd', {
+          'c': 'program',
+          'a': {'name': 'nope'},
+        }))['err'],
+        contains('No sequence called "nope"'),
+      );
+      final r = await callWhileTicking(s, 'cmd', {
+        'c': 'program',
+        'a': {'name': 'short wait'},
+      }, 3);
       expect(r['ok'], isTrue, reason: '$r');
     });
   });
@@ -256,16 +375,17 @@ void main() {
       return (s, d.scripts.conns.single);
     }
 
-    List<Map<String, dynamic>> fired(_Script s) => [for (final m in s.got) if (m['t'] == 'fire') m];
+    List<Map<String, dynamic>> fired(_Script s) => [
+      for (final m in s.got)
+        if (m['t'] == 'fire') m,
+    ];
 
     test('a declared trigger gets its on-screen control and suggested bindings, and the operator’s setup wins', () async {
       final (_, c) = await declared();
-      expect([for (final b in c.config.bindings) '${b.event}/${b.source.name}/${b.key ?? b.pad ?? ''}'], [
-        'Drop payload/button/',
-        'Drop payload/key/D',
-        'Drop payload/pad/n:leftTrigger',
-        'Patrol/toggle/',
-      ]);
+      expect(
+        [for (final b in c.config.bindings) '${b.event}/${b.source.name}/${b.key ?? b.pad ?? ''}'],
+        ['Drop payload/button/', 'Drop payload/key/D', 'Drop payload/pad/n:leftTrigger', 'Patrol/toggle/'],
+      );
       c.config.bindings.removeWhere((b) => b.source == TriggerSource.key);
       expect(c.config.adopt({'name': 'Drop payload', 'key': 'D'}), isFalse, reason: 'already set up');
       expect(c.config.bindings.where((b) => b.source == TriggerSource.key), isEmpty);
@@ -337,15 +457,27 @@ void main() {
   test('what a script shows: pictures, charts and plotted series, as Live widgets', () async {
     final s = await _Script.open(d.scripts);
     await s.call('use');
-    s.send('view', {'name': 'tracking', 'kind': 'picture', 'data': base64Encode([1, 2, 3]), 'w': 640, 'h': 480});
+    s.send('view', {
+      'name': 'tracking',
+      'kind': 'picture',
+      'data': base64Encode([1, 2, 3]),
+      'w': 640,
+      'h': 480,
+    });
     s.send('view', {
       'name': 'scan',
       'kind': 'chart',
       'chart': 'scatter',
-      'series': {'d': [1, 2, null]},
+      'series': {
+        'd': [1, 2, null],
+      },
       'x': [0, 1, 2],
     });
-    s.send('plot', {'name': 'speed', 'v': [2, 1.5], 'labels': ['target', 'actual']});
+    s.send('plot', {
+      'name': 'speed',
+      'v': [2, 1.5],
+      'labels': ['target', 'actual'],
+    });
     s.send('plot', {'name': 'alt', 'v': 4});
     await Future<void>.delayed(const Duration(milliseconds: 100));
     final l = d.links.values.single;

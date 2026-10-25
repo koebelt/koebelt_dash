@@ -121,6 +121,7 @@ class _ShellState extends State<Shell> {
       if (mounted) go(s);
     };
   }
+
   String? detail;
   Recording? toast;
   String? _seen;
@@ -351,7 +352,11 @@ class _ShellState extends State<Shell> {
                             ),
                           ),
                         )
-                      : Positioned(top: topH + 16, right: 24, child: ApprovalCard(d, d.mcp.approvals.first, key: ValueKey(d.mcp.approvals.first))),
+                      : Positioned(
+                          top: topH + 16,
+                          right: 24,
+                          child: ApprovalCard(d, d.mcp.approvals.first, key: ValueKey(d.mcp.approvals.first)),
+                        ),
                 if (showToast)
                   Positioned(
                     left: 0,
@@ -687,7 +692,9 @@ class NavSub extends StatelessWidget {
             : h
             ? K.surfaceHover
             : Colors.transparent,
-        border: Border(left: BorderSide(color: on ? K.accent : K.borderHairline, width: on ? 2 : 1)),
+        border: Border(
+          left: BorderSide(color: on ? K.accent : K.borderHairline, width: on ? 2 : 1),
+        ),
       ),
       child: Text(label, style: KText.bodySm.copyWith(color: on ? K.textPrimary : (h ? K.textPrimary : K.textSecondary))),
     ),

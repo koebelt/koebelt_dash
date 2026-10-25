@@ -31,7 +31,21 @@ const deviceEvents = {
 /// One way an event reaches a script: an operator input, a condition, a
 /// device event or a timer. Several bindings can fire the same event.
 class TriggerBinding {
-  TriggerBinding(this.event, this.source, {this.key, this.pad, this.expr, this.both = false, this.deviceEvent, this.match, this.seconds = 5, this.repeat = true, this.pinned = false, this.min = 0, this.max = 1});
+  TriggerBinding(
+    this.event,
+    this.source, {
+    this.key,
+    this.pad,
+    this.expr,
+    this.both = false,
+    this.deviceEvent,
+    this.match,
+    this.seconds = 5,
+    this.repeat = true,
+    this.pinned = false,
+    this.min = 0,
+    this.max = 1,
+  });
 
   /// The name the script receives (`@dev.trigger("Drop payload")`).
   String event;

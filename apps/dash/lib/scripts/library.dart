@@ -81,7 +81,11 @@ class ScriptLibrary {
 
   /// The first line of the module docstring, or a title made from the name.
   static String _title(File f, String src, {String? fallback}) {
-    final m = RegExp(r'^\s*(?:#[^\n]*\n\s*)*[rbuRBU]?("""|' "'''" r')\s*([^\n]+)').firstMatch(src);
+    final m = RegExp(
+      r'^\s*(?:#[^\n]*\n\s*)*[rbuRBU]?("""|'
+      "'''"
+      r')\s*([^\n]+)',
+    ).firstMatch(src);
     if (m != null) {
       final line = m[2]!.split(m[1]!).first.trim().replaceAll(RegExp(r'[.\s]+$'), '');
       if (line.isNotEmpty) return line;
@@ -103,7 +107,7 @@ class ScriptLibrary {
 
   /// A free path for [stem] (`follow_me.py`, `follow_me_2.py`…).
   Future<String> _free(String stem, {String ext = '.py'}) async {
-    for (var n = 1;; n++) {
+    for (var n = 1; ; n++) {
       final p = '${dir.path}/${n == 1 ? stem : '${stem}_$n'}$ext';
       if (!await File(p).exists() && !await Directory(p).exists()) return p;
     }
@@ -205,7 +209,8 @@ String scriptTemplate(String template, DeviceKind kind, String title) {
     DeviceKind.rover => 'dev.sticks(throttle=0, steer=0)',
     _ => '# dev.cmd(...)',
   };
-  final head = '"""$title.\n\nRuns in your Python, driven by koebelt dash: STOP and the sticks always win.\n"""\n'
+  final head =
+      '"""$title.\n\nRuns in your Python, driven by koebelt dash: STOP and the sticks always win.\n"""\n'
       '${kind == DeviceKind.generic ? '' : '# requires: ${kind.name}\n# (dash runs it only on a ${kind.name}; add what else it needs to that line: gps, camera…)\n'}';
   switch (template) {
     case 'button':

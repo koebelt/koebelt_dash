@@ -596,7 +596,10 @@ class _AddHostDialogState extends State<_AddHostDialog> {
         border: Border.all(color: K.borderHairline),
         borderRadius: BorderRadius.circular(K.radiusControl),
       ),
-      child: SelectableText(s, style: KText.mono(12, color: K.textSecondary, w: FontWeight.w400)),
+      child: SelectableText(
+        s,
+        style: KText.mono(12, color: K.textSecondary, w: FontWeight.w400),
+      ),
     );
     return KDialogPanel(
       title: 'Add a script host',
@@ -630,7 +633,10 @@ class _AddHostDialogState extends State<_AddHostDialog> {
                   ),
                 )
               else if (found.isEmpty)
-                Text('None found. Type its address below (shown by `ipconfig getifaddr en0`, `hostname -I`…).', style: KText.bodySm.copyWith(color: K.textMuted))
+                Text(
+                  'None found. Type its address below (shown by `ipconfig getifaddr en0`, `hostname -I`…).',
+                  style: KText.bodySm.copyWith(color: K.textMuted),
+                )
               else
                 Wrap(
                   spacing: 6,
@@ -639,7 +645,8 @@ class _AddHostDialogState extends State<_AddHostDialog> {
                     for (final f in found)
                       Pressable(
                         onTap: () => setState(() => _address.text = '${f.address}:${f.port}'),
-                        builder: (_, _, _) => KTag('${f.name} · ${f.address}', tone: _address.text == '${f.address}:${f.port}' ? TagTone.accent : TagTone.neutral, height: 30),
+                        builder: (_, _, _) =>
+                            KTag('${f.name} · ${f.address}', tone: _address.text == '${f.address}:${f.port}' ? TagTone.accent : TagTone.neutral, height: 30),
                       ),
                   ],
                 ),

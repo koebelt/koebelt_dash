@@ -34,12 +34,17 @@ void main() {
         key: shotKey,
         child: MaterialApp(
           debugShowCheckedModeBanner: false,
-          home: Scaffold(body: CodeEditor(key: key, controller: c, context: () => ctx)),
+          home: Scaffold(
+            body: CodeEditor(key: key, controller: c, context: () => ctx),
+          ),
         ),
       ),
     );
     Future<void> type(String s) async {
-      c.value = TextEditingValue(text: c.text + s, selection: TextSelection.collapsed(offset: c.text.length + s.length));
+      c.value = TextEditingValue(
+        text: c.text + s,
+        selection: TextSelection.collapsed(offset: c.text.length + s.length),
+      );
       await tester.pump();
     }
 

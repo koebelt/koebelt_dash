@@ -171,10 +171,13 @@ Future<List<ScriptProblem>?> checkScript(String python, String source, {String? 
     await p.stdin.close();
     final out = p.stdout.transform(utf8.decoder).join();
     p.stderr.drain<void>();
-    await p.exitCode.timeout(const Duration(seconds: 60), onTimeout: () {
-      p.kill();
-      return -1;
-    });
+    await p.exitCode.timeout(
+      const Duration(seconds: 60),
+      onTimeout: () {
+        p.kill();
+        return -1;
+      },
+    );
     final s = await out;
     final i = s.lastIndexOf('@@koebelt@@');
     if (i < 0) return null;

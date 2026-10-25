@@ -60,7 +60,10 @@ extension WhyNot on ScriptRequirements {
   String? whyNot(DeviceInfo info, [DeviceLink? link]) {
     if (kinds.isNotEmpty && !kinds.contains(info.kind)) return '${info.name} is a ${info.kind.name}; this script needs ${describe()}.';
     final have = capabilitiesOf(info, link);
-    final lacks = [for (final n in needs) if (!have.contains(n)) n];
+    final lacks = [
+      for (final n in needs)
+        if (!have.contains(n)) n,
+    ];
     if (lacks.isEmpty) return null;
     return '${info.name} has no ${lacks.length == 1 ? lacks.single : '${lacks.sublist(0, lacks.length - 1).join(', ')} or ${lacks.last}'}; this script needs ${describe()}.';
   }
@@ -105,7 +108,19 @@ Set<String> _sensorWords(String sensor) {
 Set<String> capabilitiesOf(DeviceInfo info, [DeviceLink? link]) {
   final out = <String>{for (final s in info.sensors) ..._sensorWords(s)};
   if (link != null) {
-    const seen = {'gps': 'gps', 'imu': 'imu', 'bat': 'battery', 'joints': 'joints', 'tool': 'gripper', 'thrust': 'thrust', 'rpm': 'rpm', 'temp': 'temp', 'pc': 'lidar', 'tracks': 'tracks', 'rssi': 'rssi'};
+    const seen = {
+      'gps': 'gps',
+      'imu': 'imu',
+      'bat': 'battery',
+      'joints': 'joints',
+      'tool': 'gripper',
+      'thrust': 'thrust',
+      'rpm': 'rpm',
+      'temp': 'temp',
+      'pc': 'lidar',
+      'tracks': 'tracks',
+      'rssi': 'rssi',
+    };
     for (final k in link.tel.seen) {
       final w = seen[k];
       if (w != null) out.add(w);

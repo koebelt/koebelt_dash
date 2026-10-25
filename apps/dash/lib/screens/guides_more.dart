@@ -254,7 +254,10 @@ channels:
           'stays disarmed after reset until you arm again.',
         ],
         c: {
-          'arduino': ['cpp', 'klink.onStop([] { motors.cut(); });\n\n// and in loop(), as a second guard:\nif (klink.stopped() || !klink.armed()) motors.cut();'],
+          'arduino': [
+            'cpp',
+            'klink.onStop([] { motors.cut(); });\n\n// and in loop(), as a second guard:\nif (klink.stopped() || !klink.armed()) motors.cut();',
+          ],
           'python': ['python', '@dev.on_stop\ndef stop():\n    motors.cut()\n\n# in your loop\nif dev.estop or not dev.armed:\n    motors.cut()'],
           'rust': ['rust', 'dev.on_stop(|| motors.cut());\n\n// in your loop\nif dev.link.stopped() || !dev.link.armed() {\n    motors.cut();\n}'],
         },

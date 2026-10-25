@@ -27,7 +27,9 @@ class ScriptViewBody extends StatelessWidget {
           ColoredBox(
             color: K.surfaceDeep,
             child: view.image == null
-                ? Center(child: Text('Waiting for the script', style: KText.label(size: 10, color: K.textFaint)))
+                ? Center(
+                    child: Text('Waiting for the script', style: KText.label(size: 10, color: K.textFaint)),
+                  )
                 : Image.memory(view.image!, fit: BoxFit.contain, gaplessPlayback: true, filterQuality: FilterQuality.medium),
           ),
         if (view.ended)

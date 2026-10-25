@@ -16,7 +16,6 @@ class _Cam {
   bool user = false;
 }
 
-
 /// The camera yaw that puts the chase camera behind a device heading [yaw]
 /// (radians, counter-clockwise from east): the device's forward is the
 /// camera's depth, so it turns with the device, not against it.

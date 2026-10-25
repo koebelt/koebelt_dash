@@ -651,18 +651,22 @@ class _HoverCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final i = info;
-    final described = [for (final p in i?.params ?? const <(String, String)>[]) if (p.$2.isNotEmpty) p];
+    final described = [
+      for (final p in i?.params ?? const <(String, String)>[])
+        if (p.$2.isNotEmpty) p,
+    ];
     final sections = <List<Widget>>[
       if (error != null) _error(error!),
       if (i != null) _head(i),
-      if (i != null && (i.doc.isNotEmpty || described.isNotEmpty)) [
-        if (i.doc.isNotEmpty) ..._docBlocks(i.doc),
-        if (described.isNotEmpty) ...[
-          if (i.doc.isNotEmpty) const SizedBox(height: 10),
-          _heading('Parameters'),
-          for (final p in described) _entry(p.$1, '', p.$2),
+      if (i != null && (i.doc.isNotEmpty || described.isNotEmpty))
+        [
+          if (i.doc.isNotEmpty) ..._docBlocks(i.doc),
+          if (described.isNotEmpty) ...[
+            if (i.doc.isNotEmpty) const SizedBox(height: 10),
+            _heading('Parameters'),
+            for (final p in described) _entry(p.$1, '', p.$2),
+          ],
         ],
-      ],
     ];
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: 1),
@@ -711,11 +715,17 @@ class _HoverCard extends StatelessWidget {
         height: 16,
         alignment: Alignment.center,
         decoration: BoxDecoration(color: tint.withValues(alpha: .16), borderRadius: BorderRadius.circular(K.radiusControl)),
-        child: Text(letter, style: KText.mono(10.5, color: tint, w: FontWeight.w600)),
+        child: Text(
+          letter,
+          style: KText.mono(10.5, color: tint, w: FontWeight.w600),
+        ),
       ),
       const SizedBox(width: 8),
       tint == K.negative || tint == K.warning
-          ? Text(kind, style: KText.mono(11, color: tint, w: FontWeight.w600))
+          ? Text(
+              kind,
+              style: KText.mono(11, color: tint, w: FontWeight.w600),
+            )
           : Text(kind.toUpperCase(), style: KText.label(size: 10, color: K.textMuted)),
       const SizedBox(width: 16),
       Expanded(
@@ -797,7 +807,11 @@ class _HoverCard extends StatelessWidget {
           TextSpan(
             children: [
               _python(name, KText.mono(12, color: K.textPrimary, height: 1.4)),
-              if (type.isNotEmpty) TextSpan(text: '  $type', style: KText.mono(11.5, color: K.info, height: 1.4, w: FontWeight.w400)),
+              if (type.isNotEmpty)
+                TextSpan(
+                  text: '  $type',
+                  style: KText.mono(11.5, color: K.info, height: 1.4, w: FontWeight.w400),
+                ),
             ],
           ),
         ),
@@ -818,7 +832,12 @@ class _HoverCard extends StatelessWidget {
     var at = 0;
     for (final (a, b, c) in pythonRuns(code)) {
       if (a > at) spans.add(TextSpan(text: code.substring(at, a)));
-      spans.add(TextSpan(text: code.substring(a, b), style: TextStyle(color: c)));
+      spans.add(
+        TextSpan(
+          text: code.substring(a, b),
+          style: TextStyle(color: c),
+        ),
+      );
       at = b;
     }
     if (at < code.length) spans.add(TextSpan(text: code.substring(at)));
@@ -831,7 +850,12 @@ class _HoverCard extends StatelessWidget {
     var at = 0;
     for (final m in RegExp(r'(?::\w+:)?``?([^`]+)``?').allMatches(text)) {
       if (m.start > at) spans.add(TextSpan(text: text.substring(at, m.start)));
-      spans.add(TextSpan(text: m[1], style: KText.mono(base.fontSize! - 1, color: K.textPrimary, w: FontWeight.w400, height: base.height ?? 1)));
+      spans.add(
+        TextSpan(
+          text: m[1],
+          style: KText.mono(base.fontSize! - 1, color: K.textPrimary, w: FontWeight.w400, height: base.height ?? 1),
+        ),
+      );
       at = m.end;
     }
     if (at < text.length) spans.add(TextSpan(text: text.substring(at)));
@@ -857,7 +881,8 @@ class _HoverCard extends StatelessWidget {
       para.clear();
     }
 
-    const sections = r'Args|Arguments|Parameters|Params|Other Parameters|Keyword Args|Returns|Return|Yields|Raises|Warns|Attributes|Example|Examples|Note|Notes|See Also|Warning|Warnings|References|Methods';
+    const sections =
+        r'Args|Arguments|Parameters|Params|Other Parameters|Keyword Args|Returns|Return|Yields|Raises|Warns|Attributes|Example|Examples|Note|Notes|See Also|Warning|Warnings|References|Methods';
     for (var n = 0; n < lines.length; n++) {
       final l = lines[n], t = l.trim();
       final next = n + 1 < lines.length ? lines[n + 1].trim() : '';
@@ -872,7 +897,8 @@ class _HoverCard extends StatelessWidget {
         flush();
         if (out.isNotEmpty) out.add(const SizedBox(height: 12));
         out.add(_heading(google?[1] ?? t));
-        inEntries = RegExp('^(Args|Arguments|Parameters|Params|Other Parameters|Keyword Args|Returns|Return|Yields|Raises|Warns|Attributes)\$').hasMatch(google?[1] ?? t);
+        inEntries = RegExp('^(Args|Arguments|Parameters|Params|Other Parameters|Keyword Args|Returns|Return|Yields|Raises|Warns|Attributes)\$')
+            .hasMatch(google?[1] ?? t);
         if (underlined) n++;
         continue;
       }
