@@ -21,11 +21,31 @@ class CamPose {
 /// so the whole video path is exercised. Frames are rendered from the
 /// simulated world (ground, sky, the point-cloud scenery) and encoded as PNG.
 class SimCamera {
-  SimCamera({required this.kind, required this.pose, required this.world, required this.osd});
+  SimCamera({required this.kind, required this.pose, required this.world, required this.osd, double Function()? now}) : now = now ?? _since();
   final DeviceKind kind;
   final CamPose Function() pose;
   final List<List<double>> world;
   final String Function() osd;
+
+  /// Seconds, for what moves in the scene.
+  final double Function() now;
+  static double Function() _since() {
+    final sw = Stopwatch()..start();
+    return () => sw.elapsedMicroseconds / 1e6;
+  }
+
+  /// Something to track near home: a yellow ball (30 in OpenCV's hue, the
+  /// colour tracker's default) rolling a figure of eight east of home.
+  static const ballRadius = .35;
+  static List<double> ballAt(double t) => [6 + 4 * math.sin(.3 * t), 2 + 3 * math.sin(.6 * t), ballRadius];
+
+  /// Someone to follow: a person in a red shirt walking a 10 m circle round
+  /// home at 1.1 m/s. Where their feet are, and which way they walk.
+  static (List<double>, double) personAt(double t) {
+    const r = 10.0, w = 1.1 / r;
+    final a = w * t;
+    return ([r * math.cos(a), r * math.sin(a), 0], a + math.pi / 2);
+  }
 
   static const w = 480, h = 270, fps = 12;
   static const boundary = 'kdashframe';
@@ -149,9 +169,10 @@ class SimCamera {
       _seg(c, cam([ox - n * step, oy + i * step, 0]), cam([ox + n * step, oy + i * step, 0]), near, scr, grid);
     }
 
-    // Home pad.
+    // Home pad: white, so colour trackers see the ball, not the pad (lime
+    // is inside their yellow).
     final pad = Paint()
-      ..color = const Color(0xCCDCFB47)
+      ..color = const Color(0xCCF2F2F2)
       ..strokeWidth = 2;
     for (var i = 0; i < 24; i++) {
       final a0 = i / 24 * math.pi * 2, a1 = (i + 1) / 24 * math.pi * 2;
@@ -185,6 +206,16 @@ class SimCamera {
       );
     }
 
+    // What moves: the ball and the person, farthest first.
+    final t = now();
+    final ball = ballAt(t);
+    final (feet, _) = personAt(t);
+    final things = [(cam(ball), true), (cam(feet), false)]..sort((a, b) => b.$1[1].compareTo(a.$1[1]));
+    for (final (c3, isBall) in things) {
+      if (c3[1] < near + .3 || c3[1] > 80) continue;
+      isBall ? _ball(c, c3, scr, fl, cam) : _person(c, c3, scr, fl, t);
+    }
+
     // Lens vignette and on-screen display.
     c.drawRect(
       Offset.zero & s,
@@ -206,6 +237,50 @@ class SimCamera {
     final m = s.center(Offset.zero);
     c.drawLine(m - const Offset(10, 0), m - const Offset(4, 0), cm);
     c.drawLine(m + const Offset(4, 0), m + const Offset(10, 0), cm);
+  }
+
+  /// The ball, shaded, with its shadow on the ground.
+  void _ball(Canvas c, List<double> c3, Offset Function(List<double>) scr, double fl, List<double> Function(List<double>) cam) {
+    final o = scr(c3), rad = ballRadius * fl / c3[1];
+    final b = ballAt(now());
+    final g = cam([b[0], b[1], 0]);
+    if (g[1] > .3) {
+      final go = scr(g);
+      c.drawOval(Rect.fromCenter(center: go, width: rad * 2.2, height: rad * .7), Paint()..color = const Color(0x55000000));
+    }
+    c.drawCircle(
+      o,
+      rad,
+      Paint()
+        ..shader = ui.Gradient.radial(
+          o - Offset(rad * .35, rad * .35),
+          rad * 1.3,
+          const [Color(0xFFFFE066), Color(0xFFF2C21B), Color(0xFF9C7A0C)],
+          const [0, .45, 1],
+        ),
+    );
+  }
+
+  /// A person, feet at [c3]: legs that swing as they walk, a red shirt, a head.
+  void _person(Canvas c, List<double> c3, Offset Function(List<double>) scr, double fl, double t) {
+    final k = fl / c3[1]; // pixels per metre at their distance
+    final foot = scr(c3);
+    Offset at(double up, double side) => foot + Offset(side * k, -up * k);
+    final swing = math.sin(t * 5.5) * .14;
+    final leg = Paint()
+      ..color = const Color(0xFF2B3A55)
+      ..strokeWidth = math.max(1, .16 * k)
+      ..strokeCap = StrokeCap.round;
+    c.drawLine(at(.9, -.09), at(0, -.09 + swing), leg);
+    c.drawLine(at(.9, .09), at(0, .09 - swing), leg);
+    final arm = Paint()
+      ..color = const Color(0xFFB4302A)
+      ..strokeWidth = math.max(1, .1 * k)
+      ..strokeCap = StrokeCap.round;
+    c.drawLine(at(1.42, -.24), at(.95, -.26 - swing), arm);
+    c.drawLine(at(1.42, .24), at(.95, .26 + swing), arm);
+    c.drawRRect(RRect.fromRectAndRadius(Rect.fromPoints(at(1.5, -.24), at(.86, .24)), Radius.circular(.08 * k)), Paint()..color = const Color(0xFFC8372D));
+    c.drawCircle(at(1.64, 0), .13 * k, Paint()..color = const Color(0xFFD9A47F));
   }
 
   static void _seg(Canvas c, List<double> a, List<double> b, double near, Offset Function(List<double>) scr, Paint p) {

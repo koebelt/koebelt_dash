@@ -2,7 +2,8 @@
 
 Turns a rover towards the largest patch of a colour the camera sees, with
 OpenCV. dash shows what it tracks over the camera, the mask it sees in a
-Live widget, and the offset it steers by on a chart.
+Live widget, and the offset it steers by on a chart. On a simulated rover
+it follows the yellow ball that rolls near home.
 
     pip install opencv-python numpy
 """
