@@ -4,7 +4,6 @@ import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 
 import '../core/dash.dart';
-import '../scripts/views.dart';
 import '../theme/tokens.dart';
 import '../ui/components.dart';
 import '../ui/icons.dart';
@@ -383,7 +382,7 @@ class _HudViewState extends State<HudView> {
   /// widget appears in a free spot, once per session; remove it as any other.
   void _placeScriptViews(Dash d, List<HudItem> lay) {
     final fresh = [
-      for (final v in d.focus?.views.values ?? const <ScriptView>[])
+      for (final v in d.scriptViews.values)
         if (!lay.any((l) => l.id == v.tileId) && _placed.add('${d.deviceId}:$cls:${v.tileId}')) v.tileId,
     ];
     if (fresh.isEmpty) return;

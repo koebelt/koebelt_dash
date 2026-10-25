@@ -731,7 +731,8 @@ class ScriptHub {
           final name = '${m['name']}', v = m['v'];
           l.tel.custom['script:$name'] = v is List ? [for (final x in v) (x as num?)?.toDouble() ?? double.nan] : [(v as num).toDouble()];
           final labels = m['labels'] is List ? [for (final x in m['labels'] as List) '$x'] : [name];
-          _view(l, c, name, 'plot').plotFrom(labels, c.name);
+          final view = _view(l, c, name, 'plot')..plotFrom(labels, c.name);
+          d.recordView(l, view);
           return;
         case 'view':
           // A picture (base64 JPEG or PNG) or a whole chart, shown as a Live widget.
@@ -739,6 +740,7 @@ class ScriptHub {
           if (l == null) return;
           final view = _view(l, c, '${m['name']}', m['kind'] == 'chart' ? 'chart' : 'picture');
           m['kind'] == 'chart' ? view.chartFrom(m, c.name) : view.picture(m, c.name);
+          d.recordView(l, view);
           return;
         case 'overlay':
           final l = _link(c);

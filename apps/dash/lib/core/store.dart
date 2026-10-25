@@ -73,7 +73,7 @@ class Store {
     await files.writeCompressed(d, '${r['id']}.json', jsonEncode(r));
   }
 
-  Future<void> deleteRecording(String id, {String? video}) async {
+  Future<void> deleteRecording(String id, {String? video, List<String> also = const []}) async {
     final d = await _dir();
     if (d == null) {
       final l = (readJson('kdash-recordings-v1') as List?) ?? [];
@@ -82,5 +82,8 @@ class Store {
     }
     await files.delete(d, '$id.json');
     await files.delete(d, video ?? '$id.kdv'); // its video, if any
+    for (final f in also) {
+      await files.delete(d, f); // what scripts showed
+    }
   }
 }

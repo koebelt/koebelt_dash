@@ -223,12 +223,16 @@ class ReplayScreen extends StatelessWidget {
     // What the player can show: 3D always, a map with GPS, the camera when recorded.
     final views = ['3d', if (R.session.frames.any((f) => (f['lat'] as num? ?? 0) != 0)) 'map', if (R.session.hasVideo) 'video'];
     final view = views.contains(d.replayView) ? d.replayView : '3d';
-    final ids = switch (R.session.kind) {
-      DeviceKind.arm => ['joints', 'power'],
-      DeviceKind.bench => ['thrust', 'rpm'],
-      DeviceKind.rover => ['gyro', 'power'],
-      _ => ['accel', 'alt'],
-    };
+    final ids = [
+      ...switch (R.session.kind) {
+        DeviceKind.arm => ['joints', 'power'],
+        DeviceKind.bench => ['thrust', 'rpm'],
+        DeviceKind.rover => ['gyro', 'power'],
+        _ => ['accel', 'alt'],
+      },
+      // What scripts showed while recording.
+      for (final v in d.scriptViews.values) v.tileId,
+    ];
     final player = Column(
       children: [
         Expanded(

@@ -6,7 +6,6 @@ import '../core/dash.dart';
 import '../core/model.dart';
 import '../theme/tokens.dart';
 import '../ui/components.dart';
-import '../scripts/views.dart';
 import '../video/video_view.dart';
 import '../viz/map_view.dart';
 import '../viz/scene3d.dart';
@@ -353,7 +352,7 @@ List<TileDef> customTiles(Dash d) => [
 /// What scripts show for the device: pictures and charts (dev.show,
 /// dev.chart), and plotted series (dev.plot) drawn over time like telemetry.
 List<TileDef> scriptTiles(Dash d) => [
-  for (final v in d.focus?.views.values ?? const <ScriptView>[])
+  for (final v in d.scriptViews.values)
     if (v.kind == 'plot')
       TileDef(
         id: v.tileId,

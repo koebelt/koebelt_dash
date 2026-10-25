@@ -31,6 +31,7 @@ import 'log_import.dart';
 import 'model.dart';
 import '../mcp/mcp_server.dart';
 import '../scripts/script_hub.dart';
+import '../scripts/views.dart';
 import 'sequence.dart';
 import 'store.dart';
 import 'telemetry.dart';
@@ -107,7 +108,9 @@ class Recording {
     this.video,
     this.group,
     List<RecEvent>? events,
-  }) : events = events ?? [];
+    List<Map<String, dynamic>>? views,
+  }) : events = events ?? [],
+       views = views ?? [];
   final String id, name, deviceId, deviceName, date;
 
   /// Wall-clock start of the recording (UTC), when known.
@@ -125,8 +128,13 @@ class Recording {
   /// What happened while recording: alerts, link losses, STOP.
   final List<RecEvent> events;
 
-  /// Where the video file is on this device (set when loaded or recorded).
-  String? videoPath;
+  /// What scripts showed while recording (lib/scripts/views.dart): pictures
+  /// and charts in files next to it, plots' series names.
+  List<Map<String, dynamic>> views;
+
+  /// Where the video file is on this device (set when loaded or recorded),
+  /// and the folder of the views' files.
+  String? videoPath, filesDir;
   bool get hasVideo => video != null && videoPath != null;
   final List<List<double>> cloud;
   bool fresh;
@@ -170,6 +178,7 @@ class Recording {
     'video': ?video,
     'group': ?group,
     if (events.isNotEmpty) 'events': [for (final e in events) e.toJson()],
+    if (views.isNotEmpty) 'views': views,
   };
   factory Recording.fromJson(Map<String, dynamic> j) => Recording(
     id: j['id'],
@@ -186,6 +195,10 @@ class Recording {
     events: [
       for (final e in j['events'] as List? ?? const [])
         if (e is Map) RecEvent.fromJson(e),
+    ],
+    views: [
+      for (final v in j['views'] as List? ?? const [])
+        if (v is Map) v.cast<String, dynamic>(),
     ],
   );
 }
@@ -484,6 +497,7 @@ class Dash extends ChangeNotifier implements PadTarget {
       try {
         final rec = Recording.fromJson(r);
         if (rec.video != null && dir != null) rec.videoPath = '$dir/${rec.video!['file']}';
+        rec.filesDir = dir;
         sessions.add(rec);
       } catch (_) {}
     }
@@ -1220,6 +1234,18 @@ class Dash extends ChangeNotifier implements PadTarget {
     l.recLast = -1;
     _recFrame(l);
     if (settings.recordVideo && l.video.isNotEmpty) unawaited(_startVideo(l, _recIdFor(l), l.video.first));
+    // What scripts show, from now on.
+    final id = _recIdFor(l);
+    unawaited(
+      store.recordingsDir().then((dir) {
+        if (dir != null && l.recFrames != null) l.recViews = ViewRecorder(dir, id, () => _recNow, settings.videoFps.toDouble());
+      }),
+    );
+  }
+
+  /// Keeps what a script shows in [l]'s recording, when it is recording.
+  void recordView(DeviceLink l, ScriptView v) {
+    if (l.recFrames != null) l.recViews?.add(v);
   }
 
   /// Keeps the camera open while recording, even when no screen shows it,
@@ -1298,6 +1324,19 @@ class Dash extends ChangeNotifier implements PadTarget {
     final id = several ? _recIdFor(l) : group;
     final keep = fr.length > 5;
     final videoDone = _stopVideo(l, _recIdFor(l), keep: keep);
+    final vr = l.recViews;
+    l.recViews = null;
+    final viewsDone =
+        vr?.close(
+          keep: keep,
+          write: (file, text) => File('${vr.dir}/$file').writeAsString(text),
+          delete: (file) async {
+            try {
+              await File('${vr.dir}/$file').delete();
+            } catch (_) {}
+          },
+        ) ??
+        Future.value(const <Map<String, dynamic>>[]);
     if (!keep) return;
     final d = l.info, n = _recNumber;
     final r = Recording(
@@ -1319,6 +1358,8 @@ class Dash extends ChangeNotifier implements PadTarget {
     // Saved once the video file is complete.
     unawaited(
       videoDone.then((v) async {
+        r.views = await viewsDone;
+        r.filesDir = vr?.dir;
         if (v != null) {
           r.video = v;
           final dir = await store.recordingsDir();
@@ -1373,8 +1414,17 @@ class Dash extends ChangeNotifier implements PadTarget {
     );
     s.fresh = false;
     hist.clear();
+    _viewPlayer?.close();
+    _viewPlayer = s.views.isEmpty || s.filesDir == null ? null : ViewPlayer(s.views, s.filesDir!);
     notifyListeners();
   }
+
+  /// The replayed recording's script views, played at the replay time.
+  ViewPlayer? _viewPlayer;
+
+  /// What scripts show for the device on screen: live, or as recorded in
+  /// the open replay.
+  Map<String, ScriptView> get scriptViews => replay != null ? (_viewPlayer?.views ?? const {}) : (focus?.views ?? const {});
 
   /// What the Replay screen shows: '3d' or 'video'.
   String replayView = '3d';
@@ -1401,6 +1451,8 @@ class Dash extends ChangeNotifier implements PadTarget {
   void closeReplay() {
     if (replay == null) return;
     _closeTrack();
+    _viewPlayer?.close();
+    _viewPlayer = null;
     replay = null;
     hist.clear();
     notifyListeners();
@@ -1417,6 +1469,7 @@ class Dash extends ChangeNotifier implements PadTarget {
       }
     }
     _applyAt(r.session, r.tel, r.t);
+    unawaited(_viewPlayer?.seek(r.t));
     for (final m in r.mates) {
       m.tel.animate(dt);
       _applyAt(m.rec, m.tel, r.t, gpsTrail: true);
@@ -1504,7 +1557,14 @@ class Dash extends ChangeNotifier implements PadTarget {
     sessions.removeWhere((s) => s.id == id);
     if (replay?.session.id == id) closeReplay();
     notifyListeners(); // update the list now; the file is removed in the background
-    await store.deleteRecording(id, video: s?.video?['file'] as String?);
+    await store.deleteRecording(
+      id,
+      video: s?.video?['file'] as String?,
+      also: [
+        for (final v in s?.views ?? const <Map>[])
+          if (v['file'] is String) v['file'] as String,
+      ],
+    );
   }
 
   // ------------------------------------------------------------ params

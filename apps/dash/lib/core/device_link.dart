@@ -84,6 +84,9 @@ class DeviceLink {
   List<Map<String, dynamic>>? recFrames;
   List<RecEvent> recEvents = [];
   double recLast = -1;
+
+  /// What scripts show, kept while recording.
+  ViewRecorder? recViews;
   ({VideoRecorder rec, VideoFeed feed, VideoStream stream, void Function(Uint8List) tap})? vid;
 }
 
