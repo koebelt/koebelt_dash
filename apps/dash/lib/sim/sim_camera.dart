@@ -35,9 +35,10 @@ class SimCamera {
   }
 
   /// Something to track near home: a yellow ball (30 in OpenCV's hue, the
-  /// colour tracker's default) rolling a figure of eight east of home.
+  /// colour tracker's default) rolling a figure of eight east of home, at
+  /// most about 0.7 m/s, so a rover can keep it in view.
   static const ballRadius = .35;
-  static List<double> ballAt(double t) => [6 + 4 * math.sin(.3 * t), 2 + 3 * math.sin(.6 * t), ballRadius];
+  static List<double> ballAt(double t) => [6 + 4 * math.sin(.1 * t), 2 + 3 * math.sin(.2 * t), ballRadius];
 
   /// Someone to follow: a person in a red shirt walking a 10 m circle round
   /// home at 1.1 m/s. Where their feet are, and which way they walk.

@@ -60,7 +60,7 @@ for frame in dev.camera.frames():
         dev.sticks(throttle=0, steer=0)
         continue
     x = float(people[0].xywhn[0][0]) - 0.5    # −0.5 left … 0.5 right
-    dev.sticks(throttle=0.4, steer=steer.update(-x))
+    dev.sticks(throttle=0.4, steer=steer.update(x))  # positive steer turns right
 ```
 
 ## Script hosts: scripts for phones and tablets
