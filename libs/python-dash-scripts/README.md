@@ -111,6 +111,7 @@ dash stays in charge, whatever the script does:
 | `dev.chart(name, y, x=None, kind="line")` | A whole chart in Live, redrawn at each call: `y` a list or a dict of named series; `kind` `line`, `bar` or `scatter`. |
 | `dev.plot(name, v)`, `dev.plot(name, target=…, actual=…)` | Values over time in Live, one or several series, recorded. |
 | `dev.mark(text)`, `dev.notify(text)` | An event on the recording; a message to the operator. |
+| `print("debug: …")`, `print("info: …")`, `print("warning: …")`, `print("error: …")`, or `logging` | The console in dash colours lines by level: errors red, warnings amber, info blue, debug grey. Tracebacks and this library's errors are coloured by themselves. |
 | `dev.store` | A dictionary kept between runs. |
 | `dev.run()` | Waits, for scripts that only react to triggers. |
 | `every(seconds)`, `wait(seconds)` | Steady loops; dash shows the real rate. |

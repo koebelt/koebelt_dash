@@ -102,15 +102,15 @@ class RemoteRun extends ScriptRun {
         switch (m['t']) {
           case 'welcome':
             _ws.add(jsonEncode(_runMsg));
-            log('info', 'Sent to ${host.name}');
+            log('sys', 'Sent to ${host.name}');
           case 'started':
-            log('info', 'Started on ${host.name} with Python ${m['python'] ?? ''}');
+            log('sys', 'Started on ${host.name} with Python ${m['python'] ?? ''}');
           case 'out':
-            log('${m['level'] ?? 'out'}', '${m['text']}');
+            output('${m['level'] ?? 'out'}', '${m['text']}');
           case 'exit':
             this.exitCode = (m['code'] as num?)?.toInt();
             state = this.exitCode == 0 || _stopping ? ScriptState.exited : ScriptState.failed;
-            log(state == ScriptState.failed ? 'err' : 'info', _stopping ? 'Stopped' : 'Exited with code ${this.exitCode}');
+            log(state == ScriptState.failed ? 'err' : 'sys', _stopping ? 'Stopped' : 'Exited with code ${this.exitCode}');
             _ws.close();
           case 'bye':
             state = ScriptState.failed;

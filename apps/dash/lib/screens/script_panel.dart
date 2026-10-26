@@ -825,12 +825,21 @@ class _ScriptConsoleState extends State<ScriptConsole> {
                       itemCount: lines.length,
                       itemBuilder: (_, i) {
                         final l = lines[i];
+                        // Errors red, warnings amber, info blue, debug grey,
+                        // dash's own lines faint, prints as they are.
                         final c = switch (l.level) {
-                          'warn' => K.warning,
                           'err' => K.negative,
+                          'warn' => K.warning,
+                          'info' => K.info,
+                          'debug' => K.textMuted,
+                          'sys' => K.textFaint,
                           'trig' => K.accent,
-                          'info' => K.textMuted,
                           _ => K.textSecondary,
+                        };
+                        final band = switch (l.level) {
+                          'err' => K.negative.withValues(alpha: .08),
+                          'warn' => K.warning.withValues(alpha: .07),
+                          _ => null,
                         };
                         // A traceback's line, or an error's --> script.py:14.
                         final line = RegExp(r'File ".*?", line (\d+)|--> .*?:(\d+)\s*$').firstMatch(l.text);
@@ -838,7 +847,7 @@ class _ScriptConsoleState extends State<ScriptConsole> {
                           l.text,
                           style: KText.mono(12, color: c, height: 1.5, w: FontWeight.w400),
                         );
-                        return Row(
+                        final row = Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             if (!widget.phone) ...[
@@ -852,6 +861,7 @@ class _ScriptConsoleState extends State<ScriptConsole> {
                             ),
                           ],
                         );
+                        return band == null ? row : ColoredBox(color: band, child: row);
                       },
                     ),
                   ),

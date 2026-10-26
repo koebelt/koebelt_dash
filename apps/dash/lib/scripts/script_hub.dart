@@ -567,7 +567,7 @@ class ScriptHub {
           c!.config = configFor(c!.configKey);
           c!.lastSeen = d.t;
           conns.add(c!);
-          c!.log('info', 'Connected');
+          c!.log('sys', 'Connected');
           c!.send({'t': 'welcome', 'v': scriptApiVersion, 'app': appVersion, 'devices': _devices()});
           d.emit();
           return;
@@ -599,7 +599,8 @@ class ScriptHub {
 
   void _gone(ScriptConn c, String why) {
     if (!conns.remove(c)) return;
-    _release(c, why);
+    // A script ending is not a warning: dash taking the sticks away is.
+    _release(c, why, level: 'sys');
     for (final l in d.links.values) {
       for (final v in l.views.values) {
         if (v.script == c.name && !conns.any((o) => o.name == c.name)) v.end();
@@ -611,7 +612,7 @@ class ScriptHub {
   /// Takes the sticks back from a script; a device it drove holds. Unless the
   /// script asked for it, it stays [ScriptConn.blocked] until the operator
   /// resumes it.
-  void _release(ScriptConn c, String why, {bool block = true}) {
+  void _release(ScriptConn c, String why, {bool block = true, String level = 'warn'}) {
     final dr = c.drive;
     if (dr == null) return;
     c.drive = null;
@@ -623,7 +624,7 @@ class ScriptHub {
         d.linkHost(dr.link).seqSetMode('HOLD');
       }
     }
-    c.log('warn', why);
+    c.log(level, why);
     c.send({'t': 'released', 'why': why});
   }
 
@@ -936,7 +937,7 @@ class ScriptHub {
     final dr = l.drive;
     if (dr == null || !dr.paused) return;
     dr.paused = false;
-    dr.conn.log('info', 'Control resumed');
+    dr.conn.log('sys', 'Control resumed');
     dr.conn.send({'t': 'takeover', 'on': false});
     d.emit();
   }
@@ -945,7 +946,7 @@ class ScriptHub {
   void unblock(ScriptConn c) {
     if (c.blocked == null) return;
     c.blocked = null;
-    c.log('info', 'Resumed by the operator');
+    c.log('sys', 'Resumed by the operator');
     c.send({'t': 'resumed'});
     d.emit();
   }

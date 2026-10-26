@@ -427,7 +427,7 @@ for frame in dev.camera.frames():           # pip install opencv-python
       ),
       Step(
         'Show what it sees',
-        'Pictures and charts go to the Live view as widgets, by name: show() a picture (a camera frame with what the script found drawn on it, a mask, a matplotlib figure), chart() a whole graph, redrawn at each call, plot() values over time. A new one appears on the HUD in a free spot, and on the wall; remove it, move it or resize it like any widget. When the script ends, the last picture stays, marked so. Recordings keep them, and Replay shows them at their time. To try vision without hardware: the cameras of simulated drones and rovers show a yellow ball rolling near home and a person in red walking round it; the Colour tracker example follows the ball as is.',
+        'Pictures and charts go to the Live view as widgets, by name: show() a picture (a camera frame with what the script found drawn on it, a mask, a matplotlib figure), chart() a whole graph, redrawn at each call, plot() values over time. A new one appears on the HUD in a free spot, and on the wall; remove it, move it or resize it like any widget. When the script ends, the last picture stays, marked so. Recordings keep them, and Replay shows them at their time. To try vision without hardware: the cameras of simulated drones and rovers show a yellow ball rolling near home and a person in red walking round it; the Colour tracker example follows the ball as is. In the console, lines are coloured by level: start a print with debug:, info:, warning: or error: (or use logging), and tracebacks and the library\'s errors colour themselves.',
         {
           'python': [
             'python',

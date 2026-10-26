@@ -134,6 +134,62 @@ Future<void> pipInstall(String python, List<String> specs, void Function(String)
 
 enum ScriptState { running, exited, failed }
 
+/// Sorts a script's output into the console's levels, for its colours: err,
+/// warn, info, debug, or [fallback] (out for stdout, err for stderr).
+///
+/// - Python tracebacks and koebelt-dash-scripts' `error[E…]` are errors,
+///   `warning[W…]` and Python's warnings are warnings, and the lines that go
+///   with them (indented, `-->`, `|`, `=`) take the same level.
+/// - Lines that start with a level, as `logging` writes them or as a print
+///   can (`DEBUG:root:…`, `debug: …`, `[WARNING] …`), take it.
+class ConsoleLevels {
+  ConsoleLevels(this.fallback);
+  final String fallback;
+  String? _block;
+
+  static final _ansi = RegExp(r'\x1B\[[0-?]*[ -/]*[@-~]');
+  static final _tagged = RegExp(r'^\s*\[?(debug|info|warning|warn|error|critical|fatal)\]?\s*[:\]|-]', caseSensitive: false);
+  static final _rust = RegExp(r'^(error|warning)\[\w+\]:');
+  static final _pyWarning = RegExp(r':\d+: \w*Warning: ');
+  static final _goesWith = RegExp(r'^([ \t]|\s*(-->|\||=|\^))');
+  static final _exception = RegExp(r'^[\w.]+(Error|Exception|Interrupt|Exit)\b');
+
+  /// The text as a terminal would end up showing it: no colour codes, and
+  /// only what follows the last carriage return (progress bars).
+  static String clean(String s) {
+    s = s.replaceAll(_ansi, '');
+    final cr = s.lastIndexOf('\r');
+    return cr >= 0 ? s.substring(cr + 1) : s;
+  }
+
+  String levelOf(String line) {
+    if (line.trim().isEmpty) {
+      final b = _block;
+      _block = null;
+      return b ?? fallback;
+    }
+    if (line.startsWith('Traceback (most recent call last)')) return _block = 'err';
+    final rust = _rust.firstMatch(line);
+    if (rust != null) return _block = rust[1] == 'error' ? 'err' : 'warn';
+    if (_pyWarning.hasMatch(line)) return _block = 'warn';
+    final tag = _tagged.firstMatch(line);
+    if (tag != null) {
+      return _block = switch (tag[1]!.toLowerCase()) {
+        'debug' => 'debug',
+        'info' => 'info',
+        'warning' || 'warn' => 'warn',
+        _ => 'err',
+      };
+    }
+    final block = _block;
+    if (block != null && _goesWith.hasMatch(line)) return block;
+    _block = null;
+    // A traceback ends with the exception itself.
+    if (block == 'err' && _exception.hasMatch(line)) return 'err';
+    return fallback;
+  }
+}
+
 typedef ConsoleLine = ({DateTime at, String level, String text});
 
 /// A script dash started, here or on a script host: its output and state.
@@ -157,6 +213,14 @@ abstract class ScriptRun {
     onChange();
   }
 
+  final _levels = {'out': ConsoleLevels('out'), 'err': ConsoleLevels('err')};
+
+  /// A line the script wrote to [stream] (out or err), at the level it says.
+  void output(String stream, String line) {
+    final text = ConsoleLevels.clean(line);
+    log((_levels[stream] ?? _levels['out']!).levelOf(text), text);
+  }
+
   /// Asks the script to end, then ends it.
   Future<void> stop({Duration grace = const Duration(seconds: 2)});
 }
@@ -164,13 +228,13 @@ abstract class ScriptRun {
 /// A script running in a Python on this computer.
 class LocalRun extends ScriptRun {
   LocalRun._(super.file, super.token, super.onChange, this.python, this.process) {
-    process.stdout.transform(const SystemEncoding().decoder).transform(const LineSplitter()).listen((l) => log('out', l));
-    process.stderr.transform(const SystemEncoding().decoder).transform(const LineSplitter()).listen((l) => log('err', l));
+    process.stdout.transform(const SystemEncoding().decoder).transform(const LineSplitter()).listen((l) => output('out', l));
+    process.stderr.transform(const SystemEncoding().decoder).transform(const LineSplitter()).listen((l) => output('err', l));
     process.exitCode.then((code) {
       // this.: dart:io has a top-level exitCode too.
       this.exitCode = code;
       state = code == 0 || _stopping ? ScriptState.exited : ScriptState.failed;
-      log(state == ScriptState.failed ? 'err' : 'info', _stopping ? 'Stopped' : 'Exited with code $code');
+      log(state == ScriptState.failed ? 'err' : 'sys', _stopping ? 'Stopped' : 'Exited with code $code');
     });
   }
 
@@ -202,7 +266,7 @@ class LocalRun extends ScriptRun {
       environment: {'KOEBELT_DASH_URL': url, 'KOEBELT_DASH_TOKEN': token, 'PYTHONUNBUFFERED': '1', 'PYTHONIOENCODING': 'utf-8'},
     );
     final r = LocalRun._(file, token, onChange, python, p);
-    r.log('info', 'Started with Python at $python');
+    r.log('sys', 'Started with Python at $python');
     return r;
   }
 }
