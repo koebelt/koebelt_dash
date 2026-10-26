@@ -122,9 +122,12 @@ Future<void> confirmSetHome(BuildContext context, Dash d) async {
 /// script drives the device (with what drives it), dimmed otherwise.
 /// Choosing MANUAL or HOLD during AUTO takes the device back.
 class ModePicker extends StatelessWidget {
-  const ModePicker(this.d, {super.key, this.small = false});
+  const ModePicker(this.d, {super.key, this.small = false, this.onPicked});
   final Dash d;
   final bool small;
+
+  /// After the operator chose a mode (Live opens Control on MANUAL).
+  final ValueChanged<String>? onPicked;
 
   @override
   Widget build(BuildContext context) {
@@ -132,7 +135,12 @@ class ModePicker extends StatelessWidget {
     final can = d.hasDevice && d.replay == null && d.canControl && !d.liveTel.estop;
     final h = small ? 30.0 : 38.0, pad = small ? 10.0 : 14.0;
     Widget item(String m, {bool first = false}) => Pressable(
-      onTap: can ? () => d.operatorMode(m) : null,
+      onTap: can
+          ? () {
+              d.operatorMode(m);
+              onPicked?.call(m);
+            }
+          : null,
       builder: (_, hover, _) {
         final on = mode == m;
         return AnimatedContainer(

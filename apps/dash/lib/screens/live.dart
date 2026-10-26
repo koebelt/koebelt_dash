@@ -17,10 +17,13 @@ import 'tiles.dart';
 const _grid = 12;
 
 class LiveScreen extends StatefulWidget {
-  const LiveScreen(this.d, {super.key, required this.w, required this.onOpen});
+  const LiveScreen(this.d, {super.key, required this.w, required this.onOpen, this.go});
   final Dash d;
   final double w;
   final ValueChanged<String> onOpen;
+
+  /// Opens a screen: MANUAL takes the operator to Control, where the sticks are.
+  final ValueChanged<String>? go;
   @override
   State<LiveScreen> createState() => _LiveScreenState();
 }
@@ -58,7 +61,10 @@ class _LiveScreenState extends State<LiveScreen> {
           ],
           const Spacer(),
           // The control mode (on phones, the badge in the top bar shows it).
-          if (!phone && d.hasDevice && d.replay == null && Dash.modal(d.kind)) ...[ModePicker(d, small: true), const SizedBox(width: 8)],
+          if (!phone && d.hasDevice && d.replay == null && Dash.modal(d.kind)) ...[
+            ModePicker(d, small: true, onPicked: (m) => m == 'MANUAL' ? widget.go?.call('control') : null),
+            const SizedBox(width: 8),
+          ],
           RecordButton(d, label: !phone || d.recording),
           const SizedBox(width: 8),
           LayersBtn(d),

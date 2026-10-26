@@ -193,7 +193,7 @@ class _ShellState extends State<Shell> {
             'live' =>
               detail != null
                   ? SensorDetail(d, key: ValueKey(detail), id: detail!, onBack: () => setState(() => detail = null), w: bodyW)
-                  : LiveScreen(d, w: bodyW, onOpen: (id) => setState(() => detail = id)),
+                  : LiveScreen(d, w: bodyW, onOpen: (id) => setState(() => detail = id), go: go),
             'params' => ParamsScreen(d, w: bodyW),
             'program' => ProgramScreen(d, w: bodyW),
             'control' => ControlScreen(d, w: bodyW, h: bodyH),
