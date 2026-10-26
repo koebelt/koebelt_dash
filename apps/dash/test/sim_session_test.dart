@@ -32,7 +32,10 @@ void main() {
       tel.applyTlm((m['d'] as Map).cast<String, dynamic>());
     }
     expect(tel.hasGps, isTrue);
-    expect(tel.pos[2], greaterThan(5)); // demo drone flies at ~8 m
+    // As a device powers on: on the ground, disarmed, in HOLD.
+    expect(tel.pos[2], 0);
+    final state = got.lastWhere((m) => m['t'] == 'state');
+    expect((state['mode'], state['armed']), ('HOLD', false));
     expect(s.latency, greaterThanOrEqualTo(0));
     await s.close();
     sim.detach();

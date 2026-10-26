@@ -24,6 +24,7 @@ void main() {
       await d.init();
       final mule = d.addSimulated(simTemplates().firstWhere((t) => t.id == 'mule'));
       await d.connect(mule.id);
+      d.setArmed(true); // the operator arms it; dash drives it in AUTO for the script
       await d.scripts.start(port: 0);
       final ticker = Timer.periodic(const Duration(milliseconds: 20), (_) => d.tick(.02));
       addTearDown(() async {
@@ -65,6 +66,7 @@ void main() {
       await d.init();
       final mule = d.addSimulated(simTemplates().firstWhere((t) => t.id == 'mule'));
       await d.connect(mule.id);
+      d.setArmed(true); // the operator arms it; dash drives it in AUTO for the script
       await d.scripts.start(port: 0);
       final ticker = Timer.periodic(const Duration(milliseconds: 20), (_) => d.tick(.02));
       addTearDown(() async {
@@ -85,8 +87,7 @@ import numpy as np
 from koebelt_dash_scripts import connect, pid
 
 dev = connect()
-dev.mode("MANUAL")
-steer = pid(1.2, 0, 0.1)
+steer = pid(1.2, 0.3, 0.1)
 last = 0.0
 for frame in dev.camera.frames():
     h, w = frame.shape[:2]

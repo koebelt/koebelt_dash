@@ -22,15 +22,11 @@ from koebelt_dash_scripts import connect, pid
 print("info: loading the YOLO model (the first time, it downloads it)")
 model = YOLO("yolov8n.pt")
 dev = connect()
-dev.mode("MANUAL")                               # sticks drive it (AUTO ignores them)
-for _ in range(40):                              # its telemetry says so within a moment
-    if dev.next_tlm().mode == "MANUAL":
-        break
-else:
-    print(f"warning: {dev.name} stays in {dev.tlm.mode}, not MANUAL: it may ignore the sticks")
-print(f"info: following people with {dev.name}, mode {dev.tlm.mode}")
+print(f"info: following people with {dev.name}; it must be armed (dash puts it in AUTO while this script drives)")
+if not dev.tlm.armed:
+    print(f"warning: {dev.name} is disarmed: arm it in dash, and it starts moving")
 speed = dev.setting("speed", 0.4, min=0, max=1)
-steer = pid(1.2, 0, 0.1)
+steer = pid(1.2, 0.3, 0.1)                      # the I term catches up with someone who keeps moving
 last = 0.0                                       # where they were last seen
 seen = False
 seen_at = 0.0                                    # when they were last in view

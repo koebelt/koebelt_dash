@@ -19,7 +19,7 @@ const deviceGuides = [
         'koebelt/link does not replace your flight controller (Betaflight, ArduPilot, PX4, your own). It runs next to it and passes data both ways.',
         bullets: [
           'Live: HUD over a 3D view with attitude, accelerometer, altitude and a GPS track; the drone model follows position, roll, pitch and yaw.',
-          'Control: two sticks (throttle and yaw left, pitch and roll right), sliders or phone tilt; AUTO, MANUAL and HOLD, plus TAKEOFF, LAND and RTH.',
+          'Control: two sticks (throttle and yaw left, pitch and roll right), sliders or phone tilt; MANUAL and HOLD (AUTO while a sequence or a script flies it), plus TAKEOFF, LAND and RTH.',
           'Sequences (Automate): take off, fly to waypoints, wait and land.',
           'Settings: what the drone does on link loss (hold, return home or land).',
         ],
@@ -261,7 +261,7 @@ fn main() -> std::io::Result<()> {
         'Rovers get the same Live and Control screens as drones, without altitude: one stick steers, the other drives.',
         bullets: [
           'Live: the rover box in 3D, its trail, the lidar map, a GPS track and attitude.',
-          'Control: steer and drive sticks or sliders, AUTO, MANUAL and HOLD, a speed limit.',
+          'Control: steer and drive sticks or sliders, MANUAL and HOLD (AUTO while a sequence or a script drives it), a speed limit.',
           'Sequences (Automate): drive to waypoints, wait, change the speed limit.',
           'Lidar points accumulate into a map around the rover (10 cm grid).',
         ],

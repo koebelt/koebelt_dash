@@ -38,7 +38,7 @@ class SimDevice {
 
   // ---- state (names follow sim.js) ----
   double t = 0;
-  String mode = 'AUTO';
+  String mode = 'HOLD';
   bool armed = true, estop = false;
   List<double> input = [0, 0, 0, 0]; // lx ly rx ry
   List<double> jog = List.filled(6, 0);
@@ -93,11 +93,12 @@ class SimDevice {
 
   double P(String k, double d) => params[k] ?? d;
 
+  /// As a device is when it powers on: disarmed, in HOLD, on the ground.
   void _resetForKind() {
-    mode = 'AUTO';
-    armed = true;
+    mode = 'HOLD';
+    armed = false;
     estop = false;
-    pos = kind == DeviceKind.drone ? [0, 0, 8] : [0, 0, 0];
+    pos = [0, 0, 0];
     if (kind == DeviceKind.rocket) {
       mode = 'PAD';
       armed = false;
@@ -261,6 +262,8 @@ class SimDevice {
         final q = _seqStored;
         if (q == null || q.id != m['id'] || estop) break;
         _seq = SequenceRunner(q, _SimSeqHost(this));
+        // Running the app's sequence: AUTO (protocol/PROTOCOL.md, Modes).
+        if (armed && _modal) mode = 'AUTO';
         _sendState();
       case 'seqctl':
         final r = _seq;
@@ -283,6 +286,9 @@ class SimDevice {
   Sequence? _seqStored;
   SequenceRunner? _seq;
   (RunState, int)? _seqLast;
+
+  /// The kinds that use HOLD, MANUAL and AUTO.
+  bool get _modal => kind == DeviceKind.drone || kind == DeviceKind.rover || kind == DeviceKind.arm || kind == DeviceKind.generic;
 
   bool get _seqRunning => _seq?.state == RunState.running || _seq?.state == RunState.paused;
 
@@ -315,6 +321,8 @@ class SimDevice {
     final now = (r.state, r.index);
     if (now != _seqLast) {
       _seqLast = now;
+      // Done or stopped: AUTO ends, it holds.
+      if ((r.state == RunState.done || r.state == RunState.failed) && mode == 'AUTO') mode = 'HOLD';
       _sendState();
     }
   }
@@ -672,13 +680,9 @@ class SimDevice {
     var yr = 0.0;
     if (!live) {
       v = [0, 0, pos[2] > 0 ? -4 : 0];
-    } else if (mode == 'AUTO' && !_gotoActive) {
-      final d = [16 * math.sin(t * .12), 10 * math.sin(t * .24), 8 + 2 * math.sin(t * .17)];
-      v = [for (var i = 0; i < 3; i++) (d[i] - pos[i]) * .9];
-      var dy = math.atan2(v[1], v[0]) - yaw;
-      dy = math.atan2(math.sin(dy), math.cos(dy));
-      yr = dy * 1.5;
-    } else if (mode == 'MANUAL') {
+    } else if (mode == 'MANUAL' || (mode == 'AUTO' && !_gotoActive)) {
+      // MANUAL: the operator's sticks; AUTO without a goto: the sticks dash
+      // sends for a script (centred: it holds).
       final f = inp[3] * 8 * speed * 2, rt = inp[2] * 8 * speed * 2;
       final c = math.cos(yaw), s = math.sin(yaw);
       v = [c * f + s * rt, s * f - c * rt, inp[1] * 3];
@@ -739,14 +743,7 @@ class SimDevice {
 
   void _rover(double dt, bool live, List<double> inp) {
     var sp = 0.0, tu = 0.0;
-    if (live && mode == 'AUTO' && !_gotoActive) {
-      final d = [22 * math.cos(t * .08), 14 * math.sin(t * .16)];
-      final dx = d[0] - pos[0], dy = d[1] - pos[1];
-      var a = math.atan2(dy, dx) - yaw;
-      a = math.atan2(math.sin(a), math.cos(a));
-      sp = math.min(3, hypot2(dx, dy));
-      tu = a * 1.2;
-    } else if (live && mode == 'AUTO' && _gotoActive) {
+    if (live && mode == 'AUTO' && _gotoActive) {
       final dx = _goto[0] - pos[0], dy = _goto[1] - pos[1], dist = hypot2(dx, dy);
       var a = math.atan2(dy, dx) - yaw;
       a = math.atan2(math.sin(a), math.cos(a));
@@ -758,7 +755,8 @@ class SimDevice {
         _gotoActive = false;
         _sendState();
       }
-    } else if (live && mode == 'MANUAL') {
+    } else if (live && (mode == 'MANUAL' || mode == 'AUTO')) {
+      // MANUAL: the operator's sticks; AUTO: the sticks dash sends for a script.
       sp = inp[3] * 4 * speed * 2;
       tu = -inp[0] * 1.2 - inp[2] * .6;
     }
@@ -910,16 +908,13 @@ class SimDevice {
 
   void _arm(double dt, bool live) {
     var tgt = List.of(joints);
-    final manual = mode == 'MANUAL';
+    // MANUAL: the operator's jog; AUTO: dash's (poses come as commands).
+    final manual = mode == 'MANUAL' || mode == 'AUTO';
     if (_homeFrom != null) {
       _homeT += dt;
       final k = math.min(1.0, _homeT / _poseDur), e = 1 - math.pow(1 - k, 3);
       tgt = [for (var i = 0; i < 6; i++) _homeFrom![i] + (_poseTo[i] - _homeFrom![i]) * e];
       if (k >= 1) _homeFrom = null;
-    } else if (live && mode == 'AUTO') {
-      final ph = t * .35;
-      tgt = [math.sin(ph) * 1.1, -0.4 + math.sin(ph * 2) * .3, 1.0 + math.cos(ph * 2) * .3, math.sin(ph) * .5, 0.7 + math.sin(ph * 2) * .2, ph % 6.28];
-      gripper = math.sin(ph * 2) > 0 ? .8 : .1;
     } else if (live && manual) {
       tgt = [for (var i = 0; i < 6; i++) joints[i] + jog[i] * dt * 1.2 * speed * 2];
     }

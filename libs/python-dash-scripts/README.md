@@ -16,12 +16,17 @@ dev = connect()                      # the device selected in koebelt dash
 speed = dev.setting("speed", 0.4, min=0, max=1)   # a slider in dash
 hold = pid(1.5, 0.0, 0.2)
 
+stopped = False
+
 @dev.trigger("Stop here", key="S")   # a button in dash
 def stop_here():
-    dev.mode("HOLD")
+    global stopped
+    stopped = True
+    dev.mode("HOLD")                 # it stops driving: the device holds
 
-dev.mode("MANUAL")
-for _ in every(0.05):                # 20 Hz
+for _ in every(0.05):                # 20 Hz; dash puts it in AUTO while it drives
+    if stopped:
+        continue
     error = 0.0 - dev.tlm.pos[0]     # stay on the north-south line
     dev.sticks(throttle=speed.value, steer=hold.update(error))
 ```

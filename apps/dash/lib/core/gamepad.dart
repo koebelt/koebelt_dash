@@ -18,7 +18,7 @@ enum PadAction {
   arm('Arm / disarm', 'Hold for one second'),
   manual('Manual', 'Switch to MANUAL'),
   hold('Hold', 'Switch to HOLD'),
-  auto('Auto', 'Switch to AUTO'),
+  auto('Back to the script', 'After taking over, give the sticks back to the script (AUTO)'),
   rth('Return home', 'Switch to RTH (drones)'),
   takeoff('Take off', 'Hold for one second (drones)'),
   land('Land', 'Switch to LAND (drones)'),

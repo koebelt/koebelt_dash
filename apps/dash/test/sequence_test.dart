@@ -42,7 +42,9 @@ class Host implements SequenceHost {
   void seqCmd(String c, Map<String, dynamic> a) => s.send({'t': 'cmd', 'c': c, 'a': a});
 }
 
-Future<(Host, SimDevice)> connect(DeviceKind kind) async {
+/// A simulated device, as it powers on (disarmed); [arm]: armed, as the
+/// operator does before running a sequence that does not arm it.
+Future<(Host, SimDevice)> connect(DeviceKind kind, {bool arm = false}) async {
   final sim = SimDevice(DeviceInfo(id: 'x', name: 'X', kind: kind));
   final lt = LoopbackTransport('test');
   sim.attach(lt);
@@ -56,8 +58,10 @@ Future<(Host, SimDevice)> connect(DeviceKind kind) async {
   );
   await s.open();
   s.send({'t': 'speed', 'v': 1.0});
+  final h = Host(s, t);
+  if (arm) h.seqSetArmed(true);
   await Future<void>.delayed(const Duration(milliseconds: 200));
-  return (Host(s, t), sim);
+  return (h, sim);
 }
 
 Future<SequenceRunner> run(Sequence q, Host h, {int maxMs = 30000, void Function(SequenceRunner)? during}) async {
@@ -95,7 +99,7 @@ void main() {
   }, timeout: const Timeout(Duration(seconds: 40)));
 
   test('arm: move to pose, gripper, home', () async {
-    final (h, sim) = await connect(DeviceKind.arm);
+    final (h, sim) = await connect(DeviceKind.arm, arm: true);
     final q = Sequence(
       id: 'b',
       name: 'pick',
@@ -199,7 +203,7 @@ void main() {
   }, timeout: const Timeout(Duration(seconds: 40)));
 
   test('set home pose: the Home step returns to it', () async {
-    final (h, sim) = await connect(DeviceKind.arm);
+    final (h, sim) = await connect(DeviceKind.arm, arm: true);
     final custom = [0.5, -0.3, 0.9, 0.2, 0.4, 1.0];
     h.seqCmd('sethome', {'j': custom});
     await Future<void>.delayed(const Duration(milliseconds: 100));

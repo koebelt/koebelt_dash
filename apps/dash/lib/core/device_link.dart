@@ -71,6 +71,9 @@ class DeviceLink {
   SequenceRunner? runner;
   bool estopAck = false;
 
+  /// Whether its first state has been looked at (a disarmed device starts in HOLD).
+  bool modeChecked = false;
+
   /// Commanded bench throttle (0–1); the device reports only the output.
   double benchThrottle = 0;
 

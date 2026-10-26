@@ -1,6 +1,7 @@
 """A rover drives a square, side by side, and stops on a button.
 
-Try it on the simulated rover: Devices > Pair > Simulated > Mule.
+Try it on the simulated rover: Devices > Pair > Simulated > Mule, then arm
+it. dash puts it in AUTO while the script drives it.
 """
 # requires: rover
 from koebelt_dash_scripts import angle_diff, bearing, clamp, connect, distance, every
@@ -17,7 +18,6 @@ def stop():
     done = True
 
 
-dev.mode("MANUAL")
 target = 1
 for _ in every(0.05):
     if done:

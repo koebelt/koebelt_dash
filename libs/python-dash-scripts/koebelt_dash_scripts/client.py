@@ -332,6 +332,10 @@ class Device:
         self._call("release")
 
     def mode(self, mode: str) -> None:
+        """Switches the device's mode: HOLD, or on drones TAKEOFF, LAND, RTH.
+        dash chooses MANUAL and AUTO itself (AUTO while a script or a sequence
+        drives the device, MANUAL when the operator does): asking for them
+        does nothing."""
         self._call("cmd", c="mode", a={"m": mode})
 
     def arm(self) -> None:

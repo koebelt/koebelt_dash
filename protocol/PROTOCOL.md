@@ -61,6 +61,18 @@ app's default dashboard, the control screen and the 3D model.
 ## Modes
 
 `AUTO`, `MANUAL`, `HOLD`, `TAKEOFF`, `LAND`, `RTH` (drones, rovers, arms)
+
+- `HOLD`: hold still (position, or stopped). A device powers on disarmed in
+  HOLD; the app puts a disarmed device in HOLD when it connects (an armed one
+  is left as it is: it may be flying).
+- `MANUAL`: follow the operator's sticks (`ctl`). The app switches to MANUAL
+  when the operator arms the device or takes the sticks.
+- `AUTO`: the app drives: follow `goto` and the other steps of a sequence,
+  and the sticks the app sends for a script (`ctl`, as in MANUAL); with
+  neither, hold. The app chooses AUTO only while a sequence or a script
+  drives the device, and switches to HOLD when it ends. A device running a
+  stored sequence (Sequences on the device) reports AUTO while it runs, and
+  HOLD after.
 Rockets use flight phases: `PAD`, `COUNT`, `BOOST`, `COAST`, `DROGUE`,
 `MAIN`, `LANDED`. Test benches: `IDLE`, `MANUAL`, `RAMP`, `STEPS`, `CUTOFF`.
 

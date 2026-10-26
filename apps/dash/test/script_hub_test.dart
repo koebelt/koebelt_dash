@@ -213,7 +213,15 @@ void main() {
       }))['ok'],
       isTrue,
     );
-    expect(d.links.values.single.tel.mode, 'MANUAL');
+    // dash chooses MANUAL and AUTO: the script is told once, the mode stays.
+    expect(d.links.values.single.tel.mode, 'HOLD');
+    await s.call('cmd', {
+      'c': 'mode',
+      'a': {'m': 'AUTO'},
+    });
+    final told = d.scripts.conns.single.console.where((l) => l.text.contains('does nothing')).toList();
+    expect((told.length, told.single.level), (1, 'warn'));
+    expect(d.links.values.single.tel.mode, 'HOLD');
     await s.call('cmd', {
       'c': 'speed',
       'a': {'v': 1},
@@ -501,5 +509,71 @@ void main() {
     expect(d.scripts.whyNotRun, contains('No device connected'));
     await expectLater(d.scripts.runFile(file, python: 'python3'), throwsA(isA<StateError>()));
     expect(d.scripts.runs, isEmpty);
+  });
+
+  test('modes: HOLD on connect, MANUAL when armed, AUTO only while a script or a sequence drives', () async {
+    final l = d.links.values.single;
+    await run(.3);
+    expect((l.tel.armed, l.tel.mode), (false, 'HOLD'), reason: 'it powers on disarmed in HOLD');
+    d.setArmed(true);
+    await run(.3);
+    expect(l.tel.mode, 'MANUAL', reason: 'armed: the operator\'s');
+
+    // A script drives it: AUTO. The operator takes over: MANUAL. Resume: AUTO.
+    final s = await _Script.open(d.scripts);
+    await s.call('use');
+    await s.call('sticks', {
+      'a': {'throttle': .3},
+    });
+    for (var i = 0; i < 6; i++) {
+      s.send('ka');
+      await run(.1);
+    }
+    expect(l.tel.mode, 'AUTO');
+    expect(d.automation, 'Script · ${d.scripts.conns.single.name}');
+    l.input[3] = .8; // the operator's stick
+    d.input[3] = .8;
+    for (var i = 0; i < 4; i++) {
+      s.send('ka');
+      await run(.1);
+    }
+    d.input[3] = 0;
+    l.input[3] = 0;
+    expect((l.drive!.paused, l.tel.mode), (true, 'MANUAL'));
+    d.scripts.resume(l);
+    for (var i = 0; i < 6; i++) {
+      s.send('ka');
+      await run(.1);
+    }
+    expect(l.tel.mode, 'AUTO');
+
+    // The script asks for HOLD: it stops driving, and it stays in HOLD.
+    await s.call('cmd', {
+      'c': 'mode',
+      'a': {'m': 'HOLD'},
+    });
+    for (var i = 0; i < 6; i++) {
+      s.send('ka');
+      await run(.1);
+    }
+    expect((l.drive, l.tel.mode), (null, 'HOLD'));
+
+    // A sequence runs in AUTO; choosing MANUAL takes it back and stops it.
+    d.runSequenceOn(
+      l,
+      Sequence(
+        id: 'w',
+        name: 'Wait',
+        kind: l.kind,
+        steps: [
+          SeqStep('wait', {'s': 30.0}),
+        ],
+      ),
+    );
+    await run(.3);
+    expect((l.tel.mode, d.automation), ('AUTO', 'Sequence · Wait'));
+    d.operatorMode('MANUAL');
+    await run(.3);
+    expect((l.tel.mode, l.runner!.state), ('MANUAL', RunState.failed));
   });
 }

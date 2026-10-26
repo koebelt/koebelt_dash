@@ -149,7 +149,11 @@ final deviceApi = <String, Signature?>{
     'Sets the sticks until changed; scaled to the script\'s speed limit; the operator\'s sticks win.',
   ),
   'release': _sig('release', '', 'Hands the sticks back; the device holds.'),
-  'mode': _sig('mode', 'mode — "HOLD", "MANUAL", "AUTO", "RTH"…', 'Switches the device\'s mode.'),
+  'mode': _sig(
+    'mode',
+    'mode — "HOLD"; drones: "TAKEOFF", "LAND", "RTH"',
+    'Switches the device\'s mode. dash chooses MANUAL and AUTO itself: AUTO while the script drives.',
+  ),
   'arm': _sig('arm', '', 'Arms (needs Allow arming in the script\'s Limits).'),
   'disarm': _sig('disarm', '', 'Disarms.'),
   'speed_limit': _sig('speed_limit', 'v — 0.1–1, capped by the script\'s limit', 'The device\'s speed limit.'),
@@ -422,10 +426,9 @@ Set<String> _ownNames(String text) => {
         ? ['button', 'switch', 'value']
         : switch (str[2]) {
             'run_sequence' || 'run_program' => ctx.sequences,
+            // MANUAL and AUTO are dash's to choose.
             'mode' => [
               'HOLD',
-              'MANUAL',
-              'AUTO',
               if (ctx.kind == 'drone') ...['RTH', 'LAND', 'TAKEOFF'],
             ],
             _ => const <String>[],

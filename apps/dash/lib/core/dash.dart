@@ -587,17 +587,19 @@ class Dash extends ChangeNotifier implements PadTarget {
       case PadAction.arm:
         if (!s.estop && canControl) setArmed(!s.armed);
       case PadAction.manual:
-        setMode('MANUAL');
+        operatorMode('MANUAL');
       case PadAction.hold:
-        setMode('HOLD');
+        operatorMode('HOLD');
       case PadAction.auto:
-        setMode('AUTO');
+        // AUTO is dash's while a script drives: give the sticks back to it.
+        final l = focus;
+        if (l != null) scripts.resume(l);
       case PadAction.rth:
-        if (drone) setMode('RTH');
+        if (drone) operatorMode('RTH');
       case PadAction.takeoff:
-        if (drone && s.armed) setMode('TAKEOFF');
+        if (drone && s.armed) operatorMode('TAKEOFF');
       case PadAction.land:
-        if (drone) setMode('LAND');
+        if (drone) operatorMode('LAND');
       case PadAction.record:
         recording ? stopRec() : startRec();
       case PadAction.slower:
@@ -948,6 +950,12 @@ class Dash extends ChangeNotifier implements PadTarget {
       case 'state':
         final wasStop = tel.estop;
         tel.applyState(m);
+        // Connected: a disarmed device starts in HOLD. An armed one is left
+        // as it is (it may be flying, or running a sequence of its own).
+        if (!l.modeChecked) {
+          l.modeChecked = true;
+          if (!tel.armed && !tel.estop && modal(l.kind) && tel.mode != 'HOLD' && !nativeModes(l)) _setMode(l, 'HOLD');
+        }
         final run = (m['ext'] as Map?)?['run'];
         if (run is Map) _onRunState(l, run);
         if (tel.estop && !wasStop) l.estopAck = false;
@@ -1018,6 +1026,40 @@ class Dash extends ChangeNotifier implements PadTarget {
 
   void setMode(String m) => _setMode(focus, m);
 
+  /// ArduPilot and PX4 keep their own modes: their AUTO runs their stored
+  /// mission, and they take dash's sticks only in a stick mode.
+  bool nativeModes(DeviceLink l) => l.session.transport is MavlinkTransport;
+
+  /// The kinds that use HOLD, MANUAL and AUTO (rockets and benches have their own).
+  static bool modal(DeviceKind k) => k == DeviceKind.drone || k == DeviceKind.rover || k == DeviceKind.arm || k == DeviceKind.generic;
+
+  /// What drives [l] in AUTO: a sequence or a script; null if neither.
+  String? automationOf(DeviceLink l) {
+    final r = l.runner;
+    if (r != null && (r.state == RunState.running || r.state == RunState.paused)) return 'Sequence · ${r.seq.name}';
+    final dr = l.drive;
+    if (dr != null && !dr.paused) return 'Script · ${dr.conn.name}';
+    return null;
+  }
+
+  String? get automation => focus == null ? null : automationOf(focus!);
+
+  /// The operator chooses MANUAL or HOLD. During a sequence or a script,
+  /// that takes the device back from it first.
+  void operatorMode(String m) {
+    final l = focus;
+    if (l != null) {
+      final r = l.runner;
+      if (r != null && r.state == RunState.running) r.stop('Stopped: you took control');
+      final dr = l.drive;
+      if (dr != null && !dr.paused) {
+        dr.paused = true;
+        scripts.takeover(dr);
+      }
+    }
+    setMode(m);
+  }
+
   void _setMode(DeviceLink? l, String m) {
     final t = l?.tel ?? _idleTel;
     if (t.estop || !(replay == null && (l?.session.controls ?? true))) return;
@@ -1033,7 +1075,9 @@ class Dash extends ChangeNotifier implements PadTarget {
     final t = l?.tel ?? _idleTel;
     _sendTo(l, {'t': 'arm', 'v': v});
     t.armed = v;
-    if (v && (l?.kind ?? kind) == DeviceKind.drone && t.pos[2] < .2) t.mode = 'HOLD';
+    // Armed: in the operator's hands (MANUAL), or a sequence's or a script's
+    // if one drives it (AUTO).
+    if (v && l != null && modal(l.kind)) _setMode(l, automationOf(l) != null && !nativeModes(l) ? 'AUTO' : 'MANUAL');
     _haptic();
     notifyListeners();
   }
@@ -1642,6 +1686,8 @@ class Dash extends ChangeNotifier implements PadTarget {
       _sendTo(l, r.uploadMsg().cast<String, dynamic>());
     } else {
       l.runner = SequenceRunner(q, host);
+      // dash drives it now.
+      if (l.tel.armed && modal(l.kind) && !nativeModes(l)) _setMode(l, 'AUTO');
     }
     notifyListeners();
   }

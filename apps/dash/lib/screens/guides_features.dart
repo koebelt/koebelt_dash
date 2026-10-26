@@ -401,8 +401,7 @@ dev = connect()
 speed = dev.setting("speed", 0.4, min=0, max=1)
 keep = pid(1.5, 0.0, 0.2)
 
-dev.mode("MANUAL")
-for _ in every(0.05):                       # 20 Hz
+for _ in every(0.05):                       # 20 Hz; dash puts it in AUTO
     error = 0.0 - dev.tlm.pos[0]            # metres east of the line
     dev.sticks(throttle=speed.value, steer=keep.update(error))''',
           ],

@@ -88,6 +88,9 @@ class ScriptDrive {
   /// The operator took over: the script's sticks are ignored until Resume.
   bool paused = false;
 
+  /// When dash last asked the device for the mode a script drives in.
+  double modeAsked = -10;
+
   /// Beyond this, an operator stick counts as taking over.
   static const takeoverAt = .15;
 
@@ -112,6 +115,9 @@ class ScriptConn {
   final WebSocket ws;
   String name;
   int? pid;
+
+  /// Whether it was told that dash chooses MANUAL and AUTO.
+  bool toldModes = false;
 
   /// The operator's setup for this script (limits, bindings), by its path.
   ScriptConfig config = ScriptConfig();
@@ -785,6 +791,18 @@ class ScriptHub {
       case 'mode':
         final mode = '${a['m']}'.toUpperCase();
         if (mode == 'TAKEOFF' && !lim.allowArm) return _res(c, id, err: 'Take-off is not allowed for this script (Limits in dash).', code: 'E0301');
+        // dash chooses these: AUTO while a script or a sequence drives, MANUAL
+        // when the operator does.
+        if ((mode == 'MANUAL' || mode == 'AUTO') && Dash.modal(l.kind)) {
+          if (!c.toldModes) {
+            c.toldModes = true;
+            c.log('warn', 'dev.mode("$mode") does nothing: dash puts ${l.info.name} in AUTO while the script drives it, and in MANUAL when you take over.');
+          }
+          return _res(c, id);
+        }
+        // Another mode (HOLD, LAND, RTH, TAKEOFF): the script stops driving,
+        // so dash does not put it back in AUTO, until it sends sticks again.
+        if (c.drive != null) _release(c, 'The script asked for $mode.', block: false, level: 'sys');
         h.seqSetMode(mode);
       case 'arm':
         if (!lim.allowArm) return _res(c, id, err: 'Arming is not allowed for this script (Limits in dash).', code: 'E0301');
@@ -925,8 +943,21 @@ class ScriptHub {
     }
   }
 
-  /// The operator moved the sticks while a script drove.
+  /// While a script drives, the device is in AUTO: dash drives it. ArduPilot
+  /// and PX4 stay in their stick mode (their AUTO runs their own mission).
+  void _driveMode(ScriptDrive dr) {
+    final l = dr.link, t = l.tel;
+    if (dr.paused || !t.armed || t.estop || !Dash.modal(l.kind)) return;
+    final want = d.nativeModes(l) ? 'MANUAL' : 'AUTO';
+    if (t.mode == want || d.t - dr.modeAsked < 1) return;
+    dr.modeAsked = d.t;
+    d.linkHost(l).seqSetMode(want);
+  }
+
+  /// The operator moved the sticks while a script drove: theirs now (MANUAL).
   void takeover(ScriptDrive dr) {
+    final t = dr.link.tel;
+    if (t.armed && !t.estop && Dash.modal(dr.link.kind) && t.mode != 'MANUAL') d.linkHost(dr.link).seqSetMode('MANUAL');
     dr.conn.log('warn', 'Operator took over ${dr.link.info.name}');
     dr.conn.send({'t': 'takeover', 'on': true});
     d.emit();
@@ -1119,6 +1150,7 @@ class ScriptHub {
         _release(c, 'The script stopped responding: ${dr.link.info.name} holds.');
         continue;
       }
+      _driveMode(dr);
       final p = dr.link.tel.pos, lim = c.limits;
       if (lim.fence > 0 && math.sqrt(p[0] * p[0] + p[1] * p[1]) > lim.fence) {
         _release(c, '${dr.link.info.name} left the ${lim.fence.round()} m geofence: it holds.');

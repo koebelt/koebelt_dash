@@ -28,7 +28,6 @@ speed = dev.setting("speed", 0.5, min=0, max=1)
 def turn():
     print("turn fired")
 
-dev.mode("MANUAL")
 x0, y0 = dev.tlm.pos[0], dev.tlm.pos[1]
 for i in every(0.05):
     dev.sticks(throttle=speed.value)
@@ -58,6 +57,7 @@ void main() {
       await d.init();
       final mule = d.addSimulated(simTemplates().firstWhere((t) => t.id == 'mule'));
       await d.connect(mule.id);
+      d.setArmed(true); // the operator arms it; dash drives it in AUTO for the script
       await d.scripts.start(port: 0);
       final ticker = Timer.periodic(const Duration(milliseconds: 20), (_) => d.tick(.02));
       addTearDown(() async {
@@ -82,7 +82,7 @@ void main() {
       await until(() => out().contains('moved'), 'the script drives');
       final moved = double.parse(RegExp(r'moved ([0-9.]+)').firstMatch(out())![1]!);
       expect(moved, greaterThan(.3), reason: 'the rover moved');
-      expect(d.links.values.single.tel.mode, 'MANUAL');
+      expect(d.links.values.single.tel.mode, 'AUTO', reason: 'dash drives it for the script');
 
       final c = d.scripts.connOf(run)!;
       expect(c.settings.keys, ['speed']);
@@ -105,6 +105,7 @@ void main() {
       await d.init();
       final mule = d.addSimulated(simTemplates().firstWhere((t) => t.id == 'mule'));
       await d.connect(mule.id);
+      d.setArmed(true); // the operator arms it; dash drives it in AUTO for the script
       await d.scripts.start(port: 0);
       final ticker = Timer.periodic(const Duration(milliseconds: 20), (_) => d.tick(.02));
       addTearDown(() async {
@@ -206,6 +207,7 @@ print("landed", round(dev.tlm.alt))
       await d.init();
       final mule = d.addSimulated(simTemplates().firstWhere((t) => t.id == 'mule'));
       await d.connect(mule.id);
+      d.setArmed(true); // the operator arms it; dash drives it in AUTO for the script
       // A free port: a koebelt dash running on this computer holds the usual one.
       await d.scripts.start(port: 0);
       final ticker = Timer.periodic(const Duration(milliseconds: 20), (_) => d.tick(.02));
@@ -253,7 +255,6 @@ from koebelt_dash_scripts import connect, every
 dev = connect()
 speed = float(open("settings.txt").read())
 print("remote on", dev.name, "speed", speed)
-dev.mode("MANUAL")
 x0 = dev.tlm.pos[1]
 for i in every(0.05):
     dev.sticks(throttle=speed)
@@ -298,6 +299,7 @@ print("done")
       final d = Dash();
       await d.init();
       await d.connect(d.addSimulated(simTemplates().firstWhere((t) => t.id == sim)).id);
+      d.setArmed(true); // the operator arms it; dash drives it in AUTO for the script
       await d.scripts.start(port: 0);
       final ticker = Timer.periodic(const Duration(milliseconds: 20), (_) => d.tick(.02));
       final file = File('../../libs/python-dash-scripts/examples/$example').absolute;

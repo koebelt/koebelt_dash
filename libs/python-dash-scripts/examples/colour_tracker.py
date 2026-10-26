@@ -19,16 +19,12 @@ import numpy as np
 from koebelt_dash_scripts import connect, pid
 
 dev = connect()
-dev.mode("MANUAL")                               # sticks drive it (AUTO ignores them)
-for _ in range(40):                              # its telemetry says so within a moment
-    if dev.next_tlm().mode == "MANUAL":
-        break
-else:
-    print(f"warning: {dev.name} stays in {dev.tlm.mode}, not MANUAL: it may ignore the sticks")
-print(f"info: tracking a colour with {dev.name}, mode {dev.tlm.mode}")
+print(f"info: tracking a colour with {dev.name}; it must be armed (dash puts it in AUTO while this script drives)")
+if not dev.tlm.armed:
+    print(f"warning: {dev.name} is disarmed: arm it in dash, and it starts moving")
 hue = dev.setting("hue", 30, min=0, max=179)          # 30: yellow
 speed = dev.setting("speed", 0.3, min=0, max=1)
-steer = pid(1.5, 0, 0.1)
+steer = pid(1.5, 0.3, 0.1)                      # the I term catches up with a target that keeps moving
 last = 0.0                                       # where it was last seen
 seen = False
 seen_at = 0.0                                    # when it was last in view

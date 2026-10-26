@@ -54,7 +54,6 @@ def mark():
     print("marked at", [round(v, 1) for v in dev.tlm.pos])
 
 
-dev.mode("MANUAL")
 print("following on", dev.name)
 for _ in every(0.05):
     dev.sticks(throttle=0 if paused else speed.value, steer=hold.update(-dev.tlm.pos[0]))

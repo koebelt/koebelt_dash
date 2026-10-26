@@ -251,6 +251,11 @@ void main() {
       await d.connect(dev.id);
       expect(d.session, isNotNull);
       await wait(300);
+      // It powers on disarmed in HOLD; arming hands it to the operator.
+      expect((d.liveTel.armed, d.liveTel.mode), (false, 'HOLD'));
+      d.setArmed(true);
+      await wait(200);
+      expect((d.liveTel.armed, d.liveTel.mode), (true, 'MANUAL'));
       final why = 'armed ${d.liveTel.armed} estop ${d.liveTel.estop} lost ${d.linkLost} silence ${d.session?.silence} ctl ${d.canControl}';
       d.padMapper.input('n:leftStickY', 1);
       expect(d.input[1], 1, reason: why);

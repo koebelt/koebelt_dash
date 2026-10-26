@@ -20,6 +20,28 @@ import 'script_panel.dart' show ScriptControls;
 import 'tiles.dart';
 
 // ------------------------------------------------------------------ inputs
+/// The operator's modes, MANUAL and HOLD; AUTO is dash's while a sequence
+/// or a script drives the device, shown with what drives it. Choosing MANUAL
+/// or HOLD then takes the device back.
+class ModePicker extends StatelessWidget {
+  const ModePicker(this.d, {super.key, this.small = false});
+  final Dash d;
+  final bool small;
+  @override
+  Widget build(BuildContext context) {
+    final mode = d.liveTel.mode, who = d.automation;
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        Seg(items: const ['MANUAL', 'HOLD'], value: mode == 'MANUAL' || mode == 'HOLD' ? mode : '', onChanged: d.operatorMode, small: small),
+        if (mode == 'AUTO') KTag(who == null ? 'AUTO' : 'AUTO · $who', tone: TagTone.accent, height: small ? 26 : 32),
+      ],
+    );
+  }
+}
+
 class _Pad extends StatelessWidget {
   const _Pad({required this.child, required this.w, required this.h, this.circle = true});
   final Widget child;
@@ -548,14 +570,13 @@ class MobileControl extends StatelessWidget {
       value: csMap[cs],
       onChanged: (v) => d.updateSettings((st) => st.control = csMap.entries.firstWhere((e) => e.value == v).key),
     );
-    final special = const ['TAKEOFF', 'LAND', 'RTH'].contains(s.mode);
     final top = Wrap(
       spacing: 8,
       runSpacing: 8,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        Seg(items: const ['AUTO', 'MANUAL', 'HOLD'], value: special ? '' : s.mode, onChanged: d.setMode, small: stacked),
-        if (drone) Seg(items: const ['TAKEOFF', 'LAND', 'RTH'], value: s.mode, onChanged: d.setMode, small: stacked),
+        ModePicker(d, small: stacked),
+        if (drone) Seg(items: const ['TAKEOFF', 'LAND', 'RTH'], value: s.mode, onChanged: d.operatorMode, small: stacked),
         RecordButton(d, small: stacked),
         if (viewItems(d, cameras3d: false).length > 1)
           ViewSeg(
@@ -620,10 +641,10 @@ class MobileControl extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Seg(items: const ['AUTO', 'MANUAL', 'HOLD'], value: special ? '' : s.mode, onChanged: d.setMode, small: true),
+                        ModePicker(d, small: true),
                         const SizedBox(height: 8),
                         row([
-                          if (drone) Seg(items: const ['TAKEOFF', 'LAND', 'RTH'], value: s.mode, onChanged: d.setMode, small: true),
+                          if (drone) Seg(items: const ['TAKEOFF', 'LAND', 'RTH'], value: s.mode, onChanged: d.operatorMode, small: true),
                           KButton(
                             'Set home',
                             size: KSize.sm,
@@ -853,7 +874,7 @@ class _ArmControlState extends State<ArmControl> {
             spacing: 12,
             runSpacing: 12,
             children: [
-              Seg(items: const ['AUTO', 'MANUAL', 'HOLD'], value: s.mode, onChanged: d.setMode),
+              ModePicker(d),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
