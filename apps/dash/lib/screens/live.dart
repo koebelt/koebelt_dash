@@ -57,6 +57,8 @@ class _LiveScreenState extends State<LiveScreen> {
               ViewSeg(d, view: view, cameras3d: false, onChanged: (v) => setState(() => view = v)),
           ],
           const Spacer(),
+          // The control mode (on phones, the badge in the top bar shows it).
+          if (!phone && d.hasDevice && d.replay == null && Dash.modal(d.kind)) ...[ModePicker(d, small: true), const SizedBox(width: 8)],
           RecordButton(d, label: !phone || d.recording),
           const SizedBox(width: 8),
           LayersBtn(d),

@@ -11,6 +11,7 @@ import 'core/model.dart';
 import 'core/system_ui.dart';
 import 'core/updater.dart' show UpdateState;
 import 'screens/assistant_ui.dart';
+import 'screens/common.dart' show ModeBadge;
 import 'screens/control.dart';
 import 'screens/device_menu.dart';
 import 'screens/devices.dart';
@@ -874,7 +875,10 @@ class ModeArm extends StatelessWidget {
       children: [
         d.replay != null
             ? const KTag('Replay', tone: TagTone.accent)
-            : KTag(d.linkLost || s.failsafe ? 'FAILSAFE' : s.mode, tone: s.mode == 'MANUAL' ? TagTone.accent : TagTone.neutral),
+            : d.linkLost || s.failsafe
+            ? const KTag('FAILSAFE')
+            // The control mode, AUTO lit while dash drives.
+            : ModeBadge(d, height: 26),
         SizedBox(width: phone ? 10 : 16),
         Tooltip(
           message: s.armed ? 'Armed' : 'Disarmed',
