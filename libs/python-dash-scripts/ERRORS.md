@@ -344,6 +344,18 @@ Why: the device has not sent any since the script connected.
 
 Fix: check that it is connected and its link is up in dash.
 
+## E0503
+
+**no proximity sensor called “<name>”**
+
+```python
+dev.proximity("forward")     # it is called "front"
+```
+
+Why: proximity() takes the names the device gives its sensors.
+
+Fix: its sensors: <the ones it has>.
+
 # The camera
 
 ## E0601

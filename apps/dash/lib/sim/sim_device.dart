@@ -119,6 +119,59 @@ class SimDevice {
     joints = List.of(home);
   }
 
+  // ---------------------------------------------------------------- proximity
+  /// Proximity sensors as a hobby build fits them: four ultrasonic ones on a
+  /// rover's bumpers; on a drone, a time-of-flight sensor forward and one
+  /// down (its height above the ground).
+  List<ProxSensor> get proxSensors => switch (kind) {
+    DeviceKind.rover => const [
+      ProxSensor('front', min: .02, max: 4, kind: 'ultrasonic'),
+      ProxSensor('front_left', dir: -.6, min: .02, max: 4, kind: 'ultrasonic'),
+      ProxSensor('front_right', dir: .6, min: .02, max: 4, kind: 'ultrasonic'),
+      ProxSensor('rear', dir: math.pi, min: .02, max: 4, kind: 'ultrasonic'),
+    ],
+    DeviceKind.drone => const [
+      ProxSensor('front', fov: .05, min: .05, max: 4, kind: 'tof'),
+      ProxSensor('down', tilt: -1.571, fov: .05, min: .05, max: 8, kind: 'tof'),
+    ],
+    _ => const [],
+  };
+
+  /// What each sensor sees, in metres (−1: nothing in range): the scenery,
+  /// the ball and the person the camera shows; the ground, for one looking down.
+  List<double> proxReadings() {
+    final ball = SimCamera.ballAt(t);
+    final (feet, _) = SimCamera.personAt(t);
+    final h = kind == DeviceKind.drone ? pos[2] : .3; // the sensors' height
+    final out = <double>[];
+    for (final s in proxSensors) {
+      if (s.down) {
+        out.add(pos[2] >= s.min && pos[2] <= s.max ? pos[2] : -1);
+        continue;
+      }
+      // dir is clockwise from forward; yaw counter-clockwise from east.
+      final a = yaw - s.dir, ca = math.cos(a), sa = math.sin(a), spread = math.tan(s.fov / 2);
+      var best = double.infinity;
+      // Something at (x, y, z), [r] wide and [vr] tall around it.
+      void see(double x, double y, double z, double r, double vr) {
+        final dx = x - pos[0], dy = y - pos[1];
+        final along = dx * ca + dy * sa;
+        if (along <= 0) return;
+        final cone = along * spread + .05;
+        if ((-dx * sa + dy * ca).abs() - r > cone || (z - h).abs() - vr > cone + .1) return;
+        best = math.min(best, math.max(0.0, math.sqrt(dx * dx + dy * dy) - r));
+      }
+
+      for (final q in env) {
+        if (q[2] > .05) see(q[0], q[1], q[2], 0, 0); // not the ground
+      }
+      see(ball[0], ball[1], ball[2], SimCamera.ballRadius, SimCamera.ballRadius);
+      see(feet[0], feet[1], .88, .25, .88);
+      out.add(best >= s.min && best <= s.max ? best : -1);
+    }
+    return out;
+  }
+
   // ---------------------------------------------------------------- camera
   bool get hasCamera => kind == DeviceKind.drone || kind == DeviceKind.rover || kind == DeviceKind.rocket;
 
@@ -146,7 +199,7 @@ class SimDevice {
     detach();
     _link = link;
     if (hasCamera) {
-      final cam = camera ??= SimCamera(kind: kind, pose: cameraPose, world: env, osd: _osd);
+      final cam = camera ??= SimCamera(kind: kind, pose: cameraPose, world: env, osd: _osd, now: () => t);
       unawaited(cam.start().catchError((_) {}));
     }
     _sub = link.deviceInbox.listen(_onMsg);
@@ -190,6 +243,7 @@ class SimDevice {
           'lib': 'sim/1.0.0',
           'sensors': info.sensors,
           'seq': 64,
+          if (proxSensors.isNotEmpty) 'prox': [for (final p in proxSensors) p.toJson()],
           if (camera?.running ?? false)
             'video': [
               {'id': 'cam', 'url': camera!.url, 'fmt': 'mjpeg', 'label': kind == DeviceKind.rocket ? 'Down cam' : 'FPV'},
@@ -555,6 +609,7 @@ class SimDevice {
         d['pos'] = [pos[0] - homeXY[0], pos[1] - homeXY[1], pos[2]]; // local frame: metres from home
         d['vel'] = vel;
         d['gps'] = [g[0], g[1], pos[2], kind == DeviceKind.rover ? 11 : 14];
+        if (proxSensors.isNotEmpty) d['prox'] = [for (final v in proxReadings()) (v * 1000).round() / 1000];
         if (kind == DeviceKind.rocket) d['rocket'] = [maxAlt, phaseT, countdown];
       case DeviceKind.arm:
         // servo / stepper encoders and motor current; tool pose from forward kinematics

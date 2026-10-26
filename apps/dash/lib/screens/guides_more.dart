@@ -135,6 +135,128 @@ channels:
     ],
   ),
   Guide(
+    'proximity',
+    'Proximity sensors',
+    'Ultrasonic, infrared and time-of-flight sensors: declare where each points, report what it sees, and the app shows it from above and warns when something is close.',
+    6,
+    platforms: ['arduino', 'python', 'rust', 'ros2'],
+    [
+      Step.rich(
+        'Where each one points',
+        'Declare each sensor once, before the device starts: a name, where it points and its range. The app needs this to draw it, and the alert to know which ones look ahead.',
+        table: [
+          ['Field', 'Meaning', 'Example'],
+          ['id', 'Its name, unique on the device.', 'front, rear, down'],
+          ['dir', 'Where it points, radians clockwise from the device\'s forward.', '0 front, 1.571 right, 3.1416 rear'],
+          ['tilt', 'Radians above the horizontal; -1.571 looks straight down (a height sensor).', '-1.571'],
+          ['fov', 'Its cone, full angle in radians.', '0.26 (15°, an HC-SR04)'],
+          ['min, max', 'Its range in metres. A switch (an IR obstacle sensor): max is where it triggers.', '0.02, 4'],
+          ['kind', 'ultrasonic, ir, tof or switch.', 'ultrasonic'],
+        ],
+      ),
+      Step.rich(
+        'Report what it sees',
+        'Give each one its distance in metres whenever you have a reading, or "nothing in range". The latest goes out with the next telemetry frame, even on slow radios.',
+        complete: true,
+        c: {
+          'arduino': [
+            'cpp',
+            r'''#include <KoebeltLink.h>
+
+KLink klink("Mule", KLink::ROVER);
+KProx front, rear;
+
+// An HC-SR04: the echo takes 5.83 microseconds per millimetre, there and back.
+float sonarMetres(int trig, int echo) {
+  digitalWrite(trig, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trig, LOW);
+  unsigned long us = pulseIn(echo, HIGH, 25000);
+  return us ? us / 5830.0f : -1;  // -1: nothing in range
+}
+
+void setup() {
+  pinMode(5, OUTPUT);
+  pinMode(6, INPUT);
+  klink.begin("your-ssid", "your-password");
+  front = klink.proximity("front", 4.0, 0, "ultrasonic");
+  rear = klink.proximity("rear", 4.0, 3.1416, "ultrasonic");
+}
+
+void loop() {
+  front.set(sonarMetres(5, 6));  // negative: nothing in range
+  rear.clear();                  // no reading this time
+  klink.update();
+}''',
+          ],
+          'python': [
+            'python',
+            r'''from koebelt_link import Device
+
+dev = Device("Mule", kind="rover")
+dev.connect(wifi=True)
+front = dev.proximity("front", max=4, kind="ultrasonic")
+down = dev.proximity("down", tilt=-1.571, fov=0.05, max=8, kind="tof")
+
+
+def read_sonar():                 # your sensor's driver: metres, or None
+    return 0.8
+
+
+def loop():
+    front.set(read_sonar())       # None: nothing in range
+    down.set(None)
+
+
+dev.run(hz=20, loop=loop)''',
+          ],
+          'rust': [
+            'rust',
+            r'''use koebelt_link::{Device, Kind};
+
+fn read_sonar() -> Option<f32> {
+    Some(0.8) // your sensor's driver: metres, or None
+}
+
+fn main() -> std::io::Result<()> {
+    let mut dev = Device::new("Mule", Kind::Rover).wifi("", "").start()?;
+    let front = dev.proximity("front", 4.0, 0.0, "ultrasonic").unwrap();
+    let rear = dev.proximity("rear", 4.0, std::f32::consts::PI, "ultrasonic").unwrap();
+    loop {
+        dev.set_proximity(front, read_sonar())?;
+        dev.set_proximity(rear, None)?; // nothing in range
+        dev.tick_blocking(20.0);
+    }
+}''',
+          ],
+          'ros2': [
+            'yaml',
+            r'''name: Mule
+kind: rover
+transport: wifi
+
+# sensor_msgs/Range topics: +inf is nothing in range, -inf closer than it can tell
+proximity:
+  - {id: front, topic: /range/front, max: 4, kind: ultrasonic}
+  - {id: rear,  topic: /range/rear,  dir: 3.1416, max: 4, kind: ultrasonic}
+  - {id: down,  topic: /range/down,  tilt: -1.571, fov: 0.05, max: 8, kind: tof}''',
+          ],
+        },
+      ),
+      Step.rich(
+        'Where it shows up',
+        'As soon as the device sends readings:',
+        bullets: [
+          'Live: a Proximity widget, the device from above with a wedge per sensor, coloured by how close; sensors looking down show as a height bar.',
+          'Settings > Alerts > Obstacle close: warns while armed when something is nearer than 0.3 m (sensors looking down do not count).',
+          'Scripts: dev.proximity() gives each sensor\'s distance by name; # requires: proximity limits a script to devices that have them; trigger conditions can use prox.front or prox.nearest.',
+          'Recordings keep the readings; Replay shows them.',
+        ],
+        note: 'Arduino: up to 8 sensors (KLINK_MAX_PROX); Rust: 8 (MAX_PROX). The simulated rover has four on its bumpers, the simulated drone one forward and one down.',
+      ),
+    ],
+  ),
+  Guide(
     'params',
     'Tunable parameters',
     'Make gains, limits and setpoints editable from the Tune screen and keep them across reboots.',

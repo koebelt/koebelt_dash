@@ -76,6 +76,18 @@ final alertRules = <AlertRule>[
     read: (t, _) => t.seen.contains('bat') && t.voltage > 0 ? t.voltage : null,
   ),
   AlertRule(
+    'obstacle',
+    act: 'Steer away, or stop.',
+    'Obstacle close',
+    'The nearest thing a proximity sensor sees, while armed (sensors looking down do not count).',
+    'm',
+    below: true,
+    def: .3,
+    hyst: .1,
+    digits: 2,
+    read: (t, _) => t.armed ? t.nearestObstacle : null,
+  ),
+  AlertRule(
     'rssi',
     act: 'Move closer or turn back.',
     'Weak signal',

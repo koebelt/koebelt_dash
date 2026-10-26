@@ -328,6 +328,10 @@ class Dash extends ChangeNotifier implements PadTarget {
   static const maxLinks = 8;
   final Map<String, SimDevice> _sims = {};
 
+  /// A simulated device's simulator, for tests (to place it).
+  @visibleForTesting
+  SimDevice? simOf(String id) => _sims[id];
+
   DeviceLink? get focus => deviceId == null ? null : links[deviceId];
   DeviceSession? get session => focus?.session;
 
@@ -343,6 +347,27 @@ class Dash extends ChangeNotifier implements PadTarget {
   Telemetry get tel => replay?.tel ?? liveTel;
 
   DeviceInfo? get device => focus?.info;
+
+  /// The proximity sensors of the device on screen, or of the replayed
+  /// recording's device; numbered ones when the device did not say.
+  List<ProxSensor> get proxSensors {
+    final id = replay?.session.deviceId ?? focus?.info.id;
+    final declared = devices.where((x) => x.id == id).firstOrNull?.prox ?? focus?.info.prox ?? const [];
+    final n = tel.prox.length;
+    return [for (var i = 0; i < n; i++) i < declared.length ? declared[i] : ProxSensor('${i + 1}')];
+  }
+
+  /// The nearest thing a proximity sensor sees, or null if none does.
+  ({ProxSensor sensor, double d})? get nearest {
+    final ps = proxSensors;
+    ({ProxSensor sensor, double d})? best;
+    for (var i = 0; i < ps.length && i < tel.prox.length; i++) {
+      final v = tel.prox[i];
+      if (v >= 0 && !ps[i].down && (best == null || v < best.d)) best = (sensor: ps[i], d: v);
+    }
+    return best;
+  }
+
   DeviceKind get kind => replay?.session.kind ?? device?.kind ?? DeviceKind.generic;
   bool get hasDevice => focus != null;
 
@@ -831,6 +856,8 @@ class Dash extends ChangeNotifier implements PadTarget {
       if (h['kind'] is String) d.kind = DeviceKind.parse(h['kind']);
       if (h['model'] is String && (h['model'] as String).isNotEmpty) d.model = h['model'];
       if (h['sensors'] is List && (h['sensors'] as List).isNotEmpty) d.sensors = List<String>.from(h['sensors']);
+      d.prox = [for (final p in h['prox'] as List? ?? const []) ?ProxSensor.fromJson(p)];
+      l.tel.proxDown = [for (final p in d.prox) p.down];
       l.fwVersion = h['fw'] as String?;
       l.seqCap = (h['seq'] as num?)?.toInt() ?? 0;
       // Remembered so an app update can be checked against it (core/compat.dart).
@@ -1446,6 +1473,7 @@ class Dash extends ChangeNotifier implements PadTarget {
     if (recording) stopRec();
     Telemetry fresh(Recording r) => Telemetry(r.kind)
       ..predict = false
+      ..proxDown = [for (final p in devices.where((x) => x.id == r.deviceId).firstOrNull?.prox ?? const <ProxSensor>[]) p.down]
       ..addPoints(r.cloud);
     replay = Replay(
       s,

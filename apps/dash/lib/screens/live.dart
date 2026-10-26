@@ -652,11 +652,16 @@ class _GridPainter extends CustomPainter {
 }
 
 // ---------------------------------------------------------------- sensor detail
+/// Now, min, max, mean; NaN where there is nothing (a gap: a proximity
+/// sensor that sees nothing).
 List<double> _stats(List<double?> a) {
   final v = a.whereType<double>().toList();
-  if (v.isEmpty) return [0, 0, 0, 0];
-  return [v.last, v.reduce(math.min), v.reduce(math.max), v.reduce((x, y) => x + y) / v.length];
+  if (v.isEmpty) return [double.nan, double.nan, double.nan, double.nan];
+  return [a.lastOrNull ?? double.nan, v.reduce(math.min), v.reduce(math.max), v.reduce((x, y) => x + y) / v.length];
 }
+
+/// A statistic, or a dash when there is none.
+String _st(double v) => v.isNaN ? '—' : f1(v, 2);
 
 class SensorDetail extends StatefulWidget {
   const SensorDetail(this.d, {super.key, required this.id, required this.onBack, required this.w});
@@ -711,7 +716,7 @@ class _SensorDetailState extends State<SensorDetail> {
     if (t == null) return const SizedBox();
     if (t.keys.isEmpty) return _picture(t, phone);
     final cols = t.colors ?? (t.keys.length == 1 ? const [VC.lime] : axisColors);
-    final visual = const ['attitude', 'gps', 'radar', 'lidar', 'joints'].contains(t.id);
+    final visual = const ['attitude', 'gps', 'radar', 'lidar', 'joints', 'prox'].contains(t.id);
     final keys = [
       for (var i = 0; i < t.keys.length; i++)
         if (!off.contains(t.keys[i])) t.keys[i],
@@ -843,9 +848,9 @@ class _SensorDetailState extends State<SensorDetail> {
                                           ],
                                         ),
                                         const SizedBox(height: 12),
-                                        Text(f1(st[0], 2), style: KText.mono(24, tracking: -.02)),
+                                        Text(_st(st[0]), style: KText.mono(24, tracking: -.02)),
                                         const SizedBox(height: 12),
-                                        MonoLabel('Min ${f1(st[1], 2)} · Max ${f1(st[2], 2)}\nMean ${f1(st[3], 2)}', size: 10, height: 1.6),
+                                        MonoLabel('Min ${_st(st[1])} · Max ${_st(st[2])}\nMean ${_st(st[3])}', size: 10, height: 1.6),
                                       ],
                                     ),
                                   ),

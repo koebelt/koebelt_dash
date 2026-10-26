@@ -193,6 +193,11 @@ final deviceApi = <String, Signature?>{
   'on_trigger': null,
   'on_stop': null,
   'on_takeover': null,
+  'proximity': _sig(
+    'proximity',
+    'sensor=None — a name, e.g. "front"',
+    'Proximity sensors: {name: metres or None}; with a name, that sensor\'s distance (None: nothing in range).',
+  ),
   'plot': _sig(
     'plot',
     'name — the Live widget; value — a number; **series — or several: target=…, actual=…',
@@ -265,6 +270,7 @@ const tlmFields = {
   'latency': 's',
   'drive': '"none", "script", "operator"',
   'custom': 'the device\'s own channels',
+  'prox': 'proximity: a distance per sensor, m (−1: nothing in range); dev.proximity() names them',
   'age': 'seconds since it arrived',
   'raw': 'everything, as a dict',
 };

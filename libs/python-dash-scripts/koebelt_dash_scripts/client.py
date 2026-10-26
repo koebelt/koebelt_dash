@@ -419,6 +419,24 @@ class Device:
     resume_program = resume_sequence
     stop_program = stop_sequence
 
+    # ------------------------------------------------------------------ proximity
+    def proximity(self, sensor: Optional[str] = None) -> Any:
+        """Proximity sensors (ultrasonic, infrared, time of flight): a dict of
+        name → metres, None when nothing is in range. With a name, that
+        sensor's distance::
+
+            if (dev.proximity("front") or 9) < 0.5:
+                dev.sticks(throttle=0)
+        """
+        names = [p.get("id", str(i + 1)) for i, p in enumerate(self.info.get("prox", []))]
+        values = self.tlm.raw.get("prox", [])
+        out = {(names[i] if i < len(names) else str(i + 1)): (float(v) if v >= 0 else None) for i, v in enumerate(values)}
+        if sensor is None:
+            return out
+        if sensor not in out:
+            raise ScriptError("E0503", {"name": sensor, "names": list(out)})
+        return out[sensor]
+
     # ------------------------------------------------------------------ camera
     @property
     def camera(self) -> Camera:

@@ -687,6 +687,7 @@ class ScriptHub {
                 for (final v in l.video) {'id': v.id, 'url': resolveVideoUrl(v.url, l.info)?.toString(), 'fmt': v.fmt, 'label': v.label},
               ],
               'steps': [for (final s in stepDefs(l.kind)) s.type],
+              'prox': [for (final p in l.info.prox) p.toJson()],
             },
           );
         case 'sticks':

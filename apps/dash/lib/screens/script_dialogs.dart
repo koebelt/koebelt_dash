@@ -131,7 +131,7 @@ class _TriggerDialogState extends State<_TriggerDialog> {
 
   Widget _conditionEditor() {
     final picked = pickedFrom(_expr.text);
-    final fields = conditionFields(widget.kind);
+    final fields = conditionFields(widget.kind, prox: widget.d.proxSensors);
     final check = _checkExpr();
     Widget box(Widget child, {double? w}) => Container(
       width: w,

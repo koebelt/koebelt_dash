@@ -114,6 +114,9 @@ CATALOG: Dict[str, Tuple[str, str, str]] = {
     "E0502": ("no telemetry from the device yet",
               "the device has not sent any since the script connected",
               "check that it is connected and its link is up in dash"),
+    "E0503": ("no proximity sensor called “{name}”",
+              "proximity() takes the names the device gives its sensors",
+              "{suggest}its sensors: {names_list}"),
     # Camera
     "E0601": ("{device} has no camera",
               "the device declares no video stream",

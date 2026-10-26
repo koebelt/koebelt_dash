@@ -114,6 +114,7 @@ dash stays in charge, whatever the script does:
 | `@dev.on_trigger`, `@dev.on_stop`, `@dev.on_takeover` | Other events. |
 | `dev.show(name, image)` | A picture in dash's Live view, a widget named `name`: a numpy image (BGR or grey, as OpenCV makes them), a PIL image, a matplotlib figure, or JPEG/PNG bytes. Up to 15 a second. |
 | `dev.chart(name, y, x=None, kind="line")` | A whole chart in Live, redrawn at each call: `y` a list or a dict of named series; `kind` `line`, `bar` or `scatter`. |
+| `dev.proximity()`, `dev.proximity("front")` | Proximity sensors: metres by name, `None` when nothing is in range (`dev.tlm.prox` has them in order). |
 | `dev.plot(name, v)`, `dev.plot(name, target=…, actual=…)` | Values over time in Live, one or several series, recorded. |
 | `dev.mark(text)`, `dev.notify(text)` | An event on the recording; a message to the operator. |
 | `print("debug: …")`, `print("info: …")`, `print("warning: …")`, `print("error: …")`, or `logging` | The console in dash colours lines by level: errors red, warnings amber, info blue, debug grey. Tracebacks and this library's errors are coloured by themselves. |

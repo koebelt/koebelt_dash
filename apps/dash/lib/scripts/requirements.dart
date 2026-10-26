@@ -93,6 +93,10 @@ Set<String> _sensorWords(String sensor) {
     'thrust': 'thrust',
     'pyro': 'pyro',
     'vibration': 'vibration',
+    'ultrason': 'proximity',
+    'tof': 'proximity',
+    'prox': 'proximity',
+    'ir range': 'proximity',
   };
   return {
     for (final e in keys.entries)
@@ -106,7 +110,7 @@ Set<String> _sensorWords(String sensor) {
 /// connected device what dash sees (telemetry fields, camera streams, its own
 /// channels, stored sequences, parameters).
 Set<String> capabilitiesOf(DeviceInfo info, [DeviceLink? link]) {
-  final out = <String>{for (final s in info.sensors) ..._sensorWords(s)};
+  final out = <String>{for (final s in info.sensors) ..._sensorWords(s), if (info.prox.isNotEmpty) 'proximity'};
   if (link != null) {
     const seen = {
       'gps': 'gps',
@@ -128,6 +132,7 @@ Set<String> capabilitiesOf(DeviceInfo info, [DeviceLink? link]) {
     if (link.video.isNotEmpty) out.add('camera');
     out.addAll(link.tel.custom.keys.where((k) => !k.startsWith('script:')));
     if (link.seqCap > 0) out.add('sequences');
+    if (link.tel.seen.contains('prox')) out.add('proximity');
   }
   if (info.kind == DeviceKind.arm) out.addAll({'joints', 'gripper'});
   return out;

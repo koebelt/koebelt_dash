@@ -110,7 +110,7 @@ koebelt-link = { path = "$root/libs/rust", features = ["ble"] }
   test('ROS 2 configs only use keys the bridge understands', () {
     const check = r'''
 import sys, yaml
-top = {"name", "kind", "model", "transport", "fallback", "port", "sensors", "controls", "safety", "params", "channels", "video"}
+top = {"name", "kind", "model", "transport", "fallback", "port", "sensors", "proximity", "controls", "safety", "params", "channels", "video"}
 sensors = {"imu", "lidar", "joints", "power", "odom", "gps"}
 controls = {"twist", "jog", "mode", "max_linear", "max_angular", "joint_names"}
 safety = {"stop_service", "failsafe_timeout", "failsafe_action"}

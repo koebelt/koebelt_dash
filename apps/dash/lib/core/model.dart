@@ -35,6 +35,45 @@ class VideoStream {
   factory VideoStream.fromJson(Map j) => VideoStream('${j['id'] ?? 'cam'}', '${j['url'] ?? ''}', '${j['fmt'] ?? 'mjpeg'}', label: '${j['label'] ?? ''}');
 }
 
+/// A proximity sensor a device declares in `hello` (protocol/PROTOCOL.md):
+/// where it points, its cone and range.
+class ProxSensor {
+  const ProxSensor(this.id, {this.dir = 0, this.tilt = 0, this.fov = .26, this.min = 0, this.max = 4, this.kind = ''});
+  final String id, kind;
+
+  /// Rad clockwise from the device's forward; rad above the horizontal.
+  final double dir, tilt;
+  final double fov, min, max;
+
+  /// Points at the ground (a height sensor).
+  bool get down => tilt < -1;
+  bool get isSwitch => kind == 'switch';
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    if (dir != 0) 'dir': dir,
+    if (tilt != 0) 'tilt': tilt,
+    'fov': fov,
+    if (min != 0) 'min': min,
+    'max': max,
+    if (kind.isNotEmpty) 'kind': kind,
+  };
+
+  static ProxSensor? fromJson(Object? j) {
+    if (j is! Map || j['id'] is! String) return null;
+    double n(String k, double d) => (j[k] as num?)?.toDouble() ?? d;
+    return ProxSensor(
+      j['id'] as String,
+      dir: n('dir', 0),
+      tilt: n('tilt', 0),
+      fov: n('fov', .26),
+      min: n('min', 0),
+      max: n('max', 4),
+      kind: '${j['kind'] ?? ''}',
+    );
+  }
+}
+
 class DeviceInfo {
   DeviceInfo({
     required this.id,
@@ -44,6 +83,7 @@ class DeviceInfo {
     this.online = true,
     this.battery = 100,
     this.sensors = const [],
+    this.prox = const [],
     this.transport = TransportKind.sim,
     this.address = '',
     this.key,
@@ -64,6 +104,9 @@ class DeviceInfo {
   bool online;
   int battery;
   List<String> sensors;
+
+  /// Its proximity sensors, in the order the `prox` channel reports them.
+  List<ProxSensor> prox;
   TransportKind transport;
 
   /// ip:port for UDP, remote id for BLE, port path for serial and radio, sim id for sim.
@@ -106,6 +149,7 @@ class DeviceInfo {
     'model': model,
     'battery': battery,
     'sensors': sensors,
+    if (prox.isNotEmpty) 'prox': [for (final p in prox) p.toJson()],
     'transport': transport.name,
     'address': address,
     'key': key,
@@ -125,6 +169,7 @@ class DeviceInfo {
     model: j['model'] ?? '',
     battery: (j['battery'] ?? 100) as int,
     sensors: List<String>.from(j['sensors'] ?? const []),
+    prox: [for (final p in j['prox'] as List? ?? const []) ?ProxSensor.fromJson(p)],
     transport: TransportKind.values.firstWhere((t) => t.name == j['transport'], orElse: () => TransportKind.udp),
     address: j['address'] ?? '',
     key: j['key'],

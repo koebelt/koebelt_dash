@@ -233,3 +233,18 @@ def test_sequence_names_and_the_old_program_ones():
     assert D.pause_program is D.pause_sequence
     assert D.resume_program is D.resume_sequence
     assert D.stop_program is D.stop_sequence
+
+
+def test_proximity_by_name():
+    dev = client.Device.__new__(client.Device)
+    dev.info = {"prox": [{"id": "front"}, {"id": "rear", "dir": 3.14}]}
+    dev._tlm = client.Telemetry({"prox": [0.42, -1]}, 0)
+    assert dev.proximity() == {"front": 0.42, "rear": None}
+    assert dev.proximity("front") == 0.42
+    assert dev.proximity("rear") is None             # nothing in range
+    with pytest.raises(k.ScriptError) as e:
+        dev.proximity("forward")
+    assert e.value.code == "E0503"
+    # A device that does not name them: numbered.
+    dev.info = {}
+    assert dev.proximity() == {"1": 0.42, "2": None}

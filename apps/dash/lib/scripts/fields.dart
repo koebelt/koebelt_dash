@@ -6,7 +6,7 @@ import 'conditions.dart';
 
 /// The fields conditions can read on a device, with a label and unit for the
 /// picker. Custom channels the device declares come on top.
-List<({String field, String label, String unit})> conditionFields(DeviceKind kind) => [
+List<({String field, String label, String unit})> conditionFields(DeviceKind kind, {List<ProxSensor> prox = const []}) => [
   (field: 'battery.pct', label: 'Battery', unit: '%'),
   (field: 'battery.v', label: 'Battery voltage', unit: 'V'),
   if (kind == DeviceKind.drone || kind == DeviceKind.rover || kind == DeviceKind.rocket || kind == DeviceKind.generic) ...[
@@ -22,6 +22,8 @@ List<({String field, String label, String unit})> conditionFields(DeviceKind kin
     (field: 'rpm', label: 'RPM', unit: ''),
     (field: 'temp', label: 'Temperature', unit: '°C'),
   ],
+  if (prox.any((p) => !p.down)) (field: 'prox.nearest', label: 'Nearest obstacle', unit: 'm'),
+  for (final p in prox) (field: 'prox.${p.id}', label: 'Proximity · ${p.id.replaceAll('_', ' ')}', unit: 'm'),
   (field: 'link.rssi', label: 'Signal', unit: 'dBm'),
   (field: 'link.latency', label: 'Latency', unit: 'ms'),
   (field: 'gps.sats', label: 'GPS satellites', unit: ''),
@@ -80,6 +82,16 @@ FieldLookup fieldsOf(DeviceLink l) {
         return t.temp;
       case 'throttle':
         return t.throttleOut * 100;
+      case 'prox':
+        // Proximity, by sensor (prox.front) or the nearest obstacle; nothing
+        // in range is far away, so "prox.front < 0.5" does not fire on it.
+        if (!t.seen.contains('prox') || rest.length != 1) return null;
+        if (rest.single == 'nearest') return t.nearestObstacle ?? double.infinity;
+        final i = l.info.prox.indexWhere((p) => p.id == rest.single);
+        final n = int.tryParse(rest.single);
+        final at = i >= 0 ? i : (n != null ? n - 1 : -1);
+        if (at < 0 || at >= t.prox.length) return null;
+        return t.prox[at] < 0 ? double.infinity : t.prox[at];
       case 'script':
         // Values a script plots: script.target_x
         return rest.length == 1 ? _channel(t.custom['script:${rest.single}'], const []) : null;

@@ -8,6 +8,7 @@ import '../theme/tokens.dart';
 import '../ui/components.dart';
 import '../video/video_view.dart';
 import '../viz/map_view.dart';
+import '../viz/prox.dart';
 import '../viz/scene3d.dart';
 import '../viz/script_views.dart';
 import '../viz/viz.dart';
@@ -349,6 +350,36 @@ List<TileDef> customTiles(Dash d) => [
     ),
 ];
 
+/// Proximity sensors (the `prox` channel), when the device sends them: the
+/// sensors from above, the nearest obstacle as the value, each sensor's
+/// distance as a series.
+List<TileDef> proxTiles(Dash d) {
+  if (!d.tel.seen.contains('prox')) return const [];
+  final ps = d.proxSensors;
+  return [
+    TileDef(
+      id: 'prox',
+      title: 'Proximity',
+      types: DeviceKind.values.toSet(),
+      val: (d) {
+        final n = d.nearest;
+        if (n != null) return '${n.d.toStringAsFixed(2)} m · ${n.sensor.id.replaceAll('_', ' ')}';
+        final down = [
+          for (var i = 0; i < d.proxSensors.length && i < d.tel.prox.length; i++)
+            if (d.proxSensors[i].down && d.tel.prox[i] >= 0) d.tel.prox[i],
+        ];
+        return down.isNotEmpty ? '↓ ${down.first.toStringAsFixed(1)} m' : 'clear';
+      },
+      body: (d) => LiveCanvas(ProxPainter(d)),
+      keys: [for (var i = 0; i < ps.length; i++) 'prox:$i'],
+      labels: [for (final p in ps) p.id.replaceAll('_', ' ')],
+      colors: ps.length > 3 ? j6 : null,
+      unit: 'm',
+      src: ps.isEmpty ? 'Proximity sensors' : {for (final p in ps) p.kind.isEmpty ? 'proximity' : p.kind}.join(' · '),
+    ),
+  ];
+}
+
 /// What scripts show for the device: pictures and charts (dev.show,
 /// dev.chart), and plotted series (dev.plot) drawn over time like telemetry.
 List<TileDef> scriptTiles(Dash d) => [
@@ -397,10 +428,11 @@ List<TileDef> scriptTiles(Dash d) => [
 List<TileDef> tilesFor(Dash d) => [
   ...tiles.where((t) => t.types.contains(d.kind) && !t.hudOnly && (t.needs.isEmpty || t.needs.any(d.tel.seen.contains)) && (t.when?.call(d) ?? true)),
   ...customTiles(d),
+  ...proxTiles(d),
   ...scriptTiles(d),
 ];
 List<TileDef> allTiles(Dash d) => [tiles.first, ...tilesFor(d)];
-TileDef? tileById(Dash d, String id) => [...tiles, ...customTiles(d), ...scriptTiles(d)].where((t) => t.id == id).firstOrNull;
+TileDef? tileById(Dash d, String id) => [...tiles, ...customTiles(d), ...proxTiles(d), ...scriptTiles(d)].where((t) => t.id == id).firstOrNull;
 
 const phases = ['PAD', 'COUNT', 'BOOST', 'COAST', 'DROGUE', 'MAIN', 'LANDED'];
 const phaseLabel = {'PAD': 'On pad', 'COUNT': 'Countdown', 'BOOST': 'Boost', 'COAST': 'Coast', 'DROGUE': 'Drogue', 'MAIN': 'Main', 'LANDED': 'Landed'};

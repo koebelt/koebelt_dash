@@ -36,6 +36,23 @@ class Telemetry {
   // bench
   double thrust = 0, torque = 0, rpm = 0, temp = 0, throttleOut = 0;
 
+  /// Proximity: a distance (m) per declared sensor, −1 when nothing is in range.
+  List<double> prox = const [];
+
+  /// Which of them look down (a height, not an obstacle), from the device's
+  /// declarations.
+  List<bool> proxDown = const [];
+
+  /// The nearest obstacle a proximity sensor sees (m), null if none does.
+  double? get nearestObstacle {
+    double? best;
+    for (var i = 0; i < prox.length; i++) {
+      if (prox[i] < 0 || (i < proxDown.length && proxDown[i])) continue;
+      if (best == null || prox[i] < best) best = prox[i];
+    }
+    return best;
+  }
+
   // rocket
   double maxAlt = 0, phaseT = 0, countdown = 0;
   List<String> pyro = ['OK', 'OK', 'OK', '—'];
@@ -141,6 +158,8 @@ class Telemetry {
           rpm = x[0];
         case 'temp':
           temp = x[0];
+        case 'prox':
+          prox = x;
         case 'throttle':
           throttleOut = x[0];
         case 'rocket':
@@ -319,6 +338,7 @@ class Telemetry {
       if (has('thrust')) ...{'thrust': r(thrust, 3), 'torque': r(torque, 4)},
       if (has('rpm')) 'rpm': r(rpm, 0),
       if (has('temp')) 'temp': r(temp, 2),
+      if (has('prox')) 'prox': rl(prox, 3),
       if (has('throttle')) 'thr': r(throttleOut, 3),
       if (has('rocket')) ...{'maxAlt': r(maxAlt, 2), 'phaseT': r(phaseT, 2), 'countdown': r(countdown, 2), 'pyro': List.of(pyro)},
       if (targets.isNotEmpty)
@@ -356,6 +376,7 @@ class Telemetry {
     torque = d('torque') ?? torque;
     rpm = d('rpm') ?? rpm;
     temp = d('temp') ?? temp;
+    prox = l('prox') ?? prox;
     throttleOut = d('thr') ?? throttleOut;
     maxAlt = d('maxAlt') ?? maxAlt;
     phaseT = d('phaseT') ?? phaseT;
@@ -419,6 +440,10 @@ class History {
   void sample(Telemetry t, double latency) {
     void h(String k, double v) => this[k].push(v);
     h('vz', t.vel[2]);
+    // Proximity: a gap while nothing is in range.
+    for (var i = 0; i < t.prox.length; i++) {
+      this['prox:$i'].push(t.prox[i] < 0 ? null : t.prox[i]);
+    }
     h('thr', t.thrust);
     h('rpm', t.rpm);
     h('tq', t.torque);
