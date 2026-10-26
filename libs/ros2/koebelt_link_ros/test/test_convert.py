@@ -2,7 +2,7 @@ import math
 
 import pytest
 
-from koebelt_link_ros.convert import control_to_twist, downsample, parse_fallback, parse_transport, quat_to_rpy, topic_values
+from koebelt_link_ros.convert import control_to_twist, downsample, parse_fallback, parse_transport, quat_to_rpy, range_metres, topic_values
 
 
 def test_quat_to_rpy():
@@ -43,3 +43,12 @@ def test_topic_values():
 
     assert topic_values(Arr(), 3) == [1.0, 2.5, 0.0]
     assert topic_values(Temp(), 1) == [41.5]
+
+
+def test_range_as_proximity():
+    assert range_metres(0.42, 0.02, 4.0) == 0.42
+    assert range_metres(math.inf, 0.02, 4.0) is None      # nothing detected
+    assert range_metres(-math.inf, 0.02, 4.0) == 0.02     # triggered, closer than it can tell
+    assert range_metres(float("nan"), 0.02, 4.0) is None  # invalid
+    assert range_metres(5.0, 0.02, 4.0) is None           # out of range
+

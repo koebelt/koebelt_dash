@@ -343,6 +343,19 @@ impl Device {
         self.on_param = Some(Box::new(f));
     }
 
+    /// Declares a proximity sensor (ultrasonic, infrared, time of flight, a
+    /// switch): `dir` rad clockwise from forward, `kind` "ultrasonic", "ir",
+    /// "tof" or "switch". For one looking down or with another cone, use
+    /// `link` directly. Returns its index for [`Device::set_proximity`].
+    pub fn proximity(&mut self, id: &'static str, max: f32, dir: f32, kind: &'static str) -> Option<usize> {
+        self.link.proximity(id, max, dir, kind, 0.26, 0.0, 0.0)
+    }
+    /// What a proximity sensor measures, in metres; `None`: nothing in range.
+    pub fn set_proximity(&mut self, sensor: usize, metres: Option<f32>) -> io::Result<()> {
+        self.link.set_proximity(sensor, metres);
+        Ok(())
+    }
+
     /// Declares a custom channel; returns its index for [`Device::publish`].
     pub fn channel(&mut self, id: &'static str, axes: &[&'static str], unit: &'static str, hz: f32) -> usize {
         self.link.channel(id, axes, unit, hz)

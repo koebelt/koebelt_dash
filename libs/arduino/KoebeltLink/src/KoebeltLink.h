@@ -20,6 +20,9 @@ class Stream;
 #ifndef KLINK_MAX_CHANNELS
 #define KLINK_MAX_CHANNELS 8
 #endif
+#ifndef KLINK_MAX_PROX
+#define KLINK_MAX_PROX 8
+#endif
 #ifndef KLINK_MAX_TRACKS
 #define KLINK_MAX_TRACKS 16
 #endif
@@ -90,6 +93,24 @@ class KChannel {
  private:
   friend class KLink;
   KChannel(KLink* l, uint8_t i) : _l(l), _i(i) {}
+  KLink* _l = nullptr;
+  uint8_t _i = 0;
+};
+
+/// Handle to a proximity sensor declared with KLink::proximity(). Cheap to copy.
+class KProx {
+ public:
+  KProx() = default;
+  /// The distance it measures, in metres; negative: nothing in range (a
+  /// switch: its max when triggered).
+  void set(float metres);
+  /// Nothing in range.
+  void clear() { set(-1); }
+  bool valid() const { return _l != nullptr; }
+
+ private:
+  friend class KLink;
+  KProx(KLink* l, uint8_t i) : _l(l), _i(i) {}
   KLink* _l = nullptr;
   uint8_t _i = 0;
 };
@@ -165,6 +186,13 @@ class KLink {
   void rocketState(float maxAltM, float phaseTimeS, float countdownS = 0);
   /// Point cloud in metres, local frame. Sent at most 10 Hz, in chunks.
   void points(const float (*xyz)[3], uint16_t n);
+  /// Declares a proximity sensor (ultrasonic, infrared, time of flight, a
+  /// switch), before begin…(). `dirRad`: where it points, clockwise from the
+  /// device's forward; `tiltRad`: above the horizontal (-1.571: down);
+  /// `kind`: "ultrasonic", "ir", "tof" or "switch". The app shows it from
+  /// above and warns when something is close. Up to KLINK_MAX_PROX.
+  KProx proximity(const char* id, float maxM = 4, float dirRad = 0, const char* kind = nullptr, float fovRad = 0.26f, float tiltRad = 0,
+                  float minM = 0);
   /// Radar / safety scanner targets; call clearTracks() then track() each scan.
   void clearTracks();
   void track(const char* id, float rangeM, float bearingRad);
@@ -221,6 +249,7 @@ class KLink {
   float _paramValue(uint8_t i) const { return _params[i].value; }
   void _paramOnChange(uint8_t i, void (*cb)(float)) { _params[i].cb = cb; }
   void _channelPublish(uint8_t i, const float* v, uint8_t n);
+  void _proxSet(uint8_t i, float m);
 
   /// Processes one raw message (exposed for tests and custom transports).
   void handle(KTransport* from, const char* json, size_t len);
@@ -247,7 +276,7 @@ class KLink {
     float r, b;
   };
   enum Tlm : uint16_t { T_IMU = 1, T_ATT = 2, T_POS = 4, T_VEL = 8, T_GPS = 16, T_BAT = 32, T_RSSI = 64, T_JOINTS = 128, T_TOOL = 256, T_FT = 512,
-                        T_THRUST = 1024, T_RPM = 2048, T_TEMP = 4096, T_THR = 8192, T_ROCKET = 16384 };
+                        T_THRUST = 1024, T_RPM = 2048, T_TEMP = 4096, T_THR = 8192, T_ROCKET = 16384, T_PROX = 32768 };
 
   void send(JsonDocument& d, KTransport* to = nullptr);
   void sendHello(KTransport* t);
@@ -342,6 +371,12 @@ class KLink {
   };
   Video _video[2] = {};
   uint8_t _nVideo = 0;
+  struct Prox {
+    const char *id, *kind;
+    float dir, tilt, fov, min, max, value;
+  };
+  Prox _prox[KLINK_MAX_PROX] = {};
+  uint8_t _nProx = 0;
 
   void (*_cbControl)(const KControl&) = nullptr;
   void (*_cbMode)(KMode) = nullptr;

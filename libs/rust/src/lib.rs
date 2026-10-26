@@ -26,7 +26,7 @@
 pub mod json;
 mod link;
 
-pub use link::{CommandArgs, CommandName, Event, Fallback, LineReader, Link, MAX_STEPS, Transport};
+pub use link::{CommandArgs, CommandName, Event, Fallback, LineReader, Link, MAX_PROX, MAX_STEPS, Transport};
 
 #[cfg(feature = "std")]
 mod device;

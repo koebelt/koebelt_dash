@@ -96,6 +96,23 @@ Optional `video` lists camera streams the app can show (see [Video](#video)):
 "video":[{"id":"cam","url":":81/stream","fmt":"mjpeg","label":"Front"}]
 ```
 
+Optional `prox` declares proximity sensors (ultrasonic, infrared, time of
+flight, or a switch that only says "something is there"), in the order the
+`prox` channel reports them:
+```json
+"prox":[{"id":"front","dir":0,"fov":0.26,"min":0.02,"max":4,"kind":"ultrasonic"},
+        {"id":"down","dir":0,"tilt":-1.571,"fov":0.05,"max":8,"kind":"tof"}]
+```
+
+| field  | meaning                                                         | default |
+|--------|-----------------------------------------------------------------|---------|
+| `id`   | name, unique on the device                                      |         |
+| `dir`  | where it points, rad clockwise from the device's forward        | 0       |
+| `tilt` | rad above the horizontal (−1.571: straight down)                 | 0       |
+| `fov`  | full cone angle, rad                                            | 0.26    |
+| `min`, `max` | range, m (a switch: the distance at which it triggers)    | 0, 4    |
+| `kind` | `ultrasonic`, `ir`, `tof`, `switch`, or empty                   | ""      |
+
 ### `chan` · channel declarations
 Sent after `hello` and whenever a channel is added.
 ```json
@@ -129,6 +146,7 @@ Built-in channels:
 | `temp`   | temperature                                         | °C              |
 | `throttle` | commanded throttle output (0–1)                   | -               |
 | `rocket` | max altitude, phase time, countdown                 | m, s, s         |
+| `prox`   | one distance per sensor declared in `hello` `prox`, in its order; −1 when nothing is in range (a switch: its `max` when triggered, −1 when clear) | m |
 
 Custom channels use any other id and are declared with `chan`.
 

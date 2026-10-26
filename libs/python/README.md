@@ -42,6 +42,10 @@ while True:
   HC-05 on a UART; telemetry follows the baud rate.
 - Video: `dev.camera(0, label="Front")` streams a webcam or Pi camera, or
   serve your own frames with `MjpegServer` and declare it with `dev.video(srv.url)`.
+- Proximity sensors: `front = dev.proximity("front", max=4, kind="ultrasonic")`
+  before `start()`, then `front.set(metres)` or `front.set(None)` (nothing in
+  range); `dir` and `tilt` say where each points. The app shows them from
+  above and warns when something is close.
 - Callbacks: `on_control`, `on_mode`, `on_arm`, `on_stop`, `on_reset`, `on_jog`,
   `on_cart`, `on_command`, `on_params_written`, `on_connect`.
 - Pairing: `dev.pair("XXX-XXX")` once. The key and saved parameters live in

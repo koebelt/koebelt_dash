@@ -349,3 +349,24 @@ def test_bluetooth_module_rates_follow_baud(tmp_path):
     assert 1 <= len(tl) <= 3 and "imu" not in tl[-1]["d"]  # 2 Hz, compact
     assert seen, "modules carry control"
     dev.close()
+
+
+def test_proximity_sensors_in_hello_and_telemetry(pair):
+    dev, app = pair
+    front = dev.proximity("front", max=4, kind="ultrasonic")
+    down = dev.proximity("down", tilt=-1.571, fov=0.05, max=8, kind="tof")
+    with pytest.raises(ValueError):
+        dev.proximity("front")
+    app.send({"t": "hello", "v": 1})
+    app.pump(0.05)
+    assert app.of("hello")[0]["prox"] == [
+        {"id": "front", "fov": 0.26, "max": 4.0, "kind": "ultrasonic"},
+        {"id": "down", "tilt": -1.571, "fov": 0.05, "max": 8.0, "kind": "tof"},
+    ]
+    front.set(0.42)
+    app.pump(0.1)
+    assert [m["d"]["prox"] for m in app.of("tlm") if "prox" in m["d"]][-1] == [0.42, -1.0]
+    down.set(1.2)
+    front.set(None)                     # nothing in range
+    app.pump(0.1)
+    assert [m["d"]["prox"] for m in app.of("tlm") if "prox" in m["d"]][-1] == [-1.0, 1.2]

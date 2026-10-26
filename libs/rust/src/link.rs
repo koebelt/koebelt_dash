@@ -235,6 +235,20 @@ struct Param {
 
 const MAX_PARAMS: usize = 32;
 const MAX_CHANNELS: usize = 8;
+/// Proximity sensors a device can declare.
+pub const MAX_PROX: usize = 8;
+
+/// A proximity sensor declared in `hello`, see [`Link::proximity`].
+#[derive(Clone, Copy)]
+struct Prox {
+    id: &'static str,
+    kind: &'static str,
+    dir: f32,
+    tilt: f32,
+    fov: f32,
+    min: f32,
+    max: f32,
+}
 
 /// A custom telemetry channel (1–6 axes), declared with [`Link::channel`].
 #[derive(Clone, Copy)]
@@ -266,6 +280,8 @@ struct Tlm {
     tool: Option<[f32; 4]>,
     throttle: Option<f32>,
     rocket: Option<[f32; 3]>,
+    /// The proximity readings changed: send them all.
+    prox: bool,
 }
 
 /// A camera stream declared in `hello` (MJPEG over HTTP).
@@ -287,6 +303,8 @@ pub struct Link<T: Transport> {
     fw: &'static str,
     sensors: &'static [&'static str],
     video: [Option<Video>; 2],
+    prox: [Option<Prox>; MAX_PROX],
+    prox_v: [f32; MAX_PROX],
     pyro: Option<[&'static str; 4]>,
     cutoff: Option<&'static str>,
     ext: [Option<(&'static str, &'static str)>; 4],
@@ -390,6 +408,8 @@ impl<T: Transport> Link<T> {
             params: [None; MAX_PARAMS],
             channels: [None; MAX_CHANNELS],
             tlm: Tlm::default(),
+            prox: [None; MAX_PROX],
+            prox_v: [-1.0; MAX_PROX],
             events: [None; MAX_EVENTS],
             ev_head: 0,
             ev_len: 0,
@@ -423,6 +443,26 @@ impl<T: Transport> Link<T> {
         let v = Video { id, url, fmt, label };
         if let Some(slot) = self.video.iter_mut().find(|x| x.map(|x| x.id == id).unwrap_or(true)) {
             *slot = Some(v);
+        }
+    }
+    /// Declares a proximity sensor (ultrasonic, infrared, time of flight, a
+    /// switch), before the session: `dir` rad clockwise from the device's
+    /// forward, `tilt` rad above the horizontal (-1.571: down), `fov` its cone,
+    /// `min`/`max` its range in m, `kind` "ultrasonic", "ir", "tof" or
+    /// "switch". Returns its index for [`Link::set_proximity`]; up to
+    /// [`MAX_PROX`] (then `None`).
+    #[allow(clippy::too_many_arguments)]
+    pub fn proximity(&mut self, id: &'static str, max: f32, dir: f32, kind: &'static str, fov: f32, tilt: f32, min: f32) -> Option<usize> {
+        let slot = self.prox.iter().position(|p| p.is_none())?;
+        self.prox[slot] = Some(Prox { id, kind, dir, tilt, fov, min, max });
+        Some(slot)
+    }
+    /// What a proximity sensor measures, in metres; `None` when nothing is in
+    /// range (a switch: its max when triggered).
+    pub fn set_proximity(&mut self, sensor: usize, metres: Option<f32>) {
+        if sensor < MAX_PROX && self.prox[sensor].is_some() {
+            self.prox_v[sensor] = metres.filter(|m| *m >= 0.0).unwrap_or(-1.0);
+            self.tlm.prox = true;
         }
     }
     /// Rocket pyro channel states (`"OK"`, `"FIRED"`, `"-"`…).
@@ -1075,6 +1115,38 @@ impl<T: Transport> Link<T> {
             }
             w.raw("]");
         }
+        if self.prox.iter().any(|p| p.is_some()) {
+            w.raw(r#","prox":["#);
+            for (i, p) in self.prox.iter().flatten().enumerate() {
+                if i > 0 {
+                    w.raw(",");
+                }
+                w.raw(r#"{"id":"#);
+                w.string(p.id);
+                if p.dir != 0.0 {
+                    w.raw(r#","dir":"#);
+                    w.numf(p.dir);
+                }
+                if p.tilt != 0.0 {
+                    w.raw(r#","tilt":"#);
+                    w.numf(p.tilt);
+                }
+                w.raw(r#","fov":"#);
+                w.numf(p.fov);
+                if p.min != 0.0 {
+                    w.raw(r#","min":"#);
+                    w.numf(p.min);
+                }
+                w.raw(r#","max":"#);
+                w.numf(p.max);
+                if !p.kind.is_empty() {
+                    w.raw(r#","kind":"#);
+                    w.string(p.kind);
+                }
+                w.raw("}");
+            }
+            w.raw("]");
+        }
         w.raw(r#","seq":"#);
         w.num(MAX_STEPS as f64);
         w.raw(r#","ok":true}"#);
@@ -1178,7 +1250,8 @@ impl<T: Transport> Link<T> {
         let compact = cap > 0.0 && cap <= 2.0;
         if compact {
             // Slow radio: position, attitude, GPS, battery and rocket state only.
-            t = Tlm { pos: t.pos, att: t.att, gps: t.gps, bat: t.bat, rocket: t.rocket, ..Tlm::default() };
+            // (and proximity: it is about not hitting things).
+            t = Tlm { pos: t.pos, att: t.att, gps: t.gps, bat: t.bat, rocket: t.rocket, prox: t.prox, ..Tlm::default() };
         }
         let empty = t.imu.is_none()
             && t.att.is_none()
@@ -1194,7 +1267,8 @@ impl<T: Transport> Link<T> {
             && t.temp.is_none()
             && t.tool.is_none()
             && t.throttle.is_none()
-            && t.rocket.is_none();
+            && t.rocket.is_none()
+            && !t.prox;
         if empty && (compact || !self.channels.iter().flatten().any(|c| c.dirty)) {
             return false;
         }
@@ -1271,6 +1345,11 @@ impl<T: Transport> Link<T> {
         if let Some(v) = t.rocket {
             w.key(&mut f, "rocket");
             w.arr(&v);
+        }
+        if t.prox {
+            let n = self.prox.iter().flatten().count();
+            w.key(&mut f, "prox");
+            w.arr(&self.prox_v[..n]);
         }
         for c in self.channels.iter_mut().flatten() {
             if c.dirty && !compact {

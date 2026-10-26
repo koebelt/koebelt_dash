@@ -214,6 +214,31 @@ void test_video_state_label_connect() {
   CHECK(connects == 1);
 }
 
+void test_proximity() {
+  KLink l("Mule", KLink::ROVER);
+  FakeTransport t;
+  l.addTransport(&t);
+  KProx front = l.proximity("front", 4, 0, "ultrasonic");
+  KProx down = l.proximity("down", 8, 0, "tof", 0.05f, -1.571f);
+  t.in.push_back("{\"t\":\"hello\"}");
+  run(l, t, 100);
+  auto h = t.of("hello");
+  CHECK(!h.empty() && h[0]["prox"].size() == 2);
+  CHECK(h[0]["prox"][0]["id"] == "front" && h[0]["prox"][0]["max"] == 4 && h[0]["prox"][0]["kind"] == "ultrasonic");
+  CHECK(h[0]["prox"][1]["tilt"].as<float>() < -1.5f && h[0]["prox"][0]["tilt"].isNull());
+  front.set(0.42f);
+  run(l, t, 100);
+  auto tl = t.of("tlm");
+  CHECK(!tl.empty() && tl.back()["d"]["prox"][0].as<float>() > 0.41f && tl.back()["d"]["prox"][1] == -1);
+  front.clear();
+  down.set(1.2f);
+  run(l, t, 100);
+  tl = t.of("tlm");
+  CHECK(tl.back()["d"]["prox"][0] == -1 && tl.back()["d"]["prox"][1].as<float>() > 1.19f);
+  for (int i = 0; i < KLINK_MAX_PROX; i++) l.proximity("x");
+  CHECK(!l.proximity("one too many").valid());
+}
+
 void test_params_jog_cmd() {
   KLink l("Cell", KLink::ARM);
   FakeTransport t;
@@ -549,6 +574,7 @@ int main() {
   test_control_only_on_fast_links();
   test_radio_profiles();
   test_video_state_label_connect();
+  test_proximity();
   test_params_jog_cmd();
   test_pairing();
   test_point_cloud();

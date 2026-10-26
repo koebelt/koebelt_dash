@@ -100,6 +100,21 @@ class Channel:
         self.dev._tlm[self.id] = [float(v) for v in values]
 
 
+class Proximity:
+    """A proximity sensor declared with Device.proximity(): give it what it
+    measures with set()."""
+
+    def __init__(self, dev: "Device", index: int, id: str):
+        self.dev, self.index, self.id = dev, index, id
+
+    def set(self, metres: Optional[float]) -> None:
+        """The distance it measures, in metres; None when nothing is in range
+        (a switch: its max when triggered, None when clear)."""
+        v = self.dev._prox_values
+        v[self.index] = -1.0 if metres is None or metres < 0 else float(metres)
+        self.dev._tlm["prox"] = self.dev.latest["prox"] = list(v)
+
+
 # Known channels: name -> field order accepted by publish(name, **fields)
 _FIELDS = {
     "imu": ("accel", "gyro"),
@@ -154,6 +169,10 @@ class Device:
         self.cart = [0.0, 0.0, 0.0]
         self.ext: Dict[str, Any] = {}
         self.video_streams: List[Dict[str, str]] = []
+        #: Proximity sensors declared with proximity(), in the order the
+        #: "prox" channel reports them.
+        self.prox: List[Dict[str, Any]] = []
+        self._prox_values: List[float] = []
 
         self.rate_hz = 30.0
         self.params: Dict[str, Param] = {}
@@ -331,6 +350,32 @@ class Device:
         from .video import camera
 
         return camera(self, source, port=port, fps=fps, width=width, label=label)
+
+    def proximity(self, id: str, *, dir: float = 0.0, tilt: float = 0.0, fov: float = 0.26, min: float = 0.0, max: float = 4.0,
+                  kind: str = "") -> Proximity:
+        """Declare a proximity sensor (before start()): `dir` where it points, in
+        rad clockwise from the device's forward; `tilt` rad above the horizontal
+        (-1.571: straight down); `fov` its cone; `min`, `max` its range in m;
+        `kind` "ultrasonic", "ir", "tof" or "switch". The app shows it from
+        above and warns when something is close.
+
+            front = dev.proximity("front", max=4, kind="ultrasonic")
+            front.set(sonar.read_m())        # or front.set(None): nothing in range
+        """
+        if any(p["id"] == id for p in self.prox):
+            raise ValueError(f"a proximity sensor is already called {id!r}")
+        p: Dict[str, Any] = {"id": id, "fov": float(fov), "max": float(max)}
+        if dir:
+            p["dir"] = float(dir)
+        if tilt:
+            p["tilt"] = float(tilt)
+        if min:
+            p["min"] = float(min)
+        if kind:
+            p["kind"] = kind
+        self.prox.append(p)
+        self._prox_values.append(-1.0)
+        return Proximity(self, len(self.prox) - 1, id)
 
     def set_state(self, **ext: Any) -> None:
         """Kind-specific state shown in the app, e.g. pyro=["OK","OK","-","-"], cutoff="Current limit"."""
@@ -518,6 +563,8 @@ class Device:
              "lib": f"python/{__version__}", "sensors": self.sensors, "seq": seqmod.MAX_STEPS, "ok": True}
         if self.video_streams:
             m["video"] = self.video_streams
+        if self.prox:
+            m["prox"] = self.prox
         return m
 
     def _announce(self) -> Msg:

@@ -24,6 +24,9 @@ inline void digitalWrite(int, int) {}
 inline int digitalRead(int) { return HIGH; }
 inline int analogRead(int) { return 2048; }
 inline void analogWrite(int, int) {}
+inline void delayMicroseconds(unsigned int) {}
+// An echo of 2.9 ms: an HC-SR04 sees something 0.5 m away.
+inline unsigned long pulseIn(int, int, unsigned long = 1000000) { return 2915; }
 
 template <typename T, typename L, typename H>
 inline T constrain(T v, L lo, H hi) { return v < lo ? (T)lo : v > hi ? (T)hi : v; }

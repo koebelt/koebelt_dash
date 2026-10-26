@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import math
-from typing import Any, Dict, Iterable, List, Sequence, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
 
 def quat_to_rpy(x: float, y: float, z: float, w: float) -> Tuple[float, float, float]:
@@ -70,3 +70,15 @@ def control_to_twist(ry: float, lx: float, speed: float, max_linear: float, max_
     """Right stick forward = drive, left stick sideways = turn (left is positive yaw in ROS)."""
     scale = speed * 2
     return ry * max_linear * scale, -lx * max_angular * scale
+
+
+def range_metres(r: float, lo: float, hi: float) -> Optional[float]:
+    """A sensor_msgs/Range reading as the app's proximity value: metres, or
+    None when nothing is in range. ROS conventions: +inf means nothing
+    detected, -inf something closer than the sensor can tell (a fixed-distance
+    sensor triggered), NaN an invalid reading; out of [lo, hi] is nothing."""
+    if r != r or r == math.inf:
+        return None
+    if r == -math.inf:
+        return lo
+    return float(r) if lo <= r <= hi else None

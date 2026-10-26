@@ -21,10 +21,12 @@ void setup() {
   Serial2.begin(57600);
   klink.beginRadio(Serial2, KRadio::SIK);    // a second link takes over when Wi-Fi drops
   klink.video(":81/stream", "cam", "mjpeg", "Front");   // a camera the app shows
+  front = klink.proximity("front", 4.0, 0, "ultrasonic");  // KProx front; a sensor the app shows from above
 }
 
 void loop() {
   klink.imu(ax, ay, az, gx, gy, gz);
+  front.set(sonarMetres());                  // negative, or front.clear(): nothing in range
   klink.battery(vbat, pct);
   klink.update();                            // non-blocking
 }

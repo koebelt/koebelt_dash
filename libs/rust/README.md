@@ -67,6 +67,16 @@ dev.video(&cam.url(), "cam", "Front");
 cam.push(&jpeg_bytes);                           // whenever you have a frame
 ```
 
+## Proximity sensors
+
+```rust
+let front = dev.proximity("front", 4.0, 0.0, "ultrasonic").unwrap();   // dir: rad clockwise from forward
+dev.set_proximity(front, Some(0.8))?;            // None: nothing in range
+```
+
+The app shows them from above and warns when something is close. For one
+looking down, use `dev.link.proximity(...)` with its `tilt`.
+
 ## Embedded (embassy, embedded-hal)
 
 ```toml

@@ -69,6 +69,10 @@ void KChannel::publishArray(const float* v, uint8_t n) {
   if (_l) _l->_channelPublish(_i, v, n);
 }
 
+void KProx::set(float metres) {
+  if (_l) _l->_proxSet(_i, metres);
+}
+
 KLink::KLink(const char* name, Kind kind, const char* id) : _name(name), _kind(kind) {
   if (id) {
     strncpy(_id, id, sizeof(_id) - 1);
@@ -209,6 +213,16 @@ void KLink::setState(const char* key, const char* value) {
       return;
     }
   }
+}
+KProx KLink::proximity(const char* id, float maxM, float dirRad, const char* kind, float fovRad, float tiltRad, float minM) {
+  if (_nProx >= KLINK_MAX_PROX) return KProx();
+  _prox[_nProx] = {id, kind, dirRad, tiltRad, fovRad, minM, maxM, -1};
+  return KProx(this, _nProx++);
+}
+void KLink::_proxSet(uint8_t i, float m) {
+  if (i >= _nProx) return;
+  _prox[i].value = m < 0 ? -1 : m;
+  _dirty |= T_PROX;
 }
 void KLink::video(const char* url, const char* id, const char* fmt, const char* label) {
   for (uint8_t i = 0; i < _nVideo; i++)
@@ -553,6 +567,19 @@ void KLink::sendHello(KTransport* t) {
   d["fw"] = _fw;
   d["lib"] = "arduino/" KOEBELT_LINK_VERSION;
   d["seq"] = KLINK_MAX_STEPS;
+  if (_nProx) {
+    JsonArray p = d["prox"].to<JsonArray>();
+    for (uint8_t i = 0; i < _nProx; i++) {
+      JsonObject o = p.add<JsonObject>();
+      o["id"] = _prox[i].id;
+      if (_prox[i].dir != 0) o["dir"] = _prox[i].dir;
+      if (_prox[i].tilt != 0) o["tilt"] = _prox[i].tilt;
+      o["fov"] = _prox[i].fov;
+      if (_prox[i].min != 0) o["min"] = _prox[i].min;
+      o["max"] = _prox[i].max;
+      if (_prox[i].kind) o["kind"] = _prox[i].kind;
+    }
+  }
   if (_nVideo) {
     JsonArray v = d["video"].to<JsonArray>();
     for (uint8_t i = 0; i < _nVideo; i++) {
@@ -983,6 +1010,11 @@ void KLink::sendTelemetry() {
   if (_dirty & T_BAT) arr("bat", _bat, 3);
   if (_dirty & T_ATT) arr("att", _att, 3);
   if (_dirty & T_ROCKET) arr("rocket", _rocket, 3);
+  if (_dirty & T_PROX) {
+    // Even on slow links: it is about not hitting things.
+    JsonArray a = d["prox"].to<JsonArray>();
+    for (uint8_t i = 0; i < _nProx; i++) a.add(_prox[i].value);
+  }
   if (_dirty & T_GPS) {
     JsonArray a = d["gps"].to<JsonArray>();
     a.add(_gpsLL[0]);

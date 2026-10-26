@@ -14,6 +14,13 @@ sensors:
   # odom: /odom              # nav_msgs/Odometry -> position, velocity, attitude
   # gps:  /fix               # sensor_msgs/NavSatFix
 
+# sensor_msgs/Range topics as proximity sensors: where each points (rad,
+# clockwise from forward; tilt -1.571 looks down), its cone and range
+# proximity:
+#   - {id: front, topic: /range/front, max: 4, kind: ultrasonic}
+#   - {id: rear,  topic: /range/rear,  dir: 3.1416, max: 4, kind: ultrasonic}
+#   - {id: down,  topic: /range/down,  tilt: -1.571, fov: 0.05, max: 8, kind: tof}
+
 controls:
   twist: /cmd_vel                         # rovers, geometry_msgs/Twist
   jog:   /servo_node/delta_joint_cmds      # arms, MoveIt Servo (control_msgs/JointJog)

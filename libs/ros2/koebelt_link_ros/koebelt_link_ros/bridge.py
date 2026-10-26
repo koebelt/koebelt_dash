@@ -11,7 +11,7 @@ from rclpy.qos import qos_profile_sensor_data
 
 from koebelt_link import Device, Vec3
 
-from .convert import control_to_twist, downsample, parse_fallback, parse_transport, quat_to_rpy, topic_values
+from .convert import control_to_twist, downsample, parse_fallback, parse_transport, quat_to_rpy, range_metres, topic_values
 
 
 class Bridge(Node):
@@ -37,6 +37,7 @@ class Bridge(Node):
         self.dev.failsafe(timeout=float(safety.get("failsafe_timeout", 1.8)), action=str(safety.get("failsafe_action", "hold")))
 
         self._sensors(cfg.get("sensors") or {})
+        self._proximity(cfg.get("proximity") or [])
         self._controls(cfg.get("controls") or {}, safety)
         self._params(cfg.get("params") or [])
         self._channels(cfg.get("channels") or [])
@@ -100,6 +101,23 @@ class Bridge(Node):
             from sensor_msgs.msg import NavSatFix
 
             self.create_subscription(NavSatFix, s["gps"], lambda m: self.dev.gps(m.latitude, m.longitude, m.altitude), 10)
+
+    def _proximity(self, items: list) -> None:
+        """sensor_msgs/Range topics as proximity sensors. Their geometry comes
+        from the config (the app needs it in hello, before any message)."""
+        if not items:
+            return
+        from sensor_msgs.msg import Range
+
+        for it in items:
+            lo, hi = float(it.get("min", 0.0)), float(it.get("max", 4.0))
+            sensor = self.dev.proximity(str(it["id"]), dir=float(it.get("dir", 0.0)), tilt=float(it.get("tilt", 0.0)),
+                                        fov=float(it.get("fov", 0.26)), min=lo, max=hi, kind=str(it.get("kind", "")))
+
+            def reading(m: Range, sensor=sensor, lo=lo, hi=hi) -> None:
+                sensor.set(range_metres(m.range, lo, hi))
+
+            self.create_subscription(Range, it["topic"], reading, qos_profile_sensor_data)
 
     def _video(self, v: dict) -> None:
         """A sensor_msgs/CompressedImage topic (JPEG) served to the app as MJPEG."""
