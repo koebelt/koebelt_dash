@@ -511,40 +511,39 @@ void main() {
     expect(d.scripts.runs, isEmpty);
   });
 
+  _Script? s0;
   test('modes: HOLD on connect, MANUAL when armed, AUTO only while a script or a sequence drives', () async {
     final l = d.links.values.single;
-    await run(.3);
+    // Until [ok], with the simulator's replies (real time), at most 2 s.
+    Future<void> until(bool Function() ok) async {
+      for (var i = 0; i < 100 && !ok(); i++) {
+        s0?.send('ka');
+        d.tick(.05);
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+      }
+    }
+
+    await until(() => l.tel.mode == 'HOLD');
     expect((l.tel.armed, l.tel.mode), (false, 'HOLD'), reason: 'it powers on disarmed in HOLD');
     d.setArmed(true);
-    await run(.3);
+    await until(() => l.tel.armed && l.tel.mode == 'MANUAL');
     expect(l.tel.mode, 'MANUAL', reason: 'armed: the operator\'s');
 
     // A script drives it: AUTO. The operator takes over: MANUAL. Resume: AUTO.
-    final s = await _Script.open(d.scripts);
+    final s = s0 = await _Script.open(d.scripts);
     await s.call('use');
     await s.call('sticks', {
       'a': {'throttle': .3},
     });
-    for (var i = 0; i < 6; i++) {
-      s.send('ka');
-      await run(.1);
-    }
+    await until(() => l.tel.mode == 'AUTO');
     expect(l.tel.mode, 'AUTO');
     expect(d.automation, 'Script · ${d.scripts.conns.single.name}');
-    l.input[3] = .8; // the operator's stick
-    d.input[3] = .8;
-    for (var i = 0; i < 4; i++) {
-      s.send('ka');
-      await run(.1);
-    }
-    d.input[3] = 0;
-    l.input[3] = 0;
+    // The operator moves a stick: what the control heartbeat reads next.
+    l.drive!.axes([0, 0, 0, .8]);
+    await until(() => l.tel.mode == 'MANUAL');
     expect((l.drive!.paused, l.tel.mode), (true, 'MANUAL'));
     d.scripts.resume(l);
-    for (var i = 0; i < 6; i++) {
-      s.send('ka');
-      await run(.1);
-    }
+    await until(() => l.tel.mode == 'AUTO');
     expect(l.tel.mode, 'AUTO');
 
     // The script asks for HOLD: it stops driving, and it stays in HOLD.
@@ -552,10 +551,9 @@ void main() {
       'c': 'mode',
       'a': {'m': 'HOLD'},
     });
-    for (var i = 0; i < 6; i++) {
-      s.send('ka');
-      await run(.1);
-    }
+    await until(() => l.drive == null && l.tel.mode == 'HOLD');
+    // And it stays so: dash does not put it back in AUTO (a second).
+    await until(() => l.tel.mode != 'HOLD' || l.drive != null);
     expect((l.drive, l.tel.mode), (null, 'HOLD'));
 
     // A sequence runs in AUTO; choosing MANUAL takes it back and stops it.
@@ -570,10 +568,10 @@ void main() {
         ],
       ),
     );
-    await run(.3);
+    await until(() => l.tel.mode == 'AUTO');
     expect((l.tel.mode, d.automation), ('AUTO', 'Sequence · Wait'));
     d.operatorMode('MANUAL');
-    await run(.3);
+    await until(() => l.tel.mode == 'MANUAL');
     expect((l.tel.mode, l.runner!.state), ('MANUAL', RunState.failed));
   });
 }
