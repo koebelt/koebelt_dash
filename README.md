@@ -28,7 +28,7 @@ connects your hardware to it.
 
 | | |
 |---|---|
-| Arduino | Library Manager: search **KoebeltLink**. PlatformIO: `lib_deps = koebelt/KoebeltLink@^1.0.0` |
+| Arduino | Library Manager: search **KoebeltLink**. PlatformIO: `lib_deps = koebelt/KoebeltLink@^1.1.0` |
 | Python | `pip install koebelt-link` |
 | Rust | `cargo add koebelt-link` |
 | ROS 2 | `pip install koebelt-link`, then build `libs/ros2/koebelt_link_ros` in your workspace |

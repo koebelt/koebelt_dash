@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package format="3">
   <name>koebelt_link_ros</name>
-  <version>1.0.0</version>
+  <version>1.1.0</version>
   <description>Bridge ROS 2 topics to the koebelt/dash app over koebelt/link.</description>
   <maintainer email="contact@koebelt.com">Thomas Koebel</maintainer>
   <license>MIT</license>

@@ -6,7 +6,7 @@ package = "koebelt_link_ros"
 
 setup(
     name=package,
-    version="1.0.0",
+    version="1.1.0",
     packages=[package],
     data_files=[
         ("share/ament_index/resource_index/packages", [f"resource/{package}"]),

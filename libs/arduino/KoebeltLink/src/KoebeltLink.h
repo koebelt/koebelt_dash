@@ -10,7 +10,7 @@
 #include "KTransport.h"
 #include "KUdp.h"
 
-#define KOEBELT_LINK_VERSION "1.0.0"
+#define KOEBELT_LINK_VERSION "1.1.0"
 
 class Stream;
 

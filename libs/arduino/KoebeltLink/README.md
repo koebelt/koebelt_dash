@@ -6,7 +6,7 @@ ArduinoJson 7.
 
 Install it from the Arduino IDE (Sketch > Include Library > Manage
 Libraries, search **KoebeltLink**), with `arduino-cli lib install KoebeltLink`,
-or in PlatformIO with `lib_deps = koebelt/KoebeltLink@^1.0.0`.
+or in PlatformIO with `lib_deps = koebelt/KoebeltLink@^1.1.0`.
 
 ```cpp
 #include <KoebeltLink.h>
