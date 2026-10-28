@@ -33,7 +33,9 @@ void main() {
       await tester.pump(const Duration(milliseconds: 200));
     }
     expect(searching, findsOneWidget);
-    expect(find.textContaining('SCANNING WI-FI', findRichText: true), findsOneWidget);
+    // "Scanning Wi-Fi…", or "Still scanning…" once something answered (a
+    // device on this network, another test's simulated one).
+    expect(find.textContaining('SCANNING', findRichText: true), findsOneWidget);
 
     Navigator.of(ctx).pop();
     await tester.pumpWidget(const SizedBox());
