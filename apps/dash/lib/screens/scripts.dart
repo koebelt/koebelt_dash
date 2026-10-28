@@ -109,7 +109,9 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
       _examplesOpen ??= list.isEmpty;
     });
     if (selected == null || current == null) {
-      final first = list.firstOrNull;
+      // The script opened last time, else the first.
+      final last = d.store.readJson(_lastKey);
+      final first = list.where((f) => f.path == last).firstOrNull ?? list.firstOrNull;
       if (first != null) await _open(first, show: false);
     }
   }
@@ -130,8 +132,12 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
     });
   }
 
+  /// Where the script opened last is remembered, to open it again.
+  static const _lastKey = 'kdash-scripts-last-v1';
+
   Future<void> _open(ScriptFile f, {bool show = true}) async {
     if (dirty) await _saveNow();
+    d.store.writeJson(_lastKey, f.path);
     final text = await f.file.readAsString();
     if (!mounted) return;
     setState(() {

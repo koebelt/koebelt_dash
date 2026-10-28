@@ -108,13 +108,66 @@ void main() {
         ),
       ),
     );
-    for (var i = 0; i < 10; i++) {
+    // Until the library is listed (the examples are read first).
+    for (var i = 0; i < 100 && find.text('Mine').evaluate().isEmpty; i++) {
       await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 40)));
       await tester.pump(const Duration(milliseconds: 40));
     }
+    expect(find.text('Mine'), findsWidgets, reason: 'its own script is listed');
     expect(find.text('DRIVE SQUARE'), findsNothing, reason: 'folded');
     await tester.tap(find.textContaining('EXAMPLES ·'));
     await tester.pump(const Duration(milliseconds: 200));
     expect(find.text('DRIVE SQUARE'), findsOneWidget, reason: 'open once asked');
+  });
+
+  testWidgets('the Scripts screen opens the script opened last', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    await tester.runAsync(_loadFonts);
+    final d = Dash();
+    late ScriptLibrary lib;
+    await tester.runAsync(() async {
+      await d.init();
+      lib = ScriptLibrary(Directory('${(await Directory.systemTemp.createTemp('kdash-last')).path}/koebelt/dash-scripts'));
+      await lib.dir.create(recursive: true);
+      File('${lib.dir.path}/alpha.py').writeAsStringSync('"""Alpha."""\nprint("alpha body")\n');
+      File('${lib.dir.path}/beta.py').writeAsStringSync('"""Beta."""\nprint("beta body")\n');
+    });
+    tester.view.physicalSize = const Size(2880, 1800);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(tester.view.reset);
+    Future<void> open() async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ScriptsLibraryScope(
+              library: lib,
+              child: DashApp(key: UniqueKey(), dash: d, initial: 'scripts'),
+            ),
+          ),
+        ),
+      );
+      // Until the library is listed (the examples are read first).
+      for (var i = 0; i < 100 && find.text('Beta').evaluate().isEmpty; i++) {
+        await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 40)));
+        await tester.pump(const Duration(milliseconds: 40));
+      }
+      for (var i = 0; i < 5; i++) {
+        await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 40)));
+        await tester.pump(const Duration(milliseconds: 40));
+      }
+    }
+
+    bool showing(String body) => tester.widgetList<EditableText>(find.byType(EditableText)).any((e) => e.controller.text.contains(body));
+    await open();
+    expect(showing('alpha body'), isTrue, reason: 'the first, the first time');
+    await tester.tap(find.text('Beta').first);
+    for (var i = 0; i < 6; i++) {
+      await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 40)));
+      await tester.pump(const Duration(milliseconds: 40));
+    }
+    expect(showing('beta body'), isTrue);
+    await tester.pumpWidget(const SizedBox());
+    await open();
+    expect(showing('beta body'), isTrue, reason: 'the one opened last');
   });
 }
