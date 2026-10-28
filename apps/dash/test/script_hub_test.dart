@@ -514,9 +514,10 @@ void main() {
   _Script? s0;
   test('modes: HOLD on connect, MANUAL when armed, AUTO only while a script or a sequence drives', () async {
     final l = d.links.values.single;
-    // Until [ok], with the simulator's replies (real time), at most 2 s.
-    Future<void> until(bool Function() ok) async {
-      for (var i = 0; i < 100 && !ok(); i++) {
+    // Until [ok], with the simulator's replies (real time): at most 10 s, as
+    // a loaded CI machine can hold a reply back for seconds.
+    Future<void> until(bool Function() ok, {int steps = 500}) async {
+      for (var i = 0; i < steps && !ok(); i++) {
         s0?.send('ka');
         d.tick(.05);
         await Future<void>.delayed(const Duration(milliseconds: 20));
@@ -552,8 +553,8 @@ void main() {
       'a': {'m': 'HOLD'},
     });
     await until(() => l.drive == null && l.tel.mode == 'HOLD');
-    // And it stays so: dash does not put it back in AUTO (a second).
-    await until(() => l.tel.mode != 'HOLD' || l.drive != null);
+    // And it stays so: dash does not put it back in AUTO (two seconds).
+    await until(() => l.tel.mode != 'HOLD' || l.drive != null, steps: 100);
     expect((l.drive, l.tel.mode), (null, 'HOLD'));
 
     // A sequence runs in AUTO; choosing MANUAL takes it back and stops it.
