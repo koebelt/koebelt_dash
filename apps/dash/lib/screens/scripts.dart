@@ -103,7 +103,11 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
     if (l == null) return;
     final list = await l.list();
     if (!mounted) return;
-    setState(() => files = list);
+    setState(() {
+      files = list;
+      // Decided once, as the screen opens: open with no scripts yet.
+      _examplesOpen ??= list.isEmpty;
+    });
     if (selected == null || current == null) {
       final first = list.firstOrNull;
       if (first != null) await _open(first, show: false);
@@ -552,21 +556,46 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
     );
   }
 
-  Widget _examples() => Column(
-    crossAxisAlignment: CrossAxisAlignment.stretch,
-    children: [
-      const MonoLabel('Examples'),
-      const SizedBox(height: 8),
-      Wrap(
-        spacing: 6,
-        runSpacing: 6,
-        children: [
-          for (final e in examples)
-            Pressable(onTap: () => _useExample(e), builder: (_, _, _) => KTag(ScriptLibrary.titleOf(exampleName(e).replaceAll('.py', '')), height: 28)),
+  /// Whether the examples are shown: folded away once there are scripts of
+  /// one's own, open until then.
+  bool? _examplesOpen;
+
+  Widget _examples() {
+    final open = _examplesOpen ?? false;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Pressable(
+          onTap: () => setState(() => _examplesOpen = !open),
+          builder: (_, h, _) => Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Row(
+              children: [
+                MonoLabel('Examples · ${examples.length}', color: h ? K.textPrimary : null),
+                const SizedBox(width: 6),
+                AnimatedRotation(
+                  turns: open ? 0 : -.25,
+                  duration: K.durFast,
+                  child: KIcon('chevron-down', size: 14, color: h ? K.textPrimary : K.textMuted),
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (open) ...[
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              for (final e in examples)
+                Pressable(onTap: () => _useExample(e), builder: (_, _, _) => KTag(ScriptLibrary.titleOf(exampleName(e).replaceAll('.py', '')), height: 28)),
+            ],
+          ),
         ],
-      ),
-    ],
-  );
+      ],
+    );
+  }
 
   Widget _outside() {
     final outside = d.scripts.conns.where((c) => c.run == null).toList();

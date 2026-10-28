@@ -31,6 +31,7 @@ import 'log_import.dart';
 import 'model.dart';
 import '../mcp/mcp_server.dart';
 import '../scripts/script_hub.dart';
+import '../scripts/script_runner.dart' show ScriptState;
 import '../scripts/views.dart';
 import 'sequence.dart';
 import 'store.dart';
@@ -1070,6 +1071,12 @@ class Dash extends ChangeNotifier implements PadTarget {
   }
 
   String? get automation => focus == null ? null : automationOf(focus!);
+
+  /// A script runs (started here, on a host, or from outside dash).
+  bool get scriptRunning => scripts.runs.any((r) => r.state == ScriptState.running) || scripts.conns.isNotEmpty;
+
+  /// A sequence runs on a connected device (or is paused).
+  bool get sequenceRunning => links.values.any((l) => l.runner?.state == RunState.running || l.runner?.state == RunState.paused);
 
   /// The operator chooses MANUAL or HOLD. During a sequence or a script,
   /// that takes the device back from it first.

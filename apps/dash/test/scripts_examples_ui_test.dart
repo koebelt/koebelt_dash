@@ -83,4 +83,38 @@ void main() {
       await tester.pump(const Duration(seconds: 10));
     });
   }
+
+  testWidgets('with scripts of one\'s own, the examples are folded until asked for', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    await tester.runAsync(_loadFonts);
+    final d = Dash();
+    late ScriptLibrary lib;
+    await tester.runAsync(() async {
+      await d.init();
+      lib = ScriptLibrary(Directory('${(await Directory.systemTemp.createTemp('kdash-ex')).path}/koebelt/dash-scripts'));
+      await lib.dir.create(recursive: true);
+      File('${lib.dir.path}/mine.py').writeAsStringSync('"""Mine."""\nprint(1)\n');
+    });
+    tester.view.physicalSize = const Size(2880, 1800);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: ScriptsLibraryScope(
+            library: lib,
+            child: DashApp(dash: d, initial: 'scripts'),
+          ),
+        ),
+      ),
+    );
+    for (var i = 0; i < 10; i++) {
+      await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 40)));
+      await tester.pump(const Duration(milliseconds: 40));
+    }
+    expect(find.text('DRIVE SQUARE'), findsNothing, reason: 'folded');
+    await tester.tap(find.textContaining('EXAMPLES ·'));
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(find.text('DRIVE SQUARE'), findsOneWidget, reason: 'open once asked');
+  });
 }

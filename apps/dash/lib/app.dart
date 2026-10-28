@@ -293,7 +293,7 @@ class _ShellState extends State<Shell> {
         final main = Column(
           children: [
             top,
-            if (tabbed) AutomateBar(screen: screen, phone: phone, go: go),
+            if (tabbed) AutomateBar(screen: screen, phone: phone, go: go, live: {if (d.sequenceRunning) 'Sequences', if (d.scriptRunning) 'Scripts'}),
             Expanded(child: ClipRect(child: body)),
           ],
         );
@@ -325,7 +325,14 @@ class _ShellState extends State<Shell> {
                                 children: [
                                   for (final n in nav.where((n) => !const ['devices', 'guides'].contains(n[0])))
                                     Expanded(
-                                      child: NavBtn(it: n, on: _on(n[0]), go: go, variant: 'tab', height: tabH),
+                                      child: NavBtn(
+                                        it: n,
+                                        on: _on(n[0]),
+                                        go: go,
+                                        variant: 'tab',
+                                        height: tabH,
+                                        live: n[0] == 'automate' && (d.scriptRunning || d.sequenceRunning),
+                                      ),
                                     ),
                                 ],
                               ),
@@ -480,7 +487,7 @@ class _ShellState extends State<Shell> {
                   for (final a in automateItems)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 2),
-                      child: NavSub(id: a[0], label: a[1], on: screen == a[0], go: go),
+                      child: NavSub(id: a[0], label: a[1], on: screen == a[0], go: go, live: a[0] == 'scripts' ? d.scriptRunning : d.sequenceRunning),
                     ),
               ],
             ],
@@ -573,7 +580,10 @@ class _ShellState extends State<Shell> {
           child: SingleChildScrollView(
             padding: const EdgeInsets.only(top: 8),
             child: Column(
-              children: [for (final n in nav) NavBtn(it: n, on: _on(n[0]), go: go, variant: 'rail')],
+              children: [
+                for (final n in nav)
+                  NavBtn(it: n, on: _on(n[0]), go: go, variant: 'rail', live: n[0] == 'automate' && (widget.d.scriptRunning || widget.d.sequenceRunning)),
+              ],
             ),
           ),
         ),
@@ -583,9 +593,12 @@ class _ShellState extends State<Shell> {
 }
 
 class NavBtn extends StatelessWidget {
-  const NavBtn({super.key, required this.it, required this.on, required this.go, this.variant = 'side', this.height = 60});
+  const NavBtn({super.key, required this.it, required this.on, required this.go, this.variant = 'side', this.height = 60, this.live = false});
   final List<String> it;
   final bool on;
+
+  /// Something runs there (a script, a sequence): a pulsing dot on the icon.
+  final bool live;
   final ValueChanged<String> go;
   final String variant;
 
@@ -594,6 +607,15 @@ class NavBtn extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final id = it[0], label = it[1], ic = it[2];
+    Widget icon(double size, Color color) => live
+        ? Stack(
+            clipBehavior: Clip.none,
+            children: [
+              KIcon(ic, size: size, color: color),
+              const Positioned(right: -5, top: -3, child: PulseDot(color: K.accent)),
+            ],
+          )
+        : KIcon(ic, size: size, color: color);
     return Pressable(
       onTap: () => go(id),
       builder: (_, h, _) {
@@ -606,7 +628,7 @@ class NavBtn extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                KIcon(ic, size: 20, color: on ? K.accent : K.textMuted),
+                icon(20, on ? K.accent : K.textMuted),
                 SizedBox(height: height < 56 ? 4 : 6),
                 Text(label.toUpperCase(), style: KText.mono(9, color: on ? K.textPrimary : K.textMuted, tracking: .1)),
               ],
@@ -628,7 +650,7 @@ class NavBtn extends StatelessWidget {
             ),
             child: Column(
               children: [
-                KIcon(ic, size: 20, color: on ? K.accent : K.textMuted),
+                icon(20, on ? K.accent : K.textMuted),
                 const SizedBox(height: 6),
                 Text(label.toUpperCase(), style: KText.mono(9, color: on ? K.textPrimary : K.textMuted, tracking: .1)),
               ],
@@ -674,9 +696,12 @@ class NavBtn extends StatelessWidget {
 /// A screen under a sidebar item (Automate's Sequences and Scripts),
 /// indented under its label, on a line that ties them to it.
 class NavSub extends StatelessWidget {
-  const NavSub({super.key, required this.id, required this.label, required this.on, required this.go});
+  const NavSub({super.key, required this.id, required this.label, required this.on, required this.go, this.live = false});
   final String id, label;
   final bool on;
+
+  /// Something runs there: a pulsing dot after the label.
+  final bool live;
   final ValueChanged<String> go;
   @override
   Widget build(BuildContext context) => Pressable(
@@ -697,7 +722,12 @@ class NavSub extends StatelessWidget {
           left: BorderSide(color: on ? K.accent : K.borderHairline, width: on ? 2 : 1),
         ),
       ),
-      child: Text(label, style: KText.bodySm.copyWith(color: on ? K.textPrimary : (h ? K.textPrimary : K.textSecondary))),
+      child: Row(
+        children: [
+          Text(label, style: KText.bodySm.copyWith(color: on ? K.textPrimary : (h ? K.textPrimary : K.textSecondary))),
+          if (live) ...[const SizedBox(width: 10), const PulseDot(color: K.accent)],
+        ],
+      ),
     ),
   );
 }

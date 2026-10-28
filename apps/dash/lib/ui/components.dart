@@ -507,8 +507,11 @@ Future<T?> showKDialog<T>(BuildContext context, {required Widget Function(BuildC
 }
 
 class KTabs extends StatelessWidget {
-  const KTabs({super.key, required this.items, required this.value, required this.onChanged, this.border = true});
+  const KTabs({super.key, required this.items, required this.value, required this.onChanged, this.border = true, this.live = const {}});
   final List<String> items;
+
+  /// Items marked with a pulsing dot: something runs there.
+  final Set<String> live;
   final String value;
   final ValueChanged<String> onChanged;
   final bool border;
@@ -534,9 +537,15 @@ class KTabs extends StatelessWidget {
                   decoration: BoxDecoration(
                     border: Border(bottom: BorderSide(color: on ? K.accent : Colors.transparent, width: 2)),
                   ),
-                  child: Text(
-                    items[i].toUpperCase(),
-                    style: KText.mono(13, color: on || hover ? K.textPrimary : K.textMuted, tracking: K.trLabel),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        items[i].toUpperCase(),
+                        style: KText.mono(13, color: on || hover ? K.textPrimary : K.textMuted, tracking: K.trLabel),
+                      ),
+                      if (live.contains(items[i])) ...[const SizedBox(width: 8), const PulseDot(color: K.accent)],
+                    ],
                   ),
                 );
               },

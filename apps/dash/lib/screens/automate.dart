@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../core/dash.dart';
 import '../scripts/library.dart';
+import '../core/sequence.dart' show RunState;
 import '../scripts/script_hub.dart' show ScriptHub;
+import '../scripts/script_runner.dart' show ScriptState;
 import '../theme/tokens.dart';
 import '../ui/components.dart';
 import '../ui/icons.dart';
@@ -55,6 +57,7 @@ class _AutomateHomeState extends State<AutomateHome> {
       footer: dev == null ? 'Connect a device to build its sequences' : '${count(seqs.length, 'sequence', 'sequences')} for ${dev.info.name}',
       names: seqs,
       onOpen: () => widget.go('program'),
+      running: _sequencesRunning(d),
       fill: wide,
       compact: phone,
     );
@@ -70,6 +73,7 @@ class _AutomateHomeState extends State<AutomateHome> {
       footer: scripts == null ? '…' : count(scripts.length, 'script', 'scripts'),
       names: scripts ?? const [],
       onOpen: () => widget.go('scripts'),
+      running: _scriptsRunning(d),
       fill: wide,
       compact: phone,
     );
@@ -106,6 +110,26 @@ class _AutomateHomeState extends State<AutomateHome> {
         ),
       ),
     );
+  }
+
+  /// The sequences running now, and on what.
+  static String? _sequencesRunning(Dash d) {
+    final names = [
+      for (final l in d.links.values)
+        if (l.runner case final r? when r.state == RunState.running || r.state == RunState.paused) '${r.seq.name} on ${l.info.name}',
+    ];
+    return names.isEmpty ? null : names.join(', ');
+  }
+
+  /// The scripts running now (started here, on a host, or from outside dash).
+  static String? _scriptsRunning(Dash d) {
+    final names = {
+      for (final r in d.scripts.runs)
+        if (r.state == ScriptState.running) r.file.uri.pathSegments.last.replaceAll('.py', ''),
+      for (final c in d.scripts.conns)
+        if (c.run == null) c.name.replaceAll('.py', ''),
+    };
+    return names.isEmpty ? null : names.join(', ');
   }
 
   /// How they combine, and the guide that compares them.
@@ -163,6 +187,7 @@ class _Door extends StatelessWidget {
     required this.footer,
     required this.names,
     required this.onOpen,
+    this.running,
     this.fill = false,
     this.compact = false,
   });
@@ -170,6 +195,9 @@ class _Door extends StatelessWidget {
   /// Phones: the icon beside the title, so both doors fit higher up.
   final bool compact;
   final String icon, title, blurb, footer;
+
+  /// What runs now, if anything ("follow_person", "Survey square on Mule").
+  final String? running;
 
   /// Side by side, in a row as tall as the taller one: the footer goes to the
   /// bottom.
@@ -202,6 +230,20 @@ class _Door extends StatelessWidget {
               ),
               if (compact) ...[const SizedBox(width: 12), Text(title, style: KText.headingXs)],
               const Spacer(),
+              if (running != null) ...[
+                const PulseDot(color: K.accent),
+                const SizedBox(width: 8),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 220),
+                  child: Text(
+                    'RUNNING · $running',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: KText.label(size: 11, color: K.textAccent),
+                  ),
+                ),
+                const SizedBox(width: 14),
+              ],
               Text('OPEN', style: KText.label(size: 11, color: h ? K.textAccent : K.textMuted)),
               const SizedBox(width: 6),
               KIcon('arrow-right', size: 16, color: h ? K.accent : K.textMuted),
@@ -251,10 +293,13 @@ class _Door extends StatelessWidget {
 /// On phones and tablets, above Sequences and Scripts: back to Automate, and
 /// the other one a tap away.
 class AutomateBar extends StatelessWidget {
-  const AutomateBar({super.key, required this.screen, required this.phone, required this.go});
+  const AutomateBar({super.key, required this.screen, required this.phone, required this.go, this.live = const {}});
   final String screen;
   final bool phone;
   final ValueChanged<String> go;
+
+  /// The tabs where something runs: Sequences, Scripts.
+  final Set<String> live;
 
   @override
   Widget build(BuildContext context) => Padding(
@@ -281,6 +326,7 @@ class AutomateBar extends StatelessWidget {
             items: const ['Sequences', 'Scripts'],
             value: screen == 'scripts' ? 'Scripts' : 'Sequences',
             onChanged: (v) => go(v == 'Scripts' ? 'scripts' : 'program'),
+            live: live,
           ),
         ),
       ],
