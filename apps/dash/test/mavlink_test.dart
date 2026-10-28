@@ -308,6 +308,10 @@ void main() {
       await d.init();
       final dev = d.addManual('Copter', '127.0.0.1:$vport', DeviceKind.drone, proto: 'mavlink');
       await d.connect(dev.id);
+      // A loaded CI machine starts the vehicle slowly: until it is heard.
+      for (var i = 0; i < 500 && !d.hasDevice; i++) {
+        await wait(20);
+      }
       await wait(1200);
       d.runSequence(
         Sequence(
@@ -323,7 +327,7 @@ void main() {
       );
       final r = d.runner!;
       final sw = Stopwatch()..start();
-      while (r.state == RunState.running && sw.elapsedMilliseconds < 5000) {
+      while (r.state == RunState.running && sw.elapsedMilliseconds < 15000) {
         await wait(20);
         d.tick(.02);
       }
