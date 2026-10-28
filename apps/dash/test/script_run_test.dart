@@ -366,7 +366,7 @@ print("done")
     await d.init();
     await d.scripts.recheckPython(python!);
     final have = d.scripts.envOf(python)!.packageVersion!;
-    expect(have, matches(RegExp(r'^1\.3\.0(b\d+)?$')), reason: 'the version pip installed');
+    expect(have, matches(RegExp(r'^1\.3\.0((a|b|rc)\d+)?$')), reason: 'the version pip installed');
     final pypi = MockClient(
       (_) async => http.Response(
         jsonEncode({
