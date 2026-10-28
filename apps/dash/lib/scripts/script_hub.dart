@@ -958,7 +958,9 @@ class ScriptHub {
   /// The operator moved the sticks while a script drove: theirs now (MANUAL).
   void takeover(ScriptDrive dr) {
     final t = dr.link.tel;
-    if (t.armed && !t.estop && Dash.modal(dr.link.kind) && t.mode != 'MANUAL') d.linkHost(dr.link).seqSetMode('MANUAL');
+    // Always asked: the mode reported may be a moment old (an AUTO dash just
+    // asked for may still be on its way).
+    if (t.armed && !t.estop && Dash.modal(dr.link.kind)) d.linkHost(dr.link).seqSetMode('MANUAL');
     dr.conn.log('warn', 'Operator took over ${dr.link.info.name}');
     dr.conn.send({'t': 'takeover', 'on': true});
     d.emit();
