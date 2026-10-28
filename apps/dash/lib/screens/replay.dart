@@ -233,148 +233,149 @@ class ReplayScreen extends StatelessWidget {
       // What scripts showed while recording.
       for (final v in d.scriptViews.values) v.tileId,
     ];
-    final player = Column(
+    // A short screen (a small phone, a phone sideways, a low window): the
+    // player keeps a usable height and the page scrolls to the charts.
+    final short = h < 640;
+    Widget scene(Widget c) => short ? SizedBox(height: (h * .6).clamp(200.0, 360.0), child: c) : Expanded(child: c);
+    Widget player = Column(
       children: [
-        Expanded(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(minHeight: phone ? 240 : 300),
-            child: Container(
-              color: K.surfaceDeep,
-              child: Stack(
-                children: [
-                  Positioned.fill(
-                    child: switch (view) {
-                      'video' => RecordedVideo(d),
-                      'map' => MapView(d),
-                      _ => Scene3D(d, view: 'orbit'),
-                    },
-                  ),
-                  Positioned(
-                    top: 12,
-                    left: 12,
-                    right: 12,
-                    // On a phone the controls wrap below the title instead of overflowing.
-                    child: phone
-                        ? Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              KBadge('Replay · ${R.session.name}', tone: Tone.info),
-                              const SizedBox(height: 8),
-                              Wrap(
-                                runSpacing: 8,
-                                children: [
-                                  // The other devices recorded in the same session, at the same moment.
-                                  if (R.session.group != null)
-                                    Builder(
-                                      builder: (_) {
-                                        final mates = sessionEntries(d.sessions).firstWhere((e) => e.contains(R.session), orElse: () => [R.session]);
-                                        if (mates.length < 2) return const SizedBox();
-                                        return Padding(
-                                          padding: const EdgeInsets.only(right: 8),
-                                          child: Container(
-                                            color: K.inkA60,
-                                            child: Seg(
-                                              items: [for (final m in mates) m.deviceName.toUpperCase()],
-                                              value: R.session.deviceName.toUpperCase(),
-                                              small: true,
-                                              onChanged: (v) => d.showCompanion(mates.firstWhere((m) => m.deviceName.toUpperCase() == v).id),
-                                            ),
+        scene(
+          Container(
+            color: K.surfaceDeep,
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: switch (view) {
+                    'video' => RecordedVideo(d),
+                    'map' => MapView(d),
+                    _ => Scene3D(d, view: 'orbit'),
+                  },
+                ),
+                Positioned(
+                  top: 12,
+                  left: 12,
+                  right: 12,
+                  // On a phone the controls wrap below the title instead of overflowing.
+                  child: phone
+                      ? Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            KBadge('Replay · ${R.session.name}', tone: Tone.info),
+                            const SizedBox(height: 8),
+                            Wrap(
+                              runSpacing: 8,
+                              children: [
+                                // The other devices recorded in the same session, at the same moment.
+                                if (R.session.group != null)
+                                  Builder(
+                                    builder: (_) {
+                                      final mates = sessionEntries(d.sessions).firstWhere((e) => e.contains(R.session), orElse: () => [R.session]);
+                                      if (mates.length < 2) return const SizedBox();
+                                      return Padding(
+                                        padding: const EdgeInsets.only(right: 8),
+                                        child: Container(
+                                          color: K.inkA60,
+                                          child: Seg(
+                                            items: [for (final m in mates) m.deviceName.toUpperCase()],
+                                            value: R.session.deviceName.toUpperCase(),
+                                            small: true,
+                                            onChanged: (v) => d.showCompanion(mates.firstWhere((m) => m.deviceName.toUpperCase() == v).id),
                                           ),
-                                        );
-                                      },
-                                    ),
-                                  if (views.length > 1) ...[
-                                    Container(
-                                      color: K.inkA60,
-                                      child: Seg(
-                                        items: [for (final v in views) v.toUpperCase()],
-                                        value: view.toUpperCase(),
-                                        small: true,
-                                        onChanged: (v) {
-                                          d.replayView = v.toLowerCase();
-                                          d.emit();
-                                        },
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                  ],
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                if (views.length > 1) ...[
                                   Container(
                                     color: K.inkA60,
-                                    child: KButton(
-                                      'Export',
-                                      size: KSize.sm,
-                                      variant: KButtonVariant.secondary,
-                                      iconLeft: const KIcon('download', size: 14),
-                                      onPressed: () => showExportDialog(context, R.session),
+                                    child: Seg(
+                                      items: [for (final v in views) v.toUpperCase()],
+                                      value: view.toUpperCase(),
+                                      small: true,
+                                      onChanged: (v) {
+                                        d.replayView = v.toLowerCase();
+                                        d.emit();
+                                      },
                                     ),
                                   ),
                                   const SizedBox(width: 8),
-                                  Container(
-                                    color: K.inkA60,
-                                    child: KButton('Exit to live', size: KSize.sm, variant: KButtonVariant.secondary, onPressed: d.closeReplay),
-                                  ),
                                 ],
-                              ),
-                            ],
-                          )
-                        : Row(
-                            children: [
-                              Expanded(child: KBadge('Replay · ${R.session.name}', tone: Tone.info)),
-                              // The other devices recorded in the same session, at the same moment.
-                              if (R.session.group != null)
-                                Builder(
-                                  builder: (_) {
-                                    final mates = sessionEntries(d.sessions).firstWhere((e) => e.contains(R.session), orElse: () => [R.session]);
-                                    if (mates.length < 2) return const SizedBox();
-                                    return Padding(
-                                      padding: const EdgeInsets.only(right: 8),
-                                      child: Container(
-                                        color: K.inkA60,
-                                        child: Seg(
-                                          items: [for (final m in mates) m.deviceName.toUpperCase()],
-                                          value: R.session.deviceName.toUpperCase(),
-                                          small: true,
-                                          onChanged: (v) => d.showCompanion(mates.firstWhere((m) => m.deviceName.toUpperCase() == v).id),
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                ),
-                              if (views.length > 1) ...[
                                 Container(
                                   color: K.inkA60,
-                                  child: Seg(
-                                    items: [for (final v in views) v.toUpperCase()],
-                                    value: view.toUpperCase(),
-                                    small: true,
-                                    onChanged: (v) {
-                                      d.replayView = v.toLowerCase();
-                                      d.emit();
-                                    },
+                                  child: KButton(
+                                    'Export',
+                                    size: KSize.sm,
+                                    variant: KButtonVariant.secondary,
+                                    iconLeft: const KIcon('download', size: 14),
+                                    onPressed: () => showExportDialog(context, R.session),
                                   ),
                                 ),
                                 const SizedBox(width: 8),
+                                Container(
+                                  color: K.inkA60,
+                                  child: KButton('Exit to live', size: KSize.sm, variant: KButtonVariant.secondary, onPressed: d.closeReplay),
+                                ),
                               ],
+                            ),
+                          ],
+                        )
+                      : Row(
+                          children: [
+                            Expanded(child: KBadge('Replay · ${R.session.name}', tone: Tone.info)),
+                            // The other devices recorded in the same session, at the same moment.
+                            if (R.session.group != null)
+                              Builder(
+                                builder: (_) {
+                                  final mates = sessionEntries(d.sessions).firstWhere((e) => e.contains(R.session), orElse: () => [R.session]);
+                                  if (mates.length < 2) return const SizedBox();
+                                  return Padding(
+                                    padding: const EdgeInsets.only(right: 8),
+                                    child: Container(
+                                      color: K.inkA60,
+                                      child: Seg(
+                                        items: [for (final m in mates) m.deviceName.toUpperCase()],
+                                        value: R.session.deviceName.toUpperCase(),
+                                        small: true,
+                                        onChanged: (v) => d.showCompanion(mates.firstWhere((m) => m.deviceName.toUpperCase() == v).id),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            if (views.length > 1) ...[
                               Container(
                                 color: K.inkA60,
-                                child: KButton(
-                                  'Export',
-                                  size: KSize.sm,
-                                  variant: KButtonVariant.secondary,
-                                  iconLeft: const KIcon('download', size: 14),
-                                  onPressed: () => showExportDialog(context, R.session),
+                                child: Seg(
+                                  items: [for (final v in views) v.toUpperCase()],
+                                  value: view.toUpperCase(),
+                                  small: true,
+                                  onChanged: (v) {
+                                    d.replayView = v.toLowerCase();
+                                    d.emit();
+                                  },
                                 ),
                               ),
                               const SizedBox(width: 8),
-                              Container(
-                                color: K.inkA60,
-                                child: KButton('Exit to live', size: KSize.sm, variant: KButtonVariant.secondary, onPressed: d.closeReplay),
-                              ),
                             ],
-                          ),
-                  ),
-                ],
-              ),
+                            Container(
+                              color: K.inkA60,
+                              child: KButton(
+                                'Export',
+                                size: KSize.sm,
+                                variant: KButtonVariant.secondary,
+                                iconLeft: const KIcon('download', size: 14),
+                                onPressed: () => showExportDialog(context, R.session),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              color: K.inkA60,
+                              child: KButton('Exit to live', size: KSize.sm, variant: KButtonVariant.secondary, onPressed: d.closeReplay),
+                            ),
+                          ],
+                        ),
+                ),
+              ],
             ),
           ),
         ),
@@ -405,7 +406,14 @@ class ReplayScreen extends StatelessWidget {
                     width: math.max(200, (wide ? w - 320 : w) - (phone ? 32 : 40) - 48 - 150 - 24),
                     child: Row(
                       children: [
-                        SizedBox(width: 44, child: Text(mmss(R.t), style: KText.mono(12))),
+                        SizedBox(
+                          width: 44,
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Text(mmss(R.t), style: KText.mono(12)),
+                          ),
+                        ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Column(
@@ -419,10 +427,10 @@ class ReplayScreen extends StatelessWidget {
                         const SizedBox(width: 12),
                         SizedBox(
                           width: 44,
-                          child: Text(
-                            mmss(R.dur),
-                            textAlign: TextAlign.right,
-                            style: KText.mono(12, color: K.textMuted),
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerRight,
+                            child: Text(mmss(R.dur), style: KText.mono(12, color: K.textMuted)),
                           ),
                         ),
                       ],
@@ -457,6 +465,7 @@ class ReplayScreen extends StatelessWidget {
         ),
       ],
     );
+    if (short) player = SingleChildScrollView(child: player);
     if (wide) {
       return Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,

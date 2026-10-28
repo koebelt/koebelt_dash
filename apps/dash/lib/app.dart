@@ -205,6 +205,8 @@ class _ShellState extends State<Shell> {
             _ => SettingsScreen(d, w: bodyW, go: go),
           };
         }
+        // A narrow window or a portrait tablet: the bar's compact parts.
+        final narrow = bodyW < 900, gap = narrow ? 12.0 : 24.0;
         final top = phone
             ? Container(
                 height: topH,
@@ -263,27 +265,30 @@ class _ShellState extends State<Shell> {
                 ),
                 child: Row(
                   children: [
-                    DeviceBtn(d: d, go: go),
-                    const SizedBox(width: 20),
                     ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 340),
-                      child: AlertChip(d: d),
+                      constraints: BoxConstraints(maxWidth: math.max(180, bodyW * .4)),
+                      child: DeviceBtn(d: d, go: go),
                     ),
-                    if (d.mcp.enabled && d.mcp.connected != null) ...[const SizedBox(width: 12), AssistantChip(d)],
-                    const SizedBox(width: 20),
+                    SizedBox(width: gap),
+                    ConstrainedBox(
+                      constraints: BoxConstraints(maxWidth: narrow ? 120 : 340),
+                      child: AlertChip(d: d, compact: narrow),
+                    ),
+                    if (d.mcp.enabled && d.mcp.connected != null) ...[const SizedBox(width: 12), AssistantChip(d, compact: narrow)],
+                    SizedBox(width: gap),
                     Expanded(
                       child: Align(
                         alignment: Alignment.centerRight,
-                        child: StatusCluster(d: d),
+                        child: StatusCluster(d: d, phone: narrow),
                       ),
                     ),
-                    UpdateChip(d: d, gap: 16),
-                    const SizedBox(width: 24),
+                    UpdateChip(d: d, gap: 16, compact: narrow),
+                    SizedBox(width: gap),
                     Container(width: 1, height: 28, color: K.borderHairline),
-                    const SizedBox(width: 24),
-                    ModeArm(d: d),
-                    const SizedBox(width: 24),
-                    EStop(d: d),
+                    SizedBox(width: gap),
+                    ModeArm(d: d, phone: narrow),
+                    SizedBox(width: gap),
+                    EStop(d: d, compact: narrow),
                   ],
                 ),
               );
@@ -341,7 +346,7 @@ class _ShellState extends State<Shell> {
                         )
                       : Row(
                           children: [
-                            if (mode == 'desktop') _sidebar(d, pad.bottom) else _rail(pad.bottom),
+                            if (mode == 'desktop') _sidebar(d, H / 3, pad.bottom) else _rail(pad.bottom),
                             Expanded(child: main),
                           ],
                         ),
@@ -455,7 +460,7 @@ class _ShellState extends State<Shell> {
   }
 
   /// [bottom]: the screen's bottom inset, which the sidebar's colour fills.
-  Widget _sidebar(Dash d, [double bottom = 0]) => Container(
+  Widget _sidebar(Dash d, double maxFleet, [double bottom = 0]) => Container(
     width: 232,
     padding: EdgeInsets.only(bottom: bottom),
     decoration: const BoxDecoration(
@@ -474,84 +479,92 @@ class _ShellState extends State<Shell> {
           ),
           child: const Brand(),
         ),
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          child: Column(
-            children: [
-              for (final n in nav) ...[
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 2),
-                  child: NavBtn(it: n, on: n[0] == 'automate' ? screen == 'automate' : _on(n[0]), go: go),
-                ),
-                if (n[0] == 'automate')
-                  for (final a in automateItems)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 2),
-                      child: NavSub(id: a[0], label: a[1], on: screen == a[0], go: go, live: a[0] == 'scripts' ? d.scriptRunning : d.sequenceRunning),
-                    ),
+        // On a short window the menu scrolls, and the fleet below it keeps
+        // to at most a third of the height.
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Column(
+              children: [
+                for (final n in nav) ...[
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 2),
+                    child: NavBtn(it: n, on: n[0] == 'automate' ? screen == 'automate' : _on(n[0]), go: go),
+                  ),
+                  if (n[0] == 'automate')
+                    for (final a in automateItems)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 2),
+                        child: NavSub(id: a[0], label: a[1], on: screen == a[0], go: go, live: a[0] == 'scripts' ? d.scriptRunning : d.sequenceRunning),
+                      ),
+                ],
               ],
-            ],
+            ),
           ),
         ),
-        const Spacer(),
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: const BoxDecoration(
-            border: Border(top: BorderSide(color: K.borderHairline)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const MonoLabel('Fleet'),
-              for (final dev in d.devices.take(8)) ...[
-                const SizedBox(height: 12),
-                Pressable(
-                  disabled: !dev.online,
-                  cursor: dev.online ? null : SystemMouseCursors.basic,
-                  onTap: () {
-                    if (d.replay != null) d.closeReplay();
-                    if (dev.id != d.deviceId) d.connect(dev.id);
-                  },
-                  builder: (_, h, _) => Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          dev.name,
-                          overflow: TextOverflow.ellipsis,
-                          style: KText.bodySm.copyWith(color: dev.id == d.deviceId || h ? K.textPrimary : K.textMuted),
-                        ),
+        ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: maxFleet),
+          child: SingleChildScrollView(
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              decoration: const BoxDecoration(
+                border: Border(top: BorderSide(color: K.borderHairline)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const MonoLabel('Fleet'),
+                  for (final dev in d.devices.take(8)) ...[
+                    const SizedBox(height: 12),
+                    Pressable(
+                      disabled: !dev.online,
+                      cursor: dev.online ? null : SystemMouseCursors.basic,
+                      onTap: () {
+                        if (d.replay != null) d.closeReplay();
+                        if (dev.id != d.deviceId) d.connect(dev.id);
+                      },
+                      builder: (_, h, _) => Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              dev.name,
+                              overflow: TextOverflow.ellipsis,
+                              style: KText.bodySm.copyWith(color: dev.id == d.deviceId || h ? K.textPrimary : K.textMuted),
+                            ),
+                          ),
+                          if (dev.simulated) ...[const MonoLabel('Sim', color: K.info, size: 9), const SizedBox(width: 8)],
+                          Builder(
+                            builder: (_) {
+                              final l = d.links[dev.id], lost = (l?.linkLostFor ?? 0) > 0;
+                              return KBadge(
+                                dev.id == d.deviceId
+                                    ? 'Active'
+                                    : lost
+                                    ? 'Lost'
+                                    : l != null
+                                    ? 'Linked'
+                                    : dev.id == d.connecting
+                                    ? '…'
+                                    : !dev.online
+                                    ? 'Off'
+                                    : 'On',
+                                tone: !dev.online || lost
+                                    ? Tone.negative
+                                    : dev.id == d.deviceId || dev.id == d.connecting
+                                    ? Tone.accent
+                                    : l != null
+                                    ? Tone.info
+                                    : Tone.positive,
+                              );
+                            },
+                          ),
+                        ],
                       ),
-                      if (dev.simulated) ...[const MonoLabel('Sim', color: K.info, size: 9), const SizedBox(width: 8)],
-                      Builder(
-                        builder: (_) {
-                          final l = d.links[dev.id], lost = (l?.linkLostFor ?? 0) > 0;
-                          return KBadge(
-                            dev.id == d.deviceId
-                                ? 'Active'
-                                : lost
-                                ? 'Lost'
-                                : l != null
-                                ? 'Linked'
-                                : dev.id == d.connecting
-                                ? '…'
-                                : !dev.online
-                                ? 'Off'
-                                : 'On',
-                            tone: !dev.online || lost
-                                ? Tone.negative
-                                : dev.id == d.deviceId || dev.id == d.connecting
-                                ? Tone.accent
-                                : l != null
-                                ? Tone.info
-                                : Tone.positive,
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ],
+                    ),
+                  ],
+                ],
+              ),
+            ),
           ),
         ),
       ],
@@ -630,7 +643,16 @@ class NavBtn extends StatelessWidget {
               children: [
                 icon(20, on ? K.accent : K.textMuted),
                 SizedBox(height: height < 56 ? 4 : 6),
-                Text(label.toUpperCase(), style: KText.mono(9, color: on ? K.textPrimary : K.textMuted, tracking: .1)),
+                // Large text sizes: the label shrinks back into the bar.
+                Flexible(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 2),
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(label.toUpperCase(), style: KText.mono(9, color: on ? K.textPrimary : K.textMuted, tracking: .1)),
+                    ),
+                  ),
+                ),
               ],
             ),
           );
@@ -877,16 +899,19 @@ class StatusCluster extends StatelessWidget {
           ),
         ),
     ];
-    return ClipRect(
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        physics: const NeverScrollableScrollPhysics(),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            for (var i = 0; i < items.length; i++) ...[if (i > 0) SizedBox(width: phone ? 10 : 20), items[i]],
-          ],
-        ),
+    // Where the bar is too narrow, whole items drop out (onto a second line,
+    // clipped away) rather than one being cut in half: on a phone from the
+    // right, elsewhere from the left, the side away from the bar's edge.
+    return SizedBox(
+      height: 22,
+      child: Wrap(
+        textDirection: phone ? TextDirection.ltr : TextDirection.rtl,
+        spacing: phone ? 10 : 20,
+        runSpacing: 22,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        clipBehavior: Clip.hardEdge,
+        // An item wider than the whole room (a very narrow window) is clipped.
+        children: [for (final it in phone ? items : items.reversed) UnconstrainedBox(clipBehavior: Clip.hardEdge, child: it)],
       ),
     );
   }

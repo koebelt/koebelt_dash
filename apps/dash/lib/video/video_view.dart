@@ -85,19 +85,28 @@ class _VideoViewState extends State<VideoView> {
           if (img != null) RawImage(image: img, fit: widget.fit, filterQuality: FilterQuality.medium, opacity: AlwaysStoppedAnimation(f!.live ? 1 : .35)),
           if (img != null && d.replay == null) _ScriptBoxes(d, Size(img.width.toDouble(), img.height.toDouble()), widget.fit),
           if (msg != null)
-            Center(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (msg == 'Connecting…') ...[const MarkMotion(MarkLoop.loading, size: 48, gap: Color(0xFF050505)), const SizedBox(height: 10)],
-                    Text(
-                      msg,
-                      textAlign: TextAlign.center,
-                      style: (small ? KText.label() : KText.bodySm).copyWith(color: K.textMuted),
+            // A small tile: the message shrinks rather than overflowing.
+            LayoutBuilder(
+              builder: (_, c) => Center(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: SizedBox(
+                    width: c.maxWidth,
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (msg == 'Connecting…') ...[const MarkMotion(MarkLoop.loading, size: 48, gap: Color(0xFF050505)), const SizedBox(height: 10)],
+                          Text(
+                            msg!,
+                            textAlign: TextAlign.center,
+                            style: (small ? KText.label() : KText.bodySm).copyWith(color: K.textMuted),
+                          ),
+                        ],
+                      ),
                     ),
-                  ],
+                  ),
                 ),
               ),
             ),

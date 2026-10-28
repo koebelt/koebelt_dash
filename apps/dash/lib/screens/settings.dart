@@ -297,11 +297,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 phone: phone,
                 title: 'Map tiles',
                 desc: 'Background for the map view: Mapbox Dark, Outdoors (terrain) or Satellite, your own tiles, or none (a metre grid). Tiles you have looked at stay on this device for a while.',
-                child: Seg(
-                  small: phone,
-                  items: const ['DARK', 'OUTDOORS', 'SATELLITE', 'CUSTOM', 'NONE'],
-                  value: st.mapTiles.toUpperCase(),
-                  onChanged: (v) => d.updateSettings((s) => s.mapTiles = v.toLowerCase()),
+                // Five choices: on a small phone they shrink to the width.
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Seg(
+                    small: phone,
+                    items: const ['DARK', 'OUTDOORS', 'SATELLITE', 'CUSTOM', 'NONE'],
+                    value: st.mapTiles.toUpperCase(),
+                    onChanged: (v) => d.updateSettings((s) => s.mapTiles = v.toLowerCase()),
+                  ),
                 ),
               ),
               if (tilesProblem(st) != null)

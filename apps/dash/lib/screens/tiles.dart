@@ -472,7 +472,37 @@ class ReadoutBody extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, c) {
         final cols = math.max(1, math.min(4, (c.maxWidth / 64).floor()));
-        return Center(
+        // Too short for a label over a value (a small phone): one line.
+        if (c.maxHeight < 40) {
+          return FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Row(
+              spacing: 14,
+              children: [
+                for (final r in rd)
+                  Text.rich(
+                    TextSpan(
+                      children: [
+                        TextSpan(text: '${r[0].toUpperCase()} ', style: KText.label(size: 9)),
+                        TextSpan(
+                          text: r[1],
+                          style: KText.mono(13, color: K.textPrimary),
+                        ),
+                        if (r[2].isNotEmpty)
+                          TextSpan(
+                            text: ' ${r[2]}',
+                            style: KText.mono(10, color: K.textMuted),
+                          ),
+                      ],
+                    ),
+                    maxLines: 1,
+                  ),
+              ],
+            ),
+          );
+        }
+        return FitDown(
           child: Wrap(
             spacing: 16,
             runSpacing: 10,
@@ -490,48 +520,54 @@ class FlightPhases extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = d.tel, cur = phases.indexOf(s.mode);
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        for (var i = 0; i < phases.length; i++)
-          Row(
-            children: [
-              Container(
-                width: 6,
-                height: 6,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: i == cur
-                      ? K.accent
-                      : i < cur
-                      ? K.textPrimary
-                      : Colors.transparent,
-                  border: Border.all(color: i <= cur ? Colors.transparent : K.ink300),
-                ),
+    return LayoutBuilder(
+      builder: (_, c) {
+        final rows = Column(
+          mainAxisSize: c.maxHeight < phases.length * 14 ? MainAxisSize.min : MainAxisSize.max,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            for (var i = 0; i < phases.length; i++)
+              Row(
+                children: [
+                  Container(
+                    width: 6,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: i == cur
+                          ? K.accent
+                          : i < cur
+                          ? K.textPrimary
+                          : Colors.transparent,
+                      border: Border.all(color: i <= cur ? Colors.transparent : K.ink300),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    phases[i],
+                    style: KText.mono(
+                      10,
+                      color: i == cur
+                          ? K.textAccent
+                          : i < cur
+                          ? K.textPrimary
+                          : K.textFaint,
+                      tracking: .1,
+                    ),
+                  ),
+                  if (i == cur) ...[
+                    const Spacer(),
+                    Text(
+                      phases[i] == 'COUNT' ? 'T−${math.max(0, s.countdown).toStringAsFixed(1)}' : '+${s.phaseT.toStringAsFixed(1)}s',
+                      style: KText.mono(10, color: K.textSecondary, tracking: .1),
+                    ),
+                  ],
+                ],
               ),
-              const SizedBox(width: 8),
-              Text(
-                phases[i],
-                style: KText.mono(
-                  10,
-                  color: i == cur
-                      ? K.textAccent
-                      : i < cur
-                      ? K.textPrimary
-                      : K.textFaint,
-                  tracking: .1,
-                ),
-              ),
-              if (i == cur) ...[
-                const Spacer(),
-                Text(
-                  phases[i] == 'COUNT' ? 'T−${math.max(0, s.countdown).toStringAsFixed(1)}' : '+${s.phaseT.toStringAsFixed(1)}s',
-                  style: KText.mono(10, color: K.textSecondary, tracking: .1),
-                ),
-              ],
-            ],
-          ),
-      ],
+          ],
+        );
+        return c.maxHeight < phases.length * 14 ? FitDown(alignment: Alignment.topLeft, child: rows) : rows;
+      },
     );
   }
 }
@@ -544,37 +580,47 @@ class PyroBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final py = d.tel.pyro;
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.spaceAround,
-      children: [
-        for (var i = 0; i < 4; i++)
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              MonoLabel(pyroNames[i], size: 10),
-              KBadge(
-                py[i] == 'OK'
-                    ? 'Continuity'
-                    : py[i] == 'FIRED'
-                    ? 'Fired'
-                    : 'Not wired',
-                tone: py[i] == 'FIRED'
-                    ? Tone.accent
-                    : py[i] == 'OK'
-                    ? Tone.positive
-                    : Tone.info,
-                dot: py[i] != '—',
+    return LayoutBuilder(
+      builder: (_, c) {
+        final tight = c.maxHeight < 4 * 22;
+        final rows = Column(
+          mainAxisSize: tight ? MainAxisSize.min : MainAxisSize.max,
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            for (var i = 0; i < 4; i++)
+              Row(
+                children: [
+                  Expanded(child: MonoLabel(pyroNames[i], size: 10, maxLines: 1)),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    flex: 3,
+                    child: KBadge(
+                      py[i] == 'OK'
+                          ? 'Continuity'
+                          : py[i] == 'FIRED'
+                          ? 'Fired'
+                          : 'Not wired',
+                      tone: py[i] == 'FIRED'
+                          ? Tone.accent
+                          : py[i] == 'OK'
+                          ? Tone.positive
+                          : Tone.info,
+                      dot: py[i] != '—',
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
-      ],
+          ],
+        );
+        return tight ? FitDown(alignment: Alignment.topLeft, child: rows) : rows;
+      },
     );
   }
 }
 
 /// Default HUD widget placement on a 12×12 grid, per device kind and screen class.
 List<HudItem> hudDefault(DeviceKind type, String cls) {
-  final p = cls == 'phone';
+  final p = cls == 'phone' || cls == 'portrait';
   HudItem h(String id, int x, int y, int w, int hh) => HudItem(id, x, y, w, hh);
   // A phone held sideways: about 23 pt per grid row, so tiles are four rows
   // tall (about 90 pt, what a title and a chart need), in the corners, with
@@ -642,9 +688,10 @@ class Tile extends StatelessWidget {
               padding: compact ? const EdgeInsets.fromLTRB(12, 10, 12, 0) : const EdgeInsets.fromLTRB(14, 12, 14, 0),
               child: Row(
                 children: [
-                  MonoLabel(tile.titleFor(d.kind), maxLines: 1),
+                  // The title gives way to the value only down to half the row.
+                  Flexible(child: MonoLabel(tile.titleFor(d.kind), maxLines: 1)),
                   const SizedBox(width: 8),
-                  Expanded(
+                  Flexible(
                     child: Text(tile.val(d), textAlign: TextAlign.right, maxLines: 1, overflow: TextOverflow.ellipsis, style: KText.mono(12)),
                   ),
                 ],

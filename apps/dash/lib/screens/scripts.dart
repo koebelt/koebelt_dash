@@ -866,9 +866,13 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
           list,
           Expanded(
             child: Center(
-              child: Text(
-                'Scripts drive your devices from Python. Create one, import one, or start from an example.',
-                style: KText.bodyMd.copyWith(color: K.textMuted),
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Text(
+                  'Scripts drive your devices from Python. Create one, import one, or start from an example.',
+                  textAlign: TextAlign.center,
+                  style: KText.bodyMd.copyWith(color: K.textMuted),
+                ),
               ),
             ),
           ),

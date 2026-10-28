@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 import 'dart:math' as math;
 import 'dart:ui' show ImageFilter;
 
@@ -286,6 +287,9 @@ class _TiltPadState extends State<TiltPad> {
   @override
   void initState() {
     super.initState();
+    // Phones and tablets only: a computer has no accelerometer plugin, and
+    // the pad is dragged with the mouse there.
+    if (!Platform.isIOS && !Platform.isAndroid) return;
     try {
       _sub = accelerometerEventStream(samplingPeriod: SensorInterval.gameInterval).listen(
         (e) {
@@ -442,7 +446,7 @@ class MobileControl extends StatelessWidget {
     // A phone held sideways: little height, so a game-controller layout.
     final short = !stacked && h < 420;
     final js = stacked
-        ? math.min(150.0, (w - 72) / 2)
+        ? math.min(150.0, (w - 72) / (cs == 'sliders' && drone ? 2.8 : 2))
         : short
         ? (h * .46).clamp(120.0, 170.0)
         : math.min(180.0, math.max(130.0, h * .28));
@@ -548,39 +552,32 @@ class MobileControl extends StatelessWidget {
       value: csMap[cs],
       onChanged: (v) => d.updateSettings((st) => st.control = csMap.entries.firstWhere((e) => e.value == v).key),
     );
-    final top = Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      children: [
-        ModePicker(d, small: stacked),
-        if (drone) Seg(items: const ['TAKEOFF', 'LAND', 'RTH'], value: s.mode, onChanged: d.operatorMode, small: stacked),
-        RecordButton(d, small: stacked),
-        if (viewItems(d, cameras3d: false).length > 1)
-          ViewSeg(
-            d,
-            view: d.controlView,
-            cameras3d: false,
-            onChanged: (v) {
-              d.controlView = v;
-              d.emit();
-            },
-          ),
-        PadChip(d),
-        KButton('Set home', size: KSize.sm, variant: KButtonVariant.secondary, onPressed: d.linkLost ? null : () => confirmSetHome(context, d)),
-        ScriptControls(d),
-      ],
-    );
-    final stats = Wrap(
-      spacing: 24,
-      runSpacing: 12,
-      children: [
-        drone ? Readout('Alt', s.pos[2].toStringAsFixed(1), 'm') : Readout('Odom', s.range.toStringAsFixed(0), 'm'),
-        Readout('Speed', s.speed.toStringAsFixed(1), 'm/s'),
-        Readout('Hdg', s.heading.round().toString().padLeft(3, '0'), '°'),
-        Readout('Home', s.range.toStringAsFixed(0), 'm'),
-      ],
-    );
+    final topItems = <Widget>[
+      ModePicker(d, small: stacked),
+      if (drone) Seg(items: const ['TAKEOFF', 'LAND', 'RTH'], value: s.mode, onChanged: d.operatorMode, small: stacked),
+      RecordButton(d, small: stacked),
+      if (viewItems(d, cameras3d: false).length > 1)
+        ViewSeg(
+          d,
+          view: d.controlView,
+          cameras3d: false,
+          onChanged: (v) {
+            d.controlView = v;
+            d.emit();
+          },
+        ),
+      PadChip(d),
+      KButton('Set home', size: KSize.sm, variant: KButtonVariant.secondary, onPressed: d.linkLost ? null : () => confirmSetHome(context, d)),
+      ScriptControls(d),
+    ];
+    final top = Wrap(spacing: 8, runSpacing: 8, crossAxisAlignment: WrapCrossAlignment.center, children: topItems);
+    final readouts = [
+      drone ? Readout('Alt', s.pos[2].toStringAsFixed(1), 'm') : Readout('Odom', s.range.toStringAsFixed(0), 'm'),
+      Readout('Speed', s.speed.toStringAsFixed(1), 'm/s'),
+      Readout('Hdg', s.heading.round().toString().padLeft(3, '0'), '°'),
+      Readout('Home', s.range.toStringAsFixed(0), 'm'),
+    ];
+    final stats = Wrap(spacing: 24, runSpacing: 12, children: readouts);
     if (short) {
       final view = viewItems(d, cameras3d: false).length > 1
           ? ViewSeg(
@@ -658,7 +655,7 @@ class MobileControl extends StatelessWidget {
             Positioned(left: 20, bottom: 12, child: L),
             Positioned(right: 20, bottom: 12, child: R),
             Positioned(
-              left: js + 40,
+              left: (cs == 'sliders' && drone ? js * 1.8 + 12 : js) + 40,
               right: js + 40,
               bottom: 16,
               child: FittedBox(
@@ -688,13 +685,42 @@ class MobileControl extends StatelessWidget {
                 color: K.surfaceDeep,
                 border: Border(bottom: BorderSide(color: K.borderHairline)),
               ),
-              child: Stack(
-                children: [
-                  Positioned.fill(child: MainView(d, view: d.controlView, interactive: false, attribution: false)),
-                  Positioned(top: 12, left: 12, right: 12, child: top),
-                  Positioned(left: 12, right: 12, bottom: 12, child: stats),
-                  Positioned(right: 4, bottom: 4, child: MapOverlayAttribution(d, view: d.controlView)),
-                ],
+              // A small phone leaves the view little height: the buttons in
+              // one row that scrolls sideways, the readouts in one line.
+              child: LayoutBuilder(
+                builder: (_, c) {
+                  final tight = c.maxHeight < 300;
+                  return Stack(
+                    children: [
+                      Positioned.fill(child: MainView(d, view: d.controlView, interactive: false, attribution: false)),
+                      Positioned(
+                        top: 12,
+                        left: tight ? 0 : 12,
+                        right: tight ? 0 : 12,
+                        child: tight
+                            ? SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                padding: const EdgeInsets.symmetric(horizontal: 12),
+                                child: Row(spacing: 8, children: topItems),
+                              )
+                            : top,
+                      ),
+                      Positioned(
+                        left: 12,
+                        right: 12,
+                        bottom: 12,
+                        child: tight
+                            ? FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.bottomLeft,
+                                child: Row(spacing: 20, children: readouts),
+                              )
+                            : stats,
+                      ),
+                      Positioned(right: 4, bottom: 4, child: MapOverlayAttribution(d, view: d.controlView)),
+                    ],
+                  );
+                },
               ),
             ),
           ),
@@ -707,7 +733,9 @@ class MobileControl extends StatelessWidget {
                   children: [
                     Expanded(child: SpeedSlider(d)),
                     const SizedBox(width: 12),
-                    csSeg,
+                    Flexible(
+                      child: FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerRight, child: csSeg),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 16),
@@ -743,7 +771,16 @@ class MobileControl extends StatelessWidget {
               ],
             ),
           ),
-          if (w > 820) Positioned(bottom: 24, left: 0, right: 0, child: Center(child: stats)),
+          // Between the sticks, shrunk where they leave little room (a tablet upright).
+          Positioned(
+            bottom: 24,
+            left: (cs == 'sliders' && drone ? js * 1.8 + 12 : js) + 48,
+            right: js + 48,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Row(spacing: 24, children: readouts),
+            ),
+          ),
           Positioned(left: 24, bottom: 24, child: L),
           Positioned(right: 24, bottom: 24, child: R),
           Positioned(right: 4, bottom: 4, child: MapOverlayAttribution(d, view: d.controlView)),

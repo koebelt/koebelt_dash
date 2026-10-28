@@ -523,35 +523,39 @@ class KTabs extends StatelessWidget {
               border: Border(bottom: BorderSide(color: K.borderHairline)),
             )
           : null,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          for (var i = 0; i < items.length; i++) ...[
-            if (i > 0) const SizedBox(width: K.s7),
-            Pressable(
-              onTap: () => onChanged(items[i]),
-              builder: (_, hover, _) {
-                final on = items[i] == value;
-                return Container(
-                  padding: const EdgeInsets.only(bottom: K.s4),
-                  decoration: BoxDecoration(
-                    border: Border(bottom: BorderSide(color: on ? K.accent : Colors.transparent, width: 2)),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        items[i].toUpperCase(),
-                        style: KText.mono(13, color: on || hover ? K.textPrimary : K.textMuted, tracking: K.trLabel),
-                      ),
-                      if (live.contains(items[i])) ...[const SizedBox(width: 8), const PulseDot(color: K.accent)],
-                    ],
-                  ),
-                );
-              },
-            ),
+      // More tabs than width (a small phone, large text): they scroll.
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (var i = 0; i < items.length; i++) ...[
+              if (i > 0) const SizedBox(width: K.s7),
+              Pressable(
+                onTap: () => onChanged(items[i]),
+                builder: (_, hover, _) {
+                  final on = items[i] == value;
+                  return Container(
+                    padding: const EdgeInsets.only(bottom: K.s4),
+                    decoration: BoxDecoration(
+                      border: Border(bottom: BorderSide(color: on ? K.accent : Colors.transparent, width: 2)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          items[i].toUpperCase(),
+                          style: KText.mono(13, color: on || hover ? K.textPrimary : K.textMuted, tracking: K.trLabel),
+                        ),
+                        if (live.contains(items[i])) ...[const SizedBox(width: 8), const PulseDot(color: K.accent)],
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
@@ -677,6 +681,22 @@ class MonoLabel extends StatelessWidget {
     textAlign: align,
     maxLines: maxLines,
     overflow: maxLines == null ? null : TextOverflow.ellipsis,
+  );
+}
+
+/// Its child at the width given, shrunk as a whole when it is taller than the
+/// room (a tile on a small screen), rather than overflowing.
+class FitDown extends StatelessWidget {
+  const FitDown({super.key, required this.child, this.alignment = Alignment.center});
+  final Widget child;
+  final AlignmentGeometry alignment;
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (_, c) => FittedBox(
+      fit: BoxFit.scaleDown,
+      alignment: alignment,
+      child: SizedBox(width: c.maxWidth, child: child),
+    ),
   );
 }
 

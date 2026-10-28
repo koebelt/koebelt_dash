@@ -628,7 +628,7 @@ class _AddHostDialogState extends State<_AddHostDialog> {
                     children: [
                       MarkMotion(MarkLoop.searching, size: 36, gap: K.surfaceRaised),
                       SizedBox(width: 10),
-                      MonoLabel('Looking for script hosts'),
+                      Flexible(child: MonoLabel('Looking for script hosts', maxLines: 2)),
                     ],
                   ),
                 )

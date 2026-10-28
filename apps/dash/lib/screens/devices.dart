@@ -161,12 +161,14 @@ class DevicesScreen extends StatelessWidget {
       decoration: const BoxDecoration(
         border: Border(bottom: BorderSide(color: K.borderHairline)),
       ),
+      // On a phone the name gets the width, the buttons a line below.
       child: phone
-          ? Row(
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Expanded(child: name),
-                const SizedBox(width: 12),
-                actions,
+                name,
+                const SizedBox(height: 12),
+                Align(alignment: Alignment.centerLeft, child: actions),
               ],
             )
           : Row(

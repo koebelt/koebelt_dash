@@ -51,15 +51,26 @@ class _LiveScreenState extends State<LiveScreen> {
       ),
       child: Row(
         children: [
-          Seg(small: true, items: const ['HUD', 'WALL'], value: wall ? 'WALL' : 'HUD', onChanged: (v) => setLayout(v == 'WALL' ? 'wall' : 'hud')),
-          if (!wall) ...[
-            const SizedBox(width: 8),
-            if (!phone)
-              ViewSeg(d, view: view, onChanged: (v) => setState(() => view = v))
-            else if (viewItems(d, cameras3d: false).length > 1)
-              ViewSeg(d, view: view, cameras3d: false, onChanged: (v) => setState(() => view = v)),
-          ],
-          const Spacer(),
+          // The switches scroll sideways when the buttons on the right leave
+          // too little room (a small phone, a narrow window).
+          Expanded(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  Seg(small: true, items: const ['HUD', 'WALL'], value: wall ? 'WALL' : 'HUD', onChanged: (v) => setLayout(v == 'WALL' ? 'wall' : 'hud')),
+                  if (!wall) ...[
+                    const SizedBox(width: 8),
+                    if (!phone)
+                      ViewSeg(d, view: view, onChanged: (v) => setState(() => view = v))
+                    else if (viewItems(d, cameras3d: false).length > 1)
+                      ViewSeg(d, view: view, cameras3d: false, onChanged: (v) => setState(() => view = v)),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
           // The control mode (on phones, the badge in the top bar shows it).
           if (!phone && d.hasDevice && d.replay == null && Dash.modal(d.kind)) ...[
             ModePicker(d, small: true, onPicked: (m) => m == 'MANUAL' ? widget.go?.call('control') : null),
@@ -80,7 +91,9 @@ class _LiveScreenState extends State<LiveScreen> {
     );
     Widget body;
     if (wall) {
-      final cols = phone ? 2 : math.max(2, ((widget.w - 24) / 250).floor());
+      // At most eight across: on an ultrawide screen the tiles grow rather than
+      // lining up as a thin strip under a small scene.
+      final cols = phone ? 2 : ((widget.w - 24) / 250).floor().clamp(2, 8);
       final ts = tilesFor(d);
       body = SingleChildScrollView(
         padding: EdgeInsets.all(phone ? 12 : 16),
@@ -323,14 +336,22 @@ class _HudViewState extends State<HudView> {
   HudItem? _base;
 
   /// Layout class: phone (portrait), short (a phone held sideways: wide but
-  /// little height), tablet or desktop. Each has its own default and saved layout.
-  String get cls => widget.w < 600
-      ? 'phone'
-      : MediaQuery.sizeOf(context).height < 500
-      ? 'short'
-      : widget.w < 1100
-      ? 'tablet'
-      : 'desktop';
+  /// little height), portrait (a tablet held upright: tiles across the width,
+  /// as on a phone), tablet or desktop. Each has its own default and saved layout.
+  String get cls {
+    final h = MediaQuery.sizeOf(context).height;
+    return widget.w < 600
+        ? 'phone'
+        : h < 500
+        ? 'short'
+        : h > widget.w * 1.3
+        ? 'portrait'
+        : widget.w < 1100
+        ? 'tablet'
+        : 'desktop';
+  }
+
+  bool get _narrow => cls == 'phone' || cls == 'portrait';
 
   List<HudItem> get layout => draft ?? widget.d.savedHud(cls) ?? hudDefault(widget.d.kind, cls);
 
@@ -351,7 +372,7 @@ class _HudViewState extends State<HudView> {
               for (final t in unused)
                 Pressable(
                   onTap: () {
-                    setState(() => draft = [...lay.map((e) => e.copy()), HudItem(t.id, 4, 4, cls == 'phone' ? 6 : 3, 3)]);
+                    setState(() => draft = [...lay.map((e) => e.copy()), HudItem(t.id, 4, 4, _narrow ? 6 : 3, 3)]);
                     Navigator.pop(ctx);
                   },
                   builder: (_, h, _) => Container(
@@ -395,7 +416,7 @@ class _HudViewState extends State<HudView> {
     ];
     if (fresh.isEmpty) return;
     final next = [for (final e in lay) e.copy()];
-    final (w, h) = cls == 'phone' ? (6, 3) : (4, 4);
+    final (w, h) = _narrow ? (6, 3) : (4, 4);
     for (final id in fresh) {
       final (x, y) = _freeSpot(next, w, h);
       next.add(HudItem(id, x, y, w, h));

@@ -218,10 +218,15 @@ class _LinePainter extends FramePainter {
     const L = 34.0;
     double y(double v) => h - 4 - (v - lo) / (hi - lo) * (h - 8);
     final grid = _stroke(VC.hair2);
+    // A short chart labels only its top and bottom lines (or none), so the
+    // numbers do not run into each other.
+    final step = (h - 8) / 3;
     for (var i = 0; i <= 3; i++) {
       final v = lo + (hi - lo) * i / 3, yy = y(v);
       c.drawLine(Offset(L, yy), Offset(w, yy), grid);
-      drawText(c, v.toStringAsFixed((hi - lo).abs() < 10 ? 1 : 0), Offset(0, yy), VC.ink300, middle: true);
+      if (step >= 13 || (h >= 30 && (i == 0 || i == 3))) {
+        drawText(c, v.toStringAsFixed((hi - lo).abs() < 10 ? 1 : 0), Offset(0, yy), VC.ink300, middle: true);
+      }
     }
     for (var ki = 0; ki < data.length; ki++) {
       final a = data[ki];

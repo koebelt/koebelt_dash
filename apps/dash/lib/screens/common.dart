@@ -69,9 +69,9 @@ class SpeedSlider extends StatelessWidget {
       children: [
         Row(
           children: [
-            MonoLabel(label),
-            const Spacer(),
-            MonoLabel('${(d.speed * 100).round()}%', color: K.textPrimary),
+            Expanded(child: MonoLabel(label, maxLines: 1)),
+            const SizedBox(width: 8),
+            Flexible(child: MonoLabel('${(d.speed * 100).round()}%', color: K.textPrimary, maxLines: 1)),
           ],
         ),
         const SizedBox(height: 8),
