@@ -317,7 +317,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      MonoLabel(r.below ? t.below : t.above),
+                      Flexible(child: MonoLabel(r.below ? t.below : t.above, maxLines: 1)),
                       const SizedBox(width: 10),
                       SizedBox(width: 84, child: _LimitField(d, r)),
                       const SizedBox(width: 8),
