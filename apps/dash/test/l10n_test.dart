@@ -49,8 +49,8 @@ void main() {
 
   test('the text follows the language', () {
     useLocale(const Locale('fr'));
-    expect(navLabel('live'), 'Direct');
+    expect(navLabel('settings'), 'Réglages');
     useLocale(const Locale('en'));
-    expect(navLabel('live'), 'Live');
+    expect(navLabel('settings'), 'Settings');
   });
 }

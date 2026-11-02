@@ -10,7 +10,7 @@ class AppLocalizationsFr extends AppLocalizations {
   AppLocalizationsFr([String locale = 'fr']) : super(locale);
 
   @override
-  String get navLive => 'Direct';
+  String get navLive => 'Live';
 
   @override
   String get navControl => 'Pilotage';
@@ -22,7 +22,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get navTune => 'Paramètres';
 
   @override
-  String get navReplay => 'Relecture';
+  String get navReplay => 'Replay';
 
   @override
   String get navDevices => 'Appareils';
@@ -170,11 +170,11 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String failsafeActive(String action) {
-    return 'Sécurité active : $action.';
+    return 'Failsafe actif : $action.';
   }
 
   @override
-  String get reconnecting => 'Reconnexion. La sécurité se déclenche à 1,8 s.';
+  String get reconnecting => 'Reconnexion. Le failsafe se déclenche à 1,8 s.';
 
   @override
   String get controlsLocked => 'Les commandes sont bloquées jusqu’au retour de la liaison.';
@@ -196,7 +196,7 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get linkLostOther => 'Sa sécurité prend le relais après 1,8 s.';
+  String get linkLostOther => 'Son failsafe prend le relais après 1,8 s.';
 
   @override
   String get compatNewerApp => 'Demande une app plus récente';
@@ -229,41 +229,41 @@ class AppLocalizationsFr extends AppLocalizations {
   String get linkLost => 'Liaison perdue';
 
   @override
-  String get replayOffControl => 'Les commandes sont coupées pendant une relecture';
+  String get replayOffControl => 'Les commandes sont coupées pendant un replay';
 
   @override
   String get replayOffControlWhy => 'Les commandes agissent sur un appareil connecté, pas sur un enregistrement.';
 
   @override
-  String get replayOffSequences => 'Les séquences sont coupées pendant une relecture';
+  String get replayOffSequences => 'Les séquences sont coupées pendant un replay';
 
   @override
   String get replayOffSequencesWhy => 'Les séquences s’exécutent sur un appareil connecté, pas sur un enregistrement.';
 
   @override
-  String get replayOffTune => 'Les réglages sont coupés pendant une relecture';
+  String get replayOffTune => 'Les réglages sont coupés pendant un replay';
 
   @override
   String get replayOffTuneWhy => 'Les paramètres se lisent et s’écrivent sur un appareil connecté, pas sur un enregistrement.';
 
   @override
   String replayExitTo(String name) {
-    return 'Quittez la relecture pour revenir à $name.';
+    return 'Quittez le replay pour revenir à $name.';
   }
 
   @override
-  String get replayExitConnect => 'Quittez la relecture, puis connectez un appareil.';
+  String get replayExitConnect => 'Quittez le replay, puis connectez un appareil.';
 
   @override
-  String get replayBack => 'Retour à la relecture';
+  String get replayBack => 'Retour au replay';
 
   @override
   String replayExitBackTo(String name) {
-    return 'Quitter la relecture, revenir à $name';
+    return 'Quitter le replay, revenir à $name';
   }
 
   @override
-  String get replayExit => 'Quitter la relecture';
+  String get replayExit => 'Quitter le replay';
 
   @override
   String get notConnected => 'Non connecté';
@@ -355,10 +355,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get manage => 'Gérer';
 
   @override
-  String get replaying => 'Relecture en cours';
+  String get replaying => 'Replay en cours';
 
   @override
-  String get closeReplay => 'Fermer la relecture';
+  String get closeReplay => 'Fermer le replay';
 
   @override
   String get simulator => 'Simulateur';
@@ -408,7 +408,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get automateScriptPoint2 => 'N’importe quelle bibliothèque : OpenCV, PyTorch, YOLO';
 
   @override
-  String get automateScriptPoint3 => 'Déclencheurs : boutons, touches, conditions, minuteries';
+  String get automateScriptPoint3 => 'Triggers : boutons, touches, conditions, minuteries';
 
   @override
   String get automateScriptPoint3Host => 'S’exécute sur un hôte de scripts : un ordinateur de votre réseau';
@@ -443,7 +443,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get layoutHud => 'HUD';
 
   @override
-  String get layoutWall => 'MUR';
+  String get layoutWall => 'WALL';
 
   @override
   String get editLayout => 'Modifier la disposition';
@@ -512,7 +512,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String hzLive(int hz) {
-    return '$hz Hz en direct';
+    return '$hz Hz en live';
   }
 
   @override
@@ -575,13 +575,13 @@ class AppLocalizationsFr extends AppLocalizations {
   String get autoDashDrives => 'dash le pilote';
 
   @override
-  String get autoTakeBack => 'Choisissez MANUAL ou HOLD, ou bougez les manches, pour reprendre la main.';
+  String get autoTakeBack => 'Choisissez MANUAL ou HOLD, ou bougez les sticks, pour reprendre la main.';
 
   @override
   String get autoTip => 'Le mode de dash : pendant qu’une séquence ou un script pilote l’appareil. Lancez-en un depuis Automatiser.';
 
   @override
-  String get tiltDrag => 'Inclinaison · glissez pour simuler';
+  String get tiltDrag => 'Tilt · glissez pour simuler';
 
   @override
   String get stickThrottle => 'Gaz';
@@ -602,10 +602,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get stickThrottleYaw => 'Gaz · lacet';
 
   @override
-  String get tiltPitchRoll => 'Inclinaison · tangage et roulis';
+  String get tiltPitchRoll => 'Tilt · tangage et roulis';
 
   @override
-  String get tiltSteerDrive => 'Inclinaison · direction et avance';
+  String get tiltSteerDrive => 'Tilt · direction et avance';
 
   @override
   String get axUp => 'HAUT';
@@ -863,7 +863,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String radioOnlyBody(String name, String radio) {
-    return '$name est connecté par $radio, qui ne transporte que la télémesure. Les manches, les modes et les commandes n’atteignent pas l’appareil par là ; STOP oui, en une seconde environ. Pilotez-le par sa liaison principale (Wi-Fi, Bluetooth ou radio SiK) et comptez sur sa sécurité hors de portée.';
+    return '$name est connecté par $radio, qui ne transporte que la télémesure. Les sticks, les modes et les commandes n’atteignent pas l’appareil par là ; STOP oui, en une seconde environ. Pilotez-le par sa liaison principale (Wi-Fi, Bluetooth ou radio SiK) et comptez sur son failsafe hors de portée.';
   }
 
   @override
@@ -1095,7 +1095,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get devicesSeveral =>
-      'Plusieurs appareils peuvent être connectés à la fois. Celui affiché reçoit les manches ; les autres tiennent sur manches centrés, et STOP les arrête tous.';
+      'Plusieurs appareils peuvent être connectés à la fois. Celui affiché reçoit les sticks ; les autres tiennent sur sticks centrés, et STOP les arrête tous.';
 
   @override
   String get connected => 'Connecté';
@@ -1282,16 +1282,16 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get setInputDesc =>
-      'Manches : deux joysticks virtuels. Curseurs : gaz et lacet à ressort avec un seul manche. Inclinaison : dirigez en inclinant le téléphone ou la tablette.';
+      'Sticks : deux joysticks virtuels. Sliders : gaz et lacet à ressort avec un seul stick. Tilt : dirigez en inclinant le téléphone ou la tablette.';
 
   @override
-  String get csSticks => 'MANCHES';
+  String get csSticks => 'STICKS';
 
   @override
-  String get csSliders => 'CURSEURS';
+  String get csSliders => 'SLIDERS';
 
   @override
-  String get csTilt => 'INCLINAISON';
+  String get csTilt => 'TILT';
 
   @override
   String get setInvert => 'Inverser le tangage';
@@ -1303,7 +1303,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get setHaptics => 'Retour haptique';
 
   @override
-  String get setHapticsDesc => 'Vibrer au centre des manches et lors des avertissements.';
+  String get setHapticsDesc => 'Vibrer au centre des sticks et lors des avertissements.';
 
   @override
   String get setLinkLoss => 'En cas de perte de liaison';
@@ -1319,7 +1319,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get setRateDesc => 'Une fréquence élevée consomme plus de bande passante et de batterie.';
 
   @override
-  String get setTestFailsafe => 'Tester la sécurité';
+  String get setTestFailsafe => 'Tester le failsafe';
 
   @override
   String get setTestFailsafeDesc => 'Coupe la liaison de commande six secondes pour vérifier le comportement choisi.';
@@ -1380,10 +1380,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get mapNone => 'AUCUN';
 
   @override
-  String get setMapboxToken => 'Votre jeton Mapbox';
+  String get setMapboxToken => 'Votre token Mapbox';
 
   @override
-  String get setMapboxTokenDesc => 'Facultatif : un jeton public (pk.…) de votre propre compte Mapbox, pour utiliser votre quota plutôt que celui de l’app.';
+  String get setMapboxTokenDesc => 'Facultatif : un token public (pk.…) de votre propre compte Mapbox, pour utiliser votre quota plutôt que celui de l’app.';
 
   @override
   String get setTileUrl => 'URL des tuiles';
@@ -1477,7 +1477,7 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get replayEyebrow => 'Enregistrement et relecture';
+  String get replayEyebrow => 'Enregistrement et replay';
 
   @override
   String get sessions => 'Sessions';
@@ -1486,7 +1486,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get export => 'Exporter';
 
   @override
-  String get exitToLive => 'Revenir au direct';
+  String get exitToLive => 'Revenir au live';
 
   @override
   String get play => 'Lecture';
@@ -1568,7 +1568,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get stepsGeneric => 'attendre, choisir un mode, envoyer des commandes';
 
   @override
-  String get whyExitReplay => 'Quittez la relecture pour lancer';
+  String get whyExitReplay => 'Quittez le replay pour lancer';
 
   @override
   String get whyResetStop => 'Levez d’abord l’arrêt';
@@ -1650,7 +1650,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get throttleProfile => 'Profil de gaz';
 
   @override
-  String get liveView => 'Vue en direct';
+  String get liveView => 'Vue live';
 
   @override
   String get timeline => 'Chronologie';
@@ -1660,7 +1660,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get planNoteDrone =>
-      'Les points sont en mètres vers l’est et le nord depuis le point de décollage. Le drone s’arrête à chacun avant l’étape suivante. La sécurité s’applique toujours si la liaison tombe.';
+      'Les points sont en mètres vers l’est et le nord depuis le point de décollage. Le drone s’arrête à chacun avant l’étape suivante. Le failsafe s’applique toujours si la liaison tombe.';
 
   @override
   String get planNoteRover => 'Les points sont en mètres vers l’est et le nord depuis le point de départ. Le rover s’arrête à chacun avant l’étape suivante.';
@@ -1856,13 +1856,13 @@ class AppLocalizationsFr extends AppLocalizations {
   String get waitingConnect => 'En attente de la connexion du script (connect() dans le script)…';
 
   @override
-  String get youHaveSticks => 'Vous avez les manches';
+  String get youHaveSticks => 'Vous avez les sticks';
 
   @override
-  String get youHaveSticksBody => 'Vous avez bougé les manches : ceux du script sont ignorés.';
+  String get youHaveSticksBody => 'Vous avez bougé les sticks : ceux du script sont ignorés.';
 
   @override
-  String get scriptLostSticks => 'Le script a perdu les manches';
+  String get scriptLostSticks => 'Le script a perdu les sticks';
 
   @override
   String isNotConnected(String name) {
@@ -1983,7 +1983,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get restart => 'Relancer';
 
   @override
-  String get triggers => 'Déclencheurs';
+  String get triggers => 'Triggers';
 
   @override
   String get triggersEmpty =>
@@ -1996,7 +1996,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get maxSpeed => 'Vitesse max';
 
   @override
-  String get geofence => 'Zone autorisée';
+  String get geofence => 'Geofence';
 
   @override
   String get off => 'désactivé';
@@ -2064,7 +2064,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get trueAndFalse => 'VRAI ET FAUX';
 
   @override
-  String get alsoOnControl => 'Aussi dans Pilotage, à côté des manches';
+  String get alsoOnControl => 'Aussi dans Pilotage, à côté des sticks';
 
   @override
   String get key => 'Touche';
@@ -2105,10 +2105,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get secondsWord => 'secondes';
 
   @override
-  String get addTrigger => 'Ajouter un déclencheur';
+  String get addTrigger => 'Ajouter un trigger';
 
   @override
-  String get editTrigger => 'Modifier le déclencheur';
+  String get editTrigger => 'Modifier le trigger';
 
   @override
   String get event => 'Événement';
@@ -2134,10 +2134,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get maximumSpeed => 'Vitesse maximale';
 
   @override
-  String get maximumSpeedDesc => 'Les manches du script sont ramenés à cette valeur, et sa vitesse plafonnée.';
+  String get maximumSpeedDesc => 'Les sticks du script sont ramenés à cette valeur, et sa vitesse plafonnée.';
 
   @override
-  String get geofenceDesc => 'Au-delà de cette distance du départ, le script perd les manches et l’appareil s’immobilise.';
+  String get geofenceDesc => 'Au-delà de cette distance du départ, le script perd les sticks et l’appareil s’immobilise.';
 
   @override
   String get ceilingDesc => 'Au-dessus de cette hauteur, pareil pour les drones.';
@@ -2291,8 +2291,8 @@ class AppLocalizationsFr extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'L’installation ferme l’app : les $count appareils connectés perdent la liaison et leur sécurité prend le relais jusqu’à la reconnexion.',
-      one: 'L’installation ferme l’app : l’appareil connecté perd la liaison et sa sécurité prend le relais jusqu’à la reconnexion.',
+      other: 'L’installation ferme l’app : les $count appareils connectés perdent la liaison et leur failsafe prend le relais jusqu’à la reconnexion.',
+      one: 'L’installation ferme l’app : l’appareil connecté perd la liaison et son failsafe prend le relais jusqu’à la reconnexion.',
     );
     return '$_temp0';
   }
@@ -2446,10 +2446,10 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get padUseDesc =>
-      'Les manches pilotent drones et robots au sol, et déplacent les bras, une fois armés ; les boutons marchent sur tout appareil. Les commandes à l’écran restent actives quand la manette est au repos.';
+      'Les sticks pilotent drones et robots au sol, et déplacent les bras, une fois armés ; les boutons marchent sur tout appareil. Les commandes à l’écran restent actives quand la manette est au repos.';
 
   @override
-  String get padSticks => 'Manches';
+  String get padSticks => 'Sticks';
 
   @override
   String get padMoveNow => 'Bougez ou appuyez sur la commande maintenant';
@@ -2462,7 +2462,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String padDeadzoneDesc(int pct) {
-    return 'Mouvement des manches ignoré autour du centre : $pct %.';
+    return 'Mouvement des sticks ignoré autour du centre : $pct %.';
   }
 
   @override
@@ -2477,7 +2477,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get padResetMapping => 'Réinitialiser la configuration';
 
   @override
-  String get padResetMappingDesc => 'Disposition standard : manche gauche gaz et lacet, manche droit tangage et roulis, B / Rond pour STOP.';
+  String get padResetMappingDesc => 'Disposition standard : stick gauche gaz et lacet, stick droit tangage et roulis, B / Rond pour STOP.';
 
   @override
   String get waiting => 'En attente…';
@@ -2507,7 +2507,7 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get padButtonsWork => 'Les boutons marchent ; les manches pilotent drones et robots au sol';
+  String get padButtonsWork => 'Les boutons marchent ; les sticks pilotent drones et robots au sol';
 
   @override
   String get pad => 'Manette';
@@ -2529,10 +2529,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get aiPaste => 'Collez ceci dans la configuration de l’assistant.';
 
   @override
-  String get aiRemotePhone => 'Les assistants tournent sur un ordinateur : ils atteignent ce téléphone par le réseau, avec son jeton.';
+  String get aiRemotePhone => 'Les assistants tournent sur un ordinateur : ils atteignent ce téléphone par le réseau, avec son token.';
 
   @override
-  String get aiRemoteTablet => 'Les assistants tournent sur un ordinateur : ils atteignent cette tablette par le réseau, avec son jeton.';
+  String get aiRemoteTablet => 'Les assistants tournent sur un ordinateur : ils atteignent cette tablette par le réseau, avec son token.';
 
   @override
   String get other => 'Autre';
@@ -2557,7 +2557,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get aiAllowedNone =>
-      'Les appareils simulés et les relectures ne demandent jamais. Sur du vrai matériel, chaque action demande, sauf si vous l’autorisez pour la session. L’armement et le décollage demandent toujours.';
+      'Les appareils simulés et les replays ne demandent jamais. Sur du vrai matériel, chaque action demande, sauf si vous l’autorisez pour la session. L’armement et le décollage demandent toujours.';
 
   @override
   String aiAllowedSome(String actions) {
@@ -2569,11 +2569,11 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String aiFromNetworkOn(String url, String token) {
-    return 'Assistants sur d’autres ordinateurs : $url avec le jeton $token… (copiez-le depuis l’onglet Autre).';
+    return 'Assistants sur d’autres ordinateurs : $url avec le token $token… (copiez-le depuis l’onglet Autre).';
   }
 
   @override
-  String get aiFromNetworkOff => 'Laisser un assistant sur un autre ordinateur utiliser ce dash, avec un jeton.';
+  String get aiFromNetworkOff => 'Laisser un assistant sur un autre ordinateur utiliser ce dash, avec un token.';
 
   @override
   String get aiActivity => 'Activité des assistants';
@@ -2617,7 +2617,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get fromFile => 'Depuis un fichier';
 
   @override
-  String get fromFileDesc => 'S’ouvre comme une session : relecture, carte, graphiques et export fonctionnent dessus.';
+  String get fromFileDesc => 'S’ouvre comme une session : replay, carte, graphiques et export fonctionnent dessus.';
 
   @override
   String get fmtJson => 'Un enregistrement exporté de koebelt/dash';
@@ -2702,7 +2702,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String firmware(String version) {
-    return 'micrologiciel $version';
+    return 'firmware $version';
   }
 
   @override
@@ -2753,7 +2753,7 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get liveResponse => 'Réponse en direct';
+  String get liveResponse => 'Réponse en live';
 
   @override
   String get copied => 'Copié';
@@ -2856,13 +2856,13 @@ class AppLocalizationsFr extends AppLocalizations {
   String get guidesMoreDesc => 'Données personnalisées, réglages, séquences et sécurité.';
 
   @override
-  String get viewChase => 'POURSUITE';
+  String get viewChase => 'CHASE';
 
   @override
-  String get viewOrbit => 'ORBITE';
+  String get viewOrbit => 'ORBIT';
 
   @override
-  String get viewTop => 'DESSUS';
+  String get viewTop => 'TOP';
 
   @override
   String get viewMap => 'CARTE';
@@ -2871,7 +2871,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get viewCam => 'CAM';
 
   @override
-  String get noMapboxToken => 'Cette version n’a pas de jeton Mapbox : saisissez le vôtre ci-dessous, ou choisissez une autre source.';
+  String get noMapboxToken => 'Cette version n’a pas de token Mapbox : saisissez le vôtre ci-dessous, ou choisissez une autre source.';
 
   @override
   String get waitingGps => 'En attente d’un fix GPS';
@@ -3207,7 +3207,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get trgSwitch => 'Interrupteur';
 
   @override
-  String get trgSlider => 'Curseur';
+  String get trgSlider => 'Slider';
 
   @override
   String get trgController => 'Manette';
@@ -3225,7 +3225,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get evMode => 'Changement de mode';
 
   @override
-  String get evFailsafe => 'Sécurité';
+  String get evFailsafe => 'Failsafe';
 
   @override
   String get evSeqDone => 'Séquence terminée';
@@ -3285,7 +3285,7 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get paAutoHint => 'Après une reprise en main, rendre les manches au script (AUTO)';
+  String get paAutoHint => 'Après une reprise en main, rendre les sticks au script (AUTO)';
 
   @override
   String paSwitchToDrones(String mode) {
@@ -3305,10 +3305,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get paFasterHint => 'Monter la vitesse max de 10 %';
 
   @override
-  String get paFrameHint => 'Bras : ce que déplacent les manches';
+  String get paFrameHint => 'Bras : ce que déplacent les sticks';
 
   @override
-  String get paWristHint => 'Bras : le manche droit déplace J5 et J6 au lieu de J3 et J4';
+  String get paWristHint => 'Bras : le stick droit déplace J5 et J6 au lieu de J3 et J4';
 
   @override
   String get paGripperHint => 'Bras : ouvrir ou fermer';
@@ -3320,16 +3320,16 @@ class AppLocalizationsFr extends AppLocalizations {
   String get notSet => 'Non défini';
 
   @override
-  String get padLeftStickX => 'Manche gauche X';
+  String get padLeftStickX => 'Stick gauche X';
 
   @override
-  String get padLeftStickY => 'Manche gauche Y';
+  String get padLeftStickY => 'Stick gauche Y';
 
   @override
-  String get padRightStickX => 'Manche droit X';
+  String get padRightStickX => 'Stick droit X';
 
   @override
-  String get padRightStickY => 'Manche droit Y';
+  String get padRightStickY => 'Stick droit Y';
 
   @override
   String get padLeftTrigger => 'Gâchette gauche';
@@ -3350,10 +3350,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get padYTriangle => 'Y / Triangle';
 
   @override
-  String get padLeftBumper => 'Bouton tranche gauche';
+  String get padLeftBumper => 'Bumper gauche';
 
   @override
-  String get padRightBumper => 'Bouton tranche droit';
+  String get padRightBumper => 'Bumper droit';
 
   @override
   String get padBackShare => 'Back / Share';
@@ -3365,22 +3365,22 @@ class AppLocalizationsFr extends AppLocalizations {
   String get padHome => 'Home';
 
   @override
-  String get padLeftStickPress => 'Clic manche gauche';
+  String get padLeftStickPress => 'Clic stick gauche';
 
   @override
-  String get padRightStickPress => 'Clic manche droit';
+  String get padRightStickPress => 'Clic stick droit';
 
   @override
-  String get padDPadUp => 'Croix haut';
+  String get padDPadUp => 'D-pad haut';
 
   @override
-  String get padDPadDown => 'Croix bas';
+  String get padDPadDown => 'D-pad bas';
 
   @override
-  String get padDPadLeft => 'Croix gauche';
+  String get padDPadLeft => 'D-pad gauche';
 
   @override
-  String get padDPadRight => 'Croix droite';
+  String get padDPadRight => 'D-pad droite';
 
   @override
   String get radioSik => 'Radio de télémesure SiK';
