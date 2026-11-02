@@ -1,7 +1,7 @@
 # Builds koebelt dash for every platform. A tag app-vX.Y.Z (matching the
 # version in apps/dash/pubspec.yaml) publishes it: macOS (signed, notarized
-# .dmg), Windows (installer), Linux (tarball) and Android (APK) on a GitHub
-# Release, and iOS to TestFlight. Run by hand (Actions > app-release > Run
+# .dmg), Windows (installer), Linux (tarballs, x64 and ARM64) and Android
+# (APK) on a GitHub Release, and iOS to TestFlight. Run by hand (Actions > app-release > Run
 # workflow) it only builds, unsigned where the secrets are missing, and keeps
 # the files as workflow artifacts. Setup: tools/release/RELEASING.md.
 name: app-release
@@ -234,29 +234,38 @@ jobs:
 
   linux:
     needs: version
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - { arch: x64, runner: ubuntu-latest }
+          - { arch: arm64, runner: ubuntu-24.04-arm }
+    runs-on: ${{ matrix.runner }}
     env:
       V: ${{ needs.version.outputs.version }}
+      ARCH: ${{ matrix.arch }}
     steps:
       - uses: actions/checkout@v4
       - run: sudo apt-get update && sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev libudev-dev
-      - uses: subosito/flutter-action@v2
-        with: { channel: stable, flutter-version: 3.47.2 }
+      # Flutter publishes no Linux ARM64 archive: the SDK from git works on both.
+      - name: Flutter
+        run: |
+          git clone --depth 1 --branch 3.47.2 https://github.com/flutter/flutter.git "$RUNNER_TEMP/flutter"
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
       - run: flutter build linux --release --build-number=${{ needs.version.outputs.build }} --dart-define=KDASH_UPDATES=github --dart-define=MAPBOX_TOKEN=${{ secrets.MAPBOX_TOKEN }}
         working-directory: apps/dash
       - name: MCP bridge
         run: |
           cd tools/mcp_bridge && dart pub get
-          dart compile exe bin/koebelt_dash_mcp.dart -o ../../apps/dash/build/linux/x64/release/bundle/koebelt-dash-mcp
-          ../../apps/dash/build/linux/x64/release/bundle/koebelt-dash-mcp --version
+          dart compile exe bin/koebelt_dash_mcp.dart -o ../../apps/dash/build/linux/$ARCH/release/bundle/koebelt-dash-mcp
+          ../../apps/dash/build/linux/$ARCH/release/bundle/koebelt-dash-mcp --version
       - name: Tarball
         run: |
-          d=koebelt-dash-$V-linux-x64
-          cp -r apps/dash/build/linux/x64/release/bundle "$d"
+          d=koebelt-dash-$V-linux-$ARCH
+          cp -r apps/dash/build/linux/$ARCH/release/bundle "$d"
           cp tools/release/linux/* LICENSE "$d/"
           tar czf "$d.tar.gz" "$d"
       - uses: actions/upload-artifact@v4
-        with: { name: linux, path: "koebelt-dash-*-linux-x64.tar.gz" }
+        with: { name: "linux-${{ matrix.arch }}", path: "koebelt-dash-*-linux-${{ matrix.arch }}.tar.gz" }
 
   release:
     if: startsWith(github.ref, 'refs/tags/app-v')

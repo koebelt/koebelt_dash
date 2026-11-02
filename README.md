@@ -16,7 +16,7 @@ connects your hardware to it.
 | Path | What |
 |------|------|
 | [`protocol/`](protocol/) | The wire protocol (`PROTOCOL.md`) and shared test vectors every implementation checks against. |
-| [`apps/dash/`](apps/dash/) | The Flutter app: iOS, Android, macOS, Windows and Linux. |
+| [`apps/dash/`](apps/dash/) | The Flutter app: iOS, Android, macOS, Windows and Linux (x64 and ARM64). |
 | [`libs/arduino/KoebeltLink/`](libs/arduino/KoebeltLink/) | C++ library for ESP32, RP2040 W, Teensy and other Arduino boards. |
 | [`libs/python/`](libs/python/) | `koebelt-link` for Raspberry Pi, Jetson and any Linux/macOS computer, plus a network simulator. |
 | [`libs/rust/`](libs/rust/) | `koebelt-link` crate: `no_std` core with no dependencies, plus a `std` layer. |

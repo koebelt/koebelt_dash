@@ -109,6 +109,12 @@ void main() {
     expect(done.available!.version, '1.3.0', reason: 'the release after its betas');
   });
 
+  test('Linux gets the build for its processor', () {
+    expect(assetFor('1.4.0', 'linux', 'x64'), 'koebelt-dash-1.4.0-linux-x64.tar.gz');
+    expect(assetFor('1.4.0', 'linux', 'arm64'), 'koebelt-dash-1.4.0-linux-arm64.tar.gz');
+    expect(assetFor('1.4.0', 'windows', 'arm64'), 'koebelt-dash-1.4.0-windows-x64-setup.exe', reason: 'Windows on ARM runs the x64 build');
+  });
+
   test('up to date when the newest release is this one, or lacks this platform', () async {
     final u = Updater(
       await _store(),

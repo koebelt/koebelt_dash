@@ -65,8 +65,8 @@ and then:
 
 - creates the GitHub Release `app-vX.Y.Z` with the notes in
   [`app-notes/X.Y.Z.md`](app-notes/) and the macOS .dmg (signed with
-  Developer ID, notarized), the Windows installer, the Linux tarball, the
-  Android APK and `SHA256SUMS`;
+  Developer ID, notarized), the Windows installer, the Linux tarballs (x64,
+  and ARM64 built on GitHub's ARM runners), the Android APK and `SHA256SUMS`;
 - uploads the iOS build to App Store Connect, where it appears in TestFlight
   after Apple's processing (about 15 minutes);
 - publishes `koebelt-dash-scripts` (libs/python-dash-scripts) to PyPI. Its

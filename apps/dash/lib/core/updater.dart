@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:ffi' show Abi;
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
@@ -24,11 +25,14 @@ const _repo = 'koebelt/koebelt_dash';
 const _tagPrefix = 'app-v';
 const _checkEvery = Duration(hours: 24);
 
+/// The processor this app was built for, as release file names write it.
+final hostArch = Abi.current() == Abi.linuxArm64 ? 'arm64' : 'x64';
+
 /// The release asset for this platform, as app-release.yml names it.
-String? assetFor(String version, String os) => switch (os) {
+String? assetFor(String version, String os, [String? arch]) => switch (os) {
   'macos' => 'koebelt-dash-$version-macos.dmg',
   'windows' => 'koebelt-dash-$version-windows-x64-setup.exe',
-  'linux' => 'koebelt-dash-$version-linux-x64.tar.gz',
+  'linux' => 'koebelt-dash-$version-linux-${arch ?? hostArch}.tar.gz',
   'android' => 'koebelt-dash-$version-android.apk',
   _ => null,
 };
