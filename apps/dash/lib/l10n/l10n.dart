@@ -6,6 +6,7 @@
 import 'dart:ui' show Locale, PlatformDispatcher;
 
 import 'app_localizations.dart';
+import 'guides_fr.dart';
 
 export 'app_localizations.dart';
 
@@ -48,3 +49,10 @@ String joinOr(List<String> items) => items.length < 2 ? items.join() : '${items.
 
 /// [t] again, where both `t` and `tr` name something else.
 AppLocalizations get appText => t;
+
+/// Guide text in the language shown: [en] is the English source; where the
+/// language has no translation for it (yet), the English shows.
+String tg(String en) => (guideTables[t.localeName]?[en]) ?? en;
+
+/// The guide translations, by language.
+const guideTables = {'fr': guidesFr};

@@ -195,3 +195,34 @@ Guide quickstart(String pair) => Guide('quickstart', 'Quickstart', "Install the 
 
 /// Every guide except the quickstart, in display order.
 const guides = [...connectionGuides, ...deviceGuides, ...featureGuides, ...moreGuides];
+
+/// Every piece of guide prose, in English, once: titles, summaries, steps,
+/// bullets, notes, table cells and the platform cards. Translations
+/// (`lib/l10n/guides_<locale>.dart`) are keyed by these; code is not prose.
+List<String> guideTexts() {
+  final out = <String>{};
+  void cells(List<List<String>>? rows) {
+    for (final r in rows ?? const <List<String>>[]) {
+      out.addAll(r.where((c) => c.trim().isNotEmpty));
+    }
+  }
+
+  for (final g in [quickstart(''), ...guides]) {
+    out
+      ..add(g.title)
+      ..add(g.sub);
+    cells(g.table);
+    for (final s in g.steps) {
+      out
+        ..add(s.t)
+        ..add(s.p)
+        ..addAll(s.bullets);
+      if (s.note != null) out.add(s.note!);
+      cells(s.table);
+    }
+  }
+  for (final p in platforms) {
+    out.add(p.fit);
+  }
+  return out.where((s) => s.trim().isNotEmpty).toList();
+}

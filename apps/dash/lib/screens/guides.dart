@@ -397,11 +397,11 @@ class _GuideViewState extends State<GuideView> {
       children: [
         MonoLabel('${g.mins} min · ${appOnly ? t.inTheApp : P.name}', color: K.textAccent),
         const SizedBox(height: 14),
-        Text(g.title, style: phone ? KText.headingMd : KText.headingLg),
+        Text(tg(g.title), style: phone ? KText.headingMd : KText.headingLg),
         const SizedBox(height: 14),
         ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 560),
-          child: Text(g.sub, style: KText.bodyLg.copyWith(color: K.textSecondary)),
+          child: Text(tg(g.sub), style: KText.bodyLg.copyWith(color: K.textSecondary)),
         ),
         if (!appOnly) const SizedBox(height: 14),
         if (!appOnly)
@@ -430,13 +430,13 @@ class _GuideViewState extends State<GuideView> {
                 children: [
                   Text((i + 1).toString().padLeft(2, '0'), style: KText.mono(13, color: K.textAccent)),
                   const SizedBox(width: 14),
-                  Expanded(child: Text(g.steps[i].t, style: KText.headingSm)),
+                  Expanded(child: Text(tg(g.steps[i].t), style: KText.headingSm)),
                 ],
               ),
               const SizedBox(height: 14),
               ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 640),
-                child: Text(g.steps[i].p, style: KText.bodyMd.copyWith(color: K.textSecondary)),
+                child: Text(tg(g.steps[i].p), style: KText.bodyMd.copyWith(color: K.textSecondary)),
               ),
               if (g.steps[i].bullets.isNotEmpty) ...[const SizedBox(height: 12), Bullets(items: g.steps[i].bullets)],
               if (g.steps[i].table != null) ...[const SizedBox(height: 14), GuideTable(rows: g.steps[i].table!)],
@@ -446,7 +446,7 @@ class _GuideViewState extends State<GuideView> {
               ],
               if (g.steps[i].note != null) ...[
                 const SizedBox(height: 14),
-                KNotice(tone: g.steps[i].warn ? Tone.warning : Tone.info, child: Text(g.steps[i].note!)),
+                KNotice(tone: g.steps[i].warn ? Tone.warning : Tone.info, child: Text(tg(g.steps[i].note!))),
               ],
               if (g.steps[i].pair) ...[const SizedBox(height: 14), PairPanel(d, go: widget.go)],
             ],
@@ -489,24 +489,31 @@ class _GuideViewState extends State<GuideView> {
       ),
       child: Row(
         children: [
-          Pressable(
-            onTap: widget.back,
-            builder: (_, h, _) => Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                KIcon('arrow-left', size: 14, color: h ? K.textPrimary : K.textMuted),
-                const SizedBox(width: 8),
-                Text(
-                  t.allGuides.toUpperCase(),
-                  style: KText.mono(11, color: h ? K.textPrimary : K.textMuted, tracking: K.trLabel),
-                ),
-              ],
+          // Gives way on a small phone (large text, longer words).
+          Flexible(
+            child: Pressable(
+              onTap: widget.back,
+              builder: (_, h, _) => Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  KIcon('arrow-left', size: 14, color: h ? K.textPrimary : K.textMuted),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                      t.allGuides.toUpperCase(),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: KText.mono(11, color: h ? K.textPrimary : K.textMuted, tracking: K.trLabel),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
           const SizedBox(width: 12),
           const MonoLabel('/', color: K.textFaint),
           const SizedBox(width: 12),
-          Expanded(child: MonoLabel(g.title, color: K.textSecondary, maxLines: 1)),
+          Expanded(child: MonoLabel(tg(g.title), color: K.textSecondary, maxLines: 1)),
           if (!wide && g.steps.length > 1) MonoLabel(t.stepOfUpper(_active + 1, g.steps.length)),
         ],
       ),
@@ -565,7 +572,7 @@ class _GuideViewState extends State<GuideView> {
                         ),
                         const SizedBox(width: 10),
                         Expanded(
-                          child: Text(g.steps[i].t, style: KText.bodySm.copyWith(color: on || h ? K.textPrimary : K.textSecondary)),
+                          child: Text(tg(g.steps[i].t), style: KText.bodySm.copyWith(color: on || h ? K.textPrimary : K.textSecondary)),
                         ),
                       ],
                     ),
@@ -672,12 +679,12 @@ class _GuidesScreenState extends State<GuidesScreen> {
         children: [
           Row(
             children: [
-              Expanded(child: Text(g.title, style: KText.headingXs)),
+              Expanded(child: Text(tg(g.title), style: KText.headingXs)),
               const KIcon('arrow-right', size: 16, color: K.textMuted),
             ],
           ),
           const SizedBox(height: 10),
-          Text(g.sub, style: KText.bodySm.copyWith(color: K.textMuted)),
+          Text(tg(g.sub), style: KText.bodySm.copyWith(color: K.textMuted)),
           const SizedBox(height: 12),
           MonoLabel(
             g.platforms?.isEmpty ?? false ? t.inTheApp : [for (final p in g.platforms ?? const <String>[]) _platformNames[p] ?? p].join(' · '),
@@ -720,7 +727,7 @@ class _GuidesScreenState extends State<GuidesScreen> {
             const SizedBox(height: 12),
             Text(p.pkg, style: KText.mono(12, color: K.textAccent)),
             const SizedBox(height: 12),
-            Text(p.fit, style: KText.bodySm.copyWith(color: K.textMuted)),
+            Text(tg(p.fit), style: KText.bodySm.copyWith(color: K.textMuted)),
           ],
         ),
       ),
@@ -860,7 +867,7 @@ class Bullets extends StatelessWidget {
               children: [
                 Container(width: 6, height: 2, margin: const EdgeInsets.only(top: 11, right: 12), color: K.accent),
                 Expanded(
-                  child: Text(it, style: KText.bodyMd.copyWith(color: K.textSecondary)),
+                  child: Text(tg(it), style: KText.bodyMd.copyWith(color: K.textSecondary)),
                 ),
               ],
             ),
@@ -906,9 +913,9 @@ class GuideTable extends StatelessWidget {
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
                             child: r == 0
-                                ? MonoLabel(rows[r][i], height: 1.4)
+                                ? MonoLabel(tg(rows[r][i]), height: 1.4)
                                 : SelectableText(
-                                    rows[r][i],
+                                    tg(rows[r][i]),
                                     style: i > 0 && rows[r][i].length < 28 && _technical.hasMatch(rows[r][i]) && rows[r][i].contains(RegExp(r'\d'))
                                         ? KText.mono(12, w: FontWeight.w400, color: K.textSecondary, height: 1.5)
                                         : KText.bodySm.copyWith(color: i == 0 ? K.textPrimary : K.textSecondary),

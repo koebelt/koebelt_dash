@@ -7,6 +7,7 @@ import 'dart:ui';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:koebelt_dash/app.dart' show navLabel;
 import 'package:koebelt_dash/l10n/l10n.dart';
+import 'package:koebelt_dash/screens/guides_data.dart' show guideTexts;
 
 Map<String, dynamic> _arb(String locale) => jsonDecode(File('lib/l10n/app_$locale.arb').readAsStringSync()) as Map<String, dynamic>;
 
@@ -45,6 +46,14 @@ void main() {
     expect(resolveLocale('', [const Locale('xx'), const Locale('fr')]), const Locale('fr'));
     expect(resolveLocale('', [const Locale('xx')]), const Locale('en'));
     expect(resolveLocale('xx', [const Locale('xx')]), const Locale('en'), reason: 'a setting the app no longer has');
+  });
+
+  test('the guides are translated in full, and nothing is left from older text', () {
+    final texts = guideTexts().toSet();
+    for (final MapEntry(key: lang, value: table) in guideTables.entries) {
+      expect(texts.difference(table.keys.toSet()), isEmpty, reason: '$lang lacks these (run the guide extraction again)');
+      expect(table.keys.toSet().difference(texts), isEmpty, reason: '$lang still has these, no longer in the guides');
+    }
   });
 
   test('the text follows the language', () {

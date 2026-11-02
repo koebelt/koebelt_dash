@@ -16,6 +16,7 @@ import 'package:koebelt_dash/l10n/l10n.dart';
 import 'package:koebelt_dash/scripts/script_hub.dart';
 import 'package:koebelt_dash/screens/devices.dart';
 import 'package:koebelt_dash/screens/export_dialog.dart';
+import 'package:koebelt_dash/screens/guides.dart' show GuidesScreen;
 import 'package:koebelt_dash/screens/import_dialog.dart';
 import 'package:koebelt_dash/screens/script_dialogs.dart';
 import 'package:koebelt_dash/screens/update_ui.dart';
@@ -44,7 +45,22 @@ const _desktop = (name: 'desktop', size: Size(1920, 1080), pad: EdgeInsets.zero)
 const _ultrawide = (name: 'ultrawide', size: Size(3440, 1000), pad: EdgeInsets.zero);
 const _all = <_Size>[_se, _phone, _land, _ipad, _ipadLand, _small, _laptop, _desktop, _ultrawide];
 
-const _screens = ['live', 'live-wall', 'control', 'automate', 'program', 'scripts', 'params', 'replay', 'devices', 'guides', 'settings'];
+const _screens = [
+  'live',
+  'live-wall',
+  'control',
+  'automate',
+  'program',
+  'scripts',
+  'params',
+  'replay',
+  'devices',
+  'guides',
+  // Two guides with long text and wide tables.
+  'guide:link',
+  'guide:sequence-or-script',
+  'settings',
+];
 
 final _shots = Platform.environment['SWEEP_SHOTS'];
 
@@ -86,6 +102,7 @@ class _Sweep {
     final replay = scr == 'replay';
     if (replay) dash.openReplay(dash.sessions.first.id);
     dash.layout = scr == 'live-wall' ? 'wall' : 'hud';
+    if (scr.startsWith('guide:')) GuidesScreen.pending = scr.substring(6);
     tester.view.physicalSize = s.size * 2;
     tester.view.devicePixelRatio = 2;
     tester.view.padding = FakeViewPadding(left: s.pad.left * 2, top: s.pad.top * 2, right: s.pad.right * 2, bottom: s.pad.bottom * 2);
@@ -98,7 +115,15 @@ class _Sweep {
           debugShowCheckedModeBanner: false,
           theme: ThemeData(brightness: Brightness.dark),
           home: Scaffold(
-            body: DashApp(key: UniqueKey(), dash: dash, initial: scr == 'live-wall' ? 'live' : scr),
+            body: DashApp(
+              key: UniqueKey(),
+              dash: dash,
+              initial: scr == 'live-wall'
+                  ? 'live'
+                  : scr.startsWith('guide:')
+                  ? 'guides'
+                  : scr,
+            ),
           ),
         ),
       ),
