@@ -166,8 +166,20 @@ abstract class AppLocalizations {
   /// No description provided for @settingsLanguageDesc.
   ///
   /// In en, this message translates to:
-  /// **'The app\'s language. Guides not yet translated stay in English.'**
+  /// **'The app\'s language.'**
   String get settingsLanguageDesc;
+
+  /// No description provided for @translationNote.
+  ///
+  /// In en, this message translates to:
+  /// **'This translation was made with AI and may contain mistakes. Corrections are welcome on the GitHub repository.'**
+  String get translationNote;
+
+  /// No description provided for @translationContribute.
+  ///
+  /// In en, this message translates to:
+  /// **'Contribute on GitHub'**
+  String get translationContribute;
 
   /// No description provided for @settingsLanguageSystem.
   ///

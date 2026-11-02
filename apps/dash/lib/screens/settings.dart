@@ -10,6 +10,7 @@ import '../scripts/script_hub.dart' show ScriptHub;
 import '../theme/tokens.dart';
 import '../ui/components.dart';
 import '../ui/icons.dart';
+import '../ui/translation_note.dart';
 import '../viz/map_view.dart' show tilesProblem;
 import 'assistant_ui.dart';
 import 'controller_settings.dart';
@@ -218,6 +219,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ),
               ),
+              if (t.localeName != 'en') const Padding(padding: EdgeInsets.only(top: 12), child: TranslationNote()),
             ]),
             SizedBox(height: phone ? 20 : 32),
             section('Control', [

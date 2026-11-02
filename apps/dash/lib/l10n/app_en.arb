@@ -11,7 +11,9 @@
   "navSequences": "Sequences",
   "navScripts": "Scripts",
   "settingsLanguage": "Language",
-  "settingsLanguageDesc": "The app's language. Guides not yet translated stay in English.",
+  "settingsLanguageDesc": "The app's language.",
+  "translationNote": "This translation was made with AI and may contain mistakes. Corrections are welcome on the GitHub repository.",
+  "translationContribute": "Contribute on GitHub",
   "settingsLanguageSystem": "Same as the system ({name})",
   "@settingsLanguageSystem": {
     "placeholders": {

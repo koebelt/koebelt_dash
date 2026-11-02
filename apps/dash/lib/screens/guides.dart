@@ -12,6 +12,7 @@ import '../theme/tokens.dart';
 import '../ui/components.dart';
 import '../ui/icons.dart';
 import '../ui/mark.dart';
+import '../ui/translation_note.dart';
 import 'guides_data.dart';
 
 final _kw = {
@@ -763,6 +764,7 @@ class _GuidesScreenState extends State<GuidesScreen> {
               constraints: const BoxConstraints(maxWidth: 600),
               child: Text(t.connectHardwareDesc, style: KText.bodyLg.copyWith(color: K.textSecondary)),
             ),
+            if (t.localeName != 'en') ...[const SizedBox(height: 12), const TranslationNote()],
             SizedBox(height: phone ? 28 : 40),
             Container(
               decoration: BoxDecoration(

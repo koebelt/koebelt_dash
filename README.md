@@ -169,6 +169,22 @@ cd libs/python && python3 -m venv .venv && .venv/bin/pip install -e .
 | Autopilots in simulation | `cd apps/dash && SITL=1 flutter test test/sitl_test.dart` | the real ArduCopter, ArduRover (4.7) and PX4 (1.17) in Docker ([`tools/sitl`](tools/sitl/)): found on UDP 14550, telemetry and parameters, a sequence flown as a mission, the autopilot's own log imported. Weekly in CI |
 | ROS 2 | `pytest libs/ros2/koebelt_link_ros/test` | conversion helpers (the node itself needs a ROS install) |
 
+## Translations
+
+The app is in English, French, Spanish, German, Brazilian Portuguese,
+Japanese and Simplified Chinese. Every language but English was translated
+with AI, so it may contain mistakes; corrections from native speakers are
+welcome as pull requests or issues.
+
+- App text: `apps/dash/lib/l10n/app_<language>.arb`, one entry per English
+  string in `app_en.arb`. Run `flutter gen-l10n` in `apps/dash` after editing.
+- Guides: `apps/dash/lib/l10n/guides_<language>.dart`, keyed by the English
+  text.
+- Keep the words makers and pilots actually use in your language (stick,
+  failsafe, firmware…) rather than forcing a native term.
+- `flutter test test/l10n_test.dart` checks that every language has every
+  string with the same placeholders.
+
 ## Design
 
 The UI follows the KOEBELT design system (Claude Design project

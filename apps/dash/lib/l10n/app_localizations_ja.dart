@@ -43,7 +43,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsLanguage => '言語';
 
   @override
-  String get settingsLanguageDesc => 'アプリの言語です。まだ翻訳されていないガイドは英語のままです。';
+  String get settingsLanguageDesc => 'アプリの言語。';
+
+  @override
+  String get translationNote => 'この翻訳は AI で作成されており、誤りを含む可能性があります。修正は GitHub リポジトリで歓迎しています。';
+
+  @override
+  String get translationContribute => 'GitHub で貢献する';
 
   @override
   String settingsLanguageSystem(String name) {

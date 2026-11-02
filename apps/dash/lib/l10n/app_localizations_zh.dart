@@ -43,7 +43,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsLanguage => '语言';
 
   @override
-  String get settingsLanguageDesc => '应用的语言。尚未翻译的指南保持英文。';
+  String get settingsLanguageDesc => '应用的语言。';
+
+  @override
+  String get translationNote => '此翻译由 AI 生成，可能存在错误。欢迎在 GitHub 仓库中提交修正。';
+
+  @override
+  String get translationContribute => '在 GitHub 上贡献';
 
   @override
   String settingsLanguageSystem(String name) {
