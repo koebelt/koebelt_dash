@@ -128,7 +128,11 @@ class KButton extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     if (iconLeft != null) ...[iconLeft!, const SizedBox(width: K.s3)],
-                    Flexible(child: Text(label.toUpperCase(), maxLines: 1, overflow: TextOverflow.clip, softWrap: false)),
+                    // A long label (other languages, large text) shrinks a little
+                    // rather than being cut.
+                    Flexible(
+                      child: FittedBox(fit: BoxFit.scaleDown, child: Text(label.toUpperCase(), maxLines: 1, softWrap: false)),
+                    ),
                     if (iconRight != null) ...[const SizedBox(width: K.s3), iconRight!],
                   ],
                 ),

@@ -38,7 +38,7 @@ class ScriptRequirements {
 
   /// The same as [describe], in the language shown.
   String describeShown() {
-    final k = kinds.isEmpty ? t.reqAnyDevice : t.reqKinds(joinOr([for (final k in kinds) k.label.toLowerCase()]));
+    final k = kinds.isEmpty ? t.reqAnyDevice : t.reqKinds(joinOr([for (final k in kinds) _inSentence(k)]));
     return needs.isEmpty ? k : t.reqWith(k, joinAnd(needs));
   }
 
@@ -65,7 +65,7 @@ class ScriptRequirements {
 extension WhyNot on ScriptRequirements {
   /// Why [info] does not fit, as a sentence in the language shown; null if it does.
   String? whyNot(DeviceInfo info, [DeviceLink? link]) {
-    if (kinds.isNotEmpty && !kinds.contains(info.kind)) return t.reqWrongKind(info.name, info.kind.label.toLowerCase(), describeShown());
+    if (kinds.isNotEmpty && !kinds.contains(info.kind)) return t.reqWrongKind(info.name, _inSentence(info.kind), describeShown());
     final have = capabilitiesOf(info, link);
     final lacks = [
       for (final n in needs)
@@ -144,3 +144,7 @@ Set<String> capabilitiesOf(DeviceInfo info, [DeviceLink? link]) {
   if (info.kind == DeviceKind.arm) out.addAll({'joints', 'gripper'});
   return out;
 }
+
+/// A device kind inside a sentence: lower case, except in German, where
+/// nouns keep their capital.
+String _inSentence(DeviceKind k) => t.localeName == 'de' ? k.label : k.label.toLowerCase();

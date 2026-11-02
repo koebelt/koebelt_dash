@@ -225,11 +225,11 @@ class _Door extends StatelessWidget {
               ),
               if (compact) ...[
                 const SizedBox(width: 12),
-                Flexible(
+                Expanded(
                   child: Text(title, style: KText.headingXs, maxLines: 1, overflow: TextOverflow.ellipsis),
                 ),
-              ],
-              const Spacer(),
+              ] else
+                const Spacer(),
               if (running != null) ...[
                 const PulseDot(color: K.accent),
                 const SizedBox(width: 8),
