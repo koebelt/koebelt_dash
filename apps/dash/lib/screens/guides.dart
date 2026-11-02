@@ -649,9 +649,9 @@ class _GuidesScreenState extends State<GuidesScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(t.title, style: KText.bodyLg.copyWith(color: h ? K.textAccent : K.textPrimary)),
+                Text(tg(t.title), style: KText.bodyLg.copyWith(color: h ? K.textAccent : K.textPrimary)),
                 const SizedBox(height: 6),
-                Text(t.sub, style: KText.bodySm.copyWith(color: K.textMuted)),
+                Text(tg(t.sub), style: KText.bodySm.copyWith(color: K.textMuted)),
               ],
             ),
           ),
