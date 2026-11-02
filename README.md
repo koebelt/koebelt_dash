@@ -184,6 +184,8 @@ welcome as pull requests or issues.
   failsafe, firmware…) rather than forcing a native term.
 - `flutter test test/l10n_test.dart` checks that every language has every
   string with the same placeholders.
+- On Linux, Chinese and Japanese use the system's CJK font: install
+  `fonts-noto-cjk` if the characters show as boxes (`install.sh` says so).
 
 ## Design
 
