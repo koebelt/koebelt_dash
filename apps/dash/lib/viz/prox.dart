@@ -2,6 +2,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../core/units.dart' as u;
+
 import 'viz.dart';
 
 /// How close something is, as a colour: red within a quarter of the
@@ -45,7 +47,7 @@ class ProxPainter extends FramePainter {
     for (var r = step; r <= range + 1e-6; r += step) {
       c.drawCircle(Offset(cx, cy), px(r), ring);
     }
-    drawText(c, '${range.toStringAsFixed(range < 2 ? 1 : 0)} m', Offset(cx + px(range) * .7071 + 3, cy - px(range) * .7071 - 6), VC.ink300);
+    drawText(c, u.lenText(range, u.len(range) < 2 ? 1 : 0), Offset(cx + px(range) * .7071 + 3, cy - px(range) * .7071 - 6), VC.ink300);
 
     // Distances are labelled nearest first, skipping one that would overlap
     // a label already there (neighbours seeing the same thing).

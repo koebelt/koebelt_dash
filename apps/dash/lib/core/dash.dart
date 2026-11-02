@@ -30,6 +30,7 @@ import 'device_link.dart';
 import 'gamepad.dart';
 import 'log_import.dart';
 import 'model.dart';
+import 'units.dart' as u;
 import '../mcp/mcp_server.dart';
 import '../scripts/script_hub.dart';
 import '../scripts/script_runner.dart' show ScriptState;
@@ -67,6 +68,10 @@ class Settings {
   /// The app's language (`fr`, `pt_BR`…); empty: the system's, when the app has it.
   String language = '';
 
+  /// Lengths, speeds and temperatures shown: 'metric', 'imperial', or empty
+  /// for the region's (core/units.dart).
+  String units = '';
+
   /// Asked once which language to use, when the system's is one the app does
   /// not have but comes close to (Traditional Chinese).
   bool languageAsked = false;
@@ -85,6 +90,7 @@ class Settings {
     'videoFps': videoFps,
     'language': language,
     'languageAsked': languageAsked,
+    'units': units,
   };
   void load(Map? j) {
     if (j == null) return;
@@ -102,6 +108,7 @@ class Settings {
     videoFps = j['videoFps'] ?? videoFps;
     language = j['language'] ?? language;
     languageAsked = j['languageAsked'] ?? languageAsked;
+    units = j['units'] ?? units;
   }
 }
 
@@ -504,6 +511,7 @@ class Dash extends ChangeNotifier implements PadTarget {
     beforeUpdateQuit = disconnectAll;
     updater.start();
     settings.load(store.readJson('kdash-settings-v1'));
+    u.useUnits(settings.units);
     pad.load(store.readJson('kdash-pad-v1') as Map?);
     scripts.load();
     mcp.load();
@@ -1232,6 +1240,7 @@ class Dash extends ChangeNotifier implements PadTarget {
   void updateSettings(void Function(Settings) f) {
     final before = settings.toJson();
     f(settings);
+    u.useUnits(settings.units);
     for (final l in links.values) {
       if (before['failsafe'] != settings.failsafe) _sendTo(l, {'t': 'fs', 'action': settings.failsafe, 'ms': 1800});
       if (before['rateHz'] != settings.rateHz) _sendTo(l, {'t': 'rate', 'hz': math.min(settings.rateHz, l.rates?.tlmHz ?? 60)});

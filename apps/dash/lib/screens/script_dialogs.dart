@@ -8,6 +8,7 @@ import '../l10n/l10n.dart';
 import '../core/dash.dart';
 import '../core/gamepad.dart';
 import '../core/model.dart';
+import '../core/units.dart' as u;
 import '../scripts/conditions.dart';
 import '../scripts/fields.dart';
 import '../scripts/hosts.dart';
@@ -477,8 +478,8 @@ Future<void> showLimitsDialog(BuildContext context, ScriptLimits lim, {required 
         children: [
           Text(t.limitsHelp, style: KText.bodySm.copyWith(color: K.textMuted)),
           slider(t.maximumSpeed, t.maximumSpeedDesc, lim.maxSpeed, .1, 1, .05, (v) => '${(v * 100).round()} %', (v) => lim.maxSpeed = v),
-          slider(t.geofence, t.geofenceDesc, lim.fence, 0, 500, 5, (v) => v == 0 ? t.off : '${v.round()} m', (v) => lim.fence = v),
-          if (flies) slider(t.ceiling, t.ceilingDesc, lim.ceiling, 0, 120, 5, (v) => v == 0 ? t.off : '${v.round()} m', (v) => lim.ceiling = v),
+          slider(t.geofence, t.geofenceDesc, lim.fence, 0, 500, 5, (v) => v == 0 ? t.off : u.lenText(v), (v) => lim.fence = v),
+          if (flies) slider(t.ceiling, t.ceilingDesc, lim.ceiling, 0, 120, 5, (v) => v == 0 ? t.off : u.lenText(v), (v) => lim.ceiling = v),
           toggle(t.allowArming, t.allowArmingDesc, lim.allowArm, (v) => lim.allowArm = v),
           toggle(t.allowParams, t.allowParamsDesc, lim.allowParams, (v) => lim.allowParams = v),
         ],

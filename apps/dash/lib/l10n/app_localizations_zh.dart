@@ -52,6 +52,32 @@ class AppLocalizationsZh extends AppLocalizations {
   String get translationContribute => '在 GitHub 上贡献';
 
   @override
+  String get secLanguageUnits => '语言和单位';
+
+  @override
+  String get settingsUnits => '单位';
+
+  @override
+  String get settingsUnitsDesc => '长度、速度和温度。设备、序列和脚本仍使用米；只改变显示方式。';
+
+  @override
+  String settingsUnitsSystem(String name) {
+    return '跟随地区（$name）';
+  }
+
+  @override
+  String get unitsMetric => '公制（m、m/s、°C）';
+
+  @override
+  String get unitsImperial => '英制（ft、mph、°F）';
+
+  @override
+  String get unitsMetricShort => '公制';
+
+  @override
+  String get unitsImperialShort => '英制';
+
+  @override
   String settingsLanguageSystem(String name) {
     return '跟随系统（$name）';
   }
@@ -571,8 +597,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get setHomePoseBody => '当前的关节角度将成为“初始姿态”和序列中“初始姿态”步骤要移动到的姿态。';
 
   @override
-  String setHomeBody(String metres) {
-    return '当前位置成为返航点 (0, 0)。返航会飞回这里，序列航点也以此为基准测量。设备距当前返航点 $metres m。';
+  String setHomeBody(String length) {
+    return '当前位置成为返航点 (0, 0)。返航会飞回这里，序列航点也以此为基准测量。设备距当前返航点 $length。';
   }
 
   @override
@@ -797,13 +823,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get deployMain => '展开主伞';
 
   @override
-  String autoDeploy(String metres) {
-    return '自动展开 · 远地点展开减速伞 · $metres m 展开主伞';
+  String autoDeploy(String length) {
+    return '自动展开 · 远地点展开减速伞 · $length 展开主伞';
   }
 
   @override
   String landedBody(String apogee, String distance) {
-    return '远地点 $apogee m · 着陆点距发射台 $distance m。';
+    return '远地点 $apogee · 着陆点距发射台 $distance。';
   }
 
   @override
@@ -850,8 +876,8 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String benchLimits(String amps, String celsius) {
-    return '限制：$amps A，$celsius °C。';
+  String benchLimits(String amps, String temperature) {
+    return '限制：$amps A，$temperature。';
   }
 
   @override
@@ -1665,8 +1691,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get planNoteGeneric => '每一步都等待设备确认后才开始下一步。';
 
   @override
-  String metreGrid(String metres) {
-    return '$metres m 网格';
+  String metreGrid(String length) {
+    return '$length 网格';
   }
 
   @override
@@ -1981,8 +2007,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get off => '关';
 
   @override
-  String metresFromHome(int metres) {
-    return '距返航点 $metres m';
+  String metresFromHome(String length) {
+    return '距返航点 $length';
   }
 
   @override
@@ -3033,17 +3059,17 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String sumTakeoff(String alt) {
-    return '起飞到 $alt m';
+    return '起飞到 $alt';
   }
 
   @override
   String sumFlyTo(String x, String y, String z) {
-    return '飞往 $x, $y m，高度 $z m';
+    return '飞往 $x, $y，高度 $z';
   }
 
   @override
   String sumDriveTo(String x, String y) {
-    return '行驶至 $x, $y m';
+    return '行驶至 $x, $y';
   }
 
   @override
@@ -3109,8 +3135,8 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String metresToGo(String metres) {
-    return '还剩 $metres m';
+  String metresToGo(String length) {
+    return '还剩 $length';
   }
 
   @override

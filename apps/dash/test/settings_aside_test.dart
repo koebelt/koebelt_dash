@@ -83,7 +83,7 @@ void main() {
     for (var i = 0; i < 10; i++) {
       await tester.pump(const Duration(milliseconds: 50));
     }
-    expect(highlight('Language'), isNot(Colors.transparent), reason: 'back at the top: the first section');
+    expect(highlight('Language and units'), isNot(Colors.transparent), reason: 'back at the top: the first section');
     await shot('settings_aside_scrolled', 1);
 
     // iPad held sideways has it; a phone does not.

@@ -181,6 +181,54 @@ abstract class AppLocalizations {
   /// **'Contribute on GitHub'**
   String get translationContribute;
 
+  /// No description provided for @secLanguageUnits.
+  ///
+  /// In en, this message translates to:
+  /// **'Language and units'**
+  String get secLanguageUnits;
+
+  /// No description provided for @settingsUnits.
+  ///
+  /// In en, this message translates to:
+  /// **'Units'**
+  String get settingsUnits;
+
+  /// No description provided for @settingsUnitsDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Lengths, speeds and temperatures. Devices, sequences and scripts still work in metres; only what is shown changes.'**
+  String get settingsUnitsDesc;
+
+  /// No description provided for @settingsUnitsSystem.
+  ///
+  /// In en, this message translates to:
+  /// **'Same as the region ({name})'**
+  String settingsUnitsSystem(String name);
+
+  /// No description provided for @unitsMetric.
+  ///
+  /// In en, this message translates to:
+  /// **'Metric (m, m/s, °C)'**
+  String get unitsMetric;
+
+  /// No description provided for @unitsImperial.
+  ///
+  /// In en, this message translates to:
+  /// **'Imperial (ft, mph, °F)'**
+  String get unitsImperial;
+
+  /// No description provided for @unitsMetricShort.
+  ///
+  /// In en, this message translates to:
+  /// **'metric'**
+  String get unitsMetricShort;
+
+  /// No description provided for @unitsImperialShort.
+  ///
+  /// In en, this message translates to:
+  /// **'imperial'**
+  String get unitsImperialShort;
+
   /// No description provided for @settingsLanguageSystem.
   ///
   /// In en, this message translates to:
@@ -1132,8 +1180,8 @@ abstract class AppLocalizations {
   /// No description provided for @setHomeBody.
   ///
   /// In en, this message translates to:
-  /// **'The current position becomes home (0, 0). Return-to-home flies back here, and sequence waypoints are measured from here. The device is {metres} m from the current home.'**
-  String setHomeBody(String metres);
+  /// **'The current position becomes home (0, 0). Return-to-home flies back here, and sequence waypoints are measured from here. The device is {length} from the current home.'**
+  String setHomeBody(String length);
 
   /// No description provided for @autoDashDrives.
   ///
@@ -1564,13 +1612,13 @@ abstract class AppLocalizations {
   /// No description provided for @autoDeploy.
   ///
   /// In en, this message translates to:
-  /// **'Auto deploy · drogue at apogee · main at {metres} m'**
-  String autoDeploy(String metres);
+  /// **'Auto deploy · drogue at apogee · main at {length}'**
+  String autoDeploy(String length);
 
   /// No description provided for @landedBody.
   ///
   /// In en, this message translates to:
-  /// **'Apogee {apogee} m · landed {distance} m from the pad.'**
+  /// **'Apogee {apogee} · landed {distance} from the pad.'**
   String landedBody(String apogee, String distance);
 
   /// No description provided for @resetToPad.
@@ -1654,8 +1702,8 @@ abstract class AppLocalizations {
   /// No description provided for @benchLimits.
   ///
   /// In en, this message translates to:
-  /// **'Limits: {amps} A, {celsius} °C.'**
-  String benchLimits(String amps, String celsius);
+  /// **'Limits: {amps} A, {temperature}.'**
+  String benchLimits(String amps, String temperature);
 
   /// No description provided for @mspTitle.
   ///
@@ -3124,8 +3172,8 @@ abstract class AppLocalizations {
   /// No description provided for @metreGrid.
   ///
   /// In en, this message translates to:
-  /// **'{metres} m grid'**
-  String metreGrid(String metres);
+  /// **'{length} grid'**
+  String metreGrid(String length);
 
   /// No description provided for @now.
   ///
@@ -3694,8 +3742,8 @@ abstract class AppLocalizations {
   /// No description provided for @metresFromHome.
   ///
   /// In en, this message translates to:
-  /// **'{metres} m from home'**
-  String metresFromHome(int metres);
+  /// **'{length} from home'**
+  String metresFromHome(String length);
 
   /// No description provided for @ceiling.
   ///
@@ -5560,19 +5608,19 @@ abstract class AppLocalizations {
   /// No description provided for @sumTakeoff.
   ///
   /// In en, this message translates to:
-  /// **'Take off to {alt} m'**
+  /// **'Take off to {alt}'**
   String sumTakeoff(String alt);
 
   /// No description provided for @sumFlyTo.
   ///
   /// In en, this message translates to:
-  /// **'Fly to {x}, {y} m at {z} m'**
+  /// **'Fly to {x}, {y} at {z}'**
   String sumFlyTo(String x, String y, String z);
 
   /// No description provided for @sumDriveTo.
   ///
   /// In en, this message translates to:
-  /// **'Drive to {x}, {y} m'**
+  /// **'Drive to {x}, {y}'**
   String sumDriveTo(String x, String y);
 
   /// No description provided for @sumRth.
@@ -5662,8 +5710,8 @@ abstract class AppLocalizations {
   /// No description provided for @metresToGo.
   ///
   /// In en, this message translates to:
-  /// **'{metres} m to go'**
-  String metresToGo(String metres);
+  /// **'{length} to go'**
+  String metresToGo(String length);
 
   /// No description provided for @uploadingToDevice.
   ///

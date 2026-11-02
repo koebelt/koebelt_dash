@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../l10n/l10n.dart';
 import '../core/dash.dart';
 import '../core/model.dart';
+import '../core/units.dart' as u;
 import '../theme/tokens.dart';
 
 /// Chart colours (viz.jsx `VC`).
@@ -95,6 +96,19 @@ const seriesInfo = <String, (String, String)>{
   'fy': ('Fy', 'N'),
   'fz': ('Fz', 'N'),
 };
+
+/// The metric unit of a history series, for those the units setting converts.
+String _seriesMetric(String k) => k.startsWith('prox:') ? 'm' : seriesInfo[k]?.$2 ?? '';
+
+/// A history series' unit as shown (ft for m, mph for m/s, °F for °C in imperial).
+String seriesUnit(String k) => u.convertUnit(_seriesMetric(k)).unit;
+
+/// A history series' values in the units shown.
+List<double?> seriesShown(String k, List<double?> v) {
+  if (!u.imperial) return v;
+  final f = u.convertUnit(_seriesMetric(k)).shown;
+  return [for (final x in v) x == null ? null : f(x)];
+}
 
 String seriesLabel(String k) {
   final i = seriesInfo[k];
@@ -210,7 +224,7 @@ class _LinePainter extends FramePainter {
   void paint(Canvas c, Size s) {
     final w = s.width, h = s.height;
     if (w <= 0 || h <= 0) return;
-    final data = [for (final k in keys) frozen?[k] ?? dash.hist[k].toList()];
+    final data = [for (final k in keys) seriesShown(k, frozen?[k] ?? dash.hist[k].toList())];
     var lo = double.infinity, hi = double.negativeInfinity;
     for (final a in data) {
       for (final v in a) {
@@ -277,7 +291,7 @@ class _LinePainter extends FramePainter {
       c.drawCircle(Offset(x, y(v)), 3.5, Paint()..color = col);
       c.drawCircle(Offset(x, y(v)), 3.5, _stroke(VC.ink900, 1.5));
       final key = keys[k];
-      final unit = seriesInfo[key]?.$2 ?? '';
+      final unit = seriesUnit(key);
       rows.add((col, '${names[k].padRight(pad)}  ${fmtValue(v).padLeft(7)}${unit.isEmpty ? '' : ' $unit'}'));
     }
     if (rows.isEmpty) return;

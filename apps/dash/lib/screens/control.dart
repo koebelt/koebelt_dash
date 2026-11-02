@@ -10,6 +10,7 @@ import '../l10n/l10n.dart';
 import '../core/dash.dart';
 import '../core/gamepad.dart';
 import '../core/model.dart';
+import '../core/units.dart' as u;
 import '../theme/tokens.dart';
 import '../ui/components.dart';
 import '../viz/scene3d.dart';
@@ -584,10 +585,10 @@ class MobileControl extends StatelessWidget {
     ];
     final top = Wrap(spacing: 8, runSpacing: 8, crossAxisAlignment: WrapCrossAlignment.center, children: topItems);
     final readouts = [
-      drone ? Readout(t.rdAlt, s.pos[2].toStringAsFixed(1), 'm') : Readout(t.rdOdom, s.range.toStringAsFixed(0), 'm'),
-      Readout(t.rdSpeed, s.speed.toStringAsFixed(1), 'm/s'),
+      drone ? Readout(t.rdAlt, u.len(s.pos[2]).toStringAsFixed(1), u.lenUnit) : Readout(t.rdOdom, u.len(s.range).toStringAsFixed(0), u.lenUnit),
+      Readout(t.rdSpeed, u.speed(s.speed).toStringAsFixed(1), u.speedUnit),
       Readout(t.rdHdg, s.heading.round().toString().padLeft(3, '0'), '°'),
-      Readout(t.rdHome, s.range.toStringAsFixed(0), 'm'),
+      Readout(t.rdHome, u.len(s.range).toStringAsFixed(0), u.lenUnit),
     ];
     final stats = Wrap(spacing: 24, runSpacing: 12, children: readouts);
     if (short) {
@@ -680,10 +681,10 @@ class MobileControl extends StatelessWidget {
                 child: Wrap(
                   spacing: 20,
                   children: [
-                    drone ? Readout(t.rdAlt, s.pos[2].toStringAsFixed(1), 'm') : Readout(t.rdOdom, s.range.toStringAsFixed(0), 'm'),
-                    Readout(t.rdSpeed, s.speed.toStringAsFixed(1), 'm/s'),
+                    drone ? Readout(t.rdAlt, u.len(s.pos[2]).toStringAsFixed(1), u.lenUnit) : Readout(t.rdOdom, u.len(s.range).toStringAsFixed(0), u.lenUnit),
+                    Readout(t.rdSpeed, u.speed(s.speed).toStringAsFixed(1), u.speedUnit),
                     Readout(t.rdHdg, s.heading.round().toString().padLeft(3, '0'), '°'),
-                    Readout(t.rdHome, s.range.toStringAsFixed(0), 'm'),
+                    Readout(t.rdHome, u.len(s.range).toStringAsFixed(0), u.lenUnit),
                   ],
                 ),
               ),
@@ -1098,11 +1099,11 @@ class _ArmControlState extends State<ArmControl> {
             bottom: 16,
             child: Row(
               children: [
-                Readout(t.rdToolX, tip[0].toStringAsFixed(3), 'm'),
+                Readout(t.rdToolX, u.len(tip[0]).toStringAsFixed(3), u.lenUnit),
                 const SizedBox(width: 24),
-                Readout(t.rdToolY, tip[1].toStringAsFixed(3), 'm'),
+                Readout(t.rdToolY, u.len(tip[1]).toStringAsFixed(3), u.lenUnit),
                 const SizedBox(width: 24),
-                Readout(t.rdToolZ, tip[2].toStringAsFixed(3), 'm'),
+                Readout(t.rdToolZ, u.len(tip[2]).toStringAsFixed(3), u.lenUnit),
               ],
             ),
           ),
@@ -1205,10 +1206,10 @@ class RocketControl extends StatelessWidget {
           const SizedBox(height: 20),
           Row(
             children: [
-              Expanded(child: Readout(t.rdAlt, s.pos[2].toStringAsFixed(0), 'm')),
-              Expanded(child: Readout(t.rdVz, f1(s.vel[2], 0), 'm/s')),
-              Expanded(child: Readout(t.rdMax, s.maxAlt.toStringAsFixed(0), 'm')),
-              Expanded(child: Readout(t.rdRange, s.range.toStringAsFixed(0), 'm')),
+              Expanded(child: Readout(t.rdAlt, u.len(s.pos[2]).toStringAsFixed(0), u.lenUnit)),
+              Expanded(child: Readout(t.rdVz, f1(u.speed(s.vel[2]), 0), u.speedUnit)),
+              Expanded(child: Readout(t.rdMax, u.len(s.maxAlt).toStringAsFixed(0), u.lenUnit)),
+              Expanded(child: Readout(t.rdRange, u.len(s.range).toStringAsFixed(0), u.lenUnit)),
             ],
           ),
           if (ph == 'PAD' || ph == 'COUNT') ...[
@@ -1268,9 +1269,9 @@ class RocketControl extends StatelessWidget {
                 ),
               ],
             ),
-          if (flying || ph == 'MAIN') ...[const SizedBox(height: 10), MonoLabel(t.autoDeploy(P('MAIN_ALT', 150).toStringAsFixed(0)), height: 1.6)],
+          if (flying || ph == 'MAIN') ...[const SizedBox(height: 10), MonoLabel(t.autoDeploy(u.lenText(P('MAIN_ALT', 150))), height: 1.6)],
           if (ph == 'LANDED') ...[
-            KNotice(tone: Tone.positive, title: phaseLabel('LANDED'), child: Text(t.landedBody(s.maxAlt.toStringAsFixed(0), s.range.toStringAsFixed(0)))),
+            KNotice(tone: Tone.positive, title: phaseLabel('LANDED'), child: Text(t.landedBody(u.lenText(s.maxAlt), u.lenText(s.range)))),
             const SizedBox(height: 10),
             KButton(t.resetToPad, variant: KButtonVariant.secondary, onPressed: () => d.cmd('reset')),
           ],
@@ -1372,7 +1373,7 @@ class _BenchControlState extends State<BenchControl> {
       Readout(t.rdRpm, '${s.rpm.round()}', ''),
       Readout(t.rdCurrent, s.current.toStringAsFixed(1), 'A'),
       Readout(t.rdPower, pw.toStringAsFixed(0), 'W'),
-      Readout(t.rdTemp, s.temp.toStringAsFixed(1), '°C', tone: s.temp > 70 ? K.warning : null),
+      Readout(t.rdTemp, u.temp(s.temp).toStringAsFixed(1), u.tempUnit, tone: s.temp > 70 ? K.warning : null),
       Readout(t.rdEfficiency, eff.toStringAsFixed(1), 'g/W'),
     ];
     final left = Padding(
@@ -1502,7 +1503,7 @@ class _BenchControlState extends State<BenchControl> {
           ),
           const SizedBox(height: 12),
           Text(
-            '${curKind == 'RAMP' ? t.benchRampDesc(P('RAMP_TIME', 10).toStringAsFixed(0)) : t.benchStepsDesc(P('STEP_SIZE', 25).toStringAsFixed(0), _n(P('STEP_HOLD', 3)))} ${t.benchLimits(P('MAX_CURRENT', 45).toStringAsFixed(0), P('MAX_TEMP', 90).toStringAsFixed(0))}',
+            '${curKind == 'RAMP' ? t.benchRampDesc(P('RAMP_TIME', 10).toStringAsFixed(0)) : t.benchStepsDesc(P('STEP_SIZE', 25).toStringAsFixed(0), _n(P('STEP_HOLD', 3)))} ${t.benchLimits(P('MAX_CURRENT', 45).toStringAsFixed(0), u.tempText(P('MAX_TEMP', 90)))}',
             style: KText.bodySm.copyWith(color: K.textMuted),
           ),
           if (wide) ...[

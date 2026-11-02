@@ -6,6 +6,7 @@ import '../l10n/l10n.dart';
 import '../core/dash.dart';
 import '../theme/tokens.dart';
 import '../core/model.dart';
+import '../core/units.dart' as u;
 import '../ui/components.dart';
 
 /// REC button: starts/stops a session recording.
@@ -107,7 +108,7 @@ Future<void> confirmSetHome(BuildContext context, Dash d) async {
           Text(t.setHomePoseBody),
           Text([for (final j in tel.joints) '${(j * 57.3).toStringAsFixed(1)}°'].join('  ·  '), style: KText.mono(12, color: K.textPrimary)),
         ] else ...[
-          Text(t.setHomeBody(tel.range.toStringAsFixed(1))),
+          Text(t.setHomeBody(u.lenText(tel.range, 1))),
           if (tel.hasGps) Text('${tel.lat.toStringAsFixed(6)}, ${tel.lon.toStringAsFixed(6)}', style: KText.mono(12, color: K.textPrimary)),
         ],
       ],

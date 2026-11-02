@@ -849,7 +849,7 @@ class _SensorDetailState extends State<SensorDetail> {
                 final min = phone ? 150.0 : 200.0;
                 final n = math.max(1, (c.maxWidth / min).floor());
                 final cw = (c.maxWidth - (n - 1)) / n;
-                final h = frozen ?? {for (final k in tile.keys) k: d.hist[k].toList()};
+                final h = {for (final k in tile.keys) k: seriesShown(k, frozen?[k] ?? d.hist[k].toList())};
                 return ClipRRect(
                   borderRadius: BorderRadius.circular(K.radiusCard),
                   child: Container(

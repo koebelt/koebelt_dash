@@ -52,6 +52,32 @@ class AppLocalizationsJa extends AppLocalizations {
   String get translationContribute => 'GitHub で貢献する';
 
   @override
+  String get secLanguageUnits => '言語と単位';
+
+  @override
+  String get settingsUnits => '単位';
+
+  @override
+  String get settingsUnitsDesc => '長さ、速度、温度。デバイス、シーケンス、スクリプトはメートルのままで、表示だけが変わります。';
+
+  @override
+  String settingsUnitsSystem(String name) {
+    return '地域に合わせる（$name）';
+  }
+
+  @override
+  String get unitsMetric => 'メートル法（m、m/s、°C）';
+
+  @override
+  String get unitsImperial => 'ヤード・ポンド法（ft、mph、°F）';
+
+  @override
+  String get unitsMetricShort => 'メートル法';
+
+  @override
+  String get unitsImperialShort => 'ヤード・ポンド法';
+
+  @override
   String settingsLanguageSystem(String name) {
     return 'システムと同じ（$name）';
   }
@@ -571,8 +597,8 @@ class AppLocalizationsJa extends AppLocalizations {
   String get setHomePoseBody => '現在の関節角度が、ホームポーズとシーケンスのホームステップで移動するポーズになります。';
 
   @override
-  String setHomeBody(String metres) {
-    return '現在位置がホーム (0, 0) になります。ホームへの帰還はここに戻り、シーケンスのウェイポイントはここから測られます。デバイスは現在のホームから $metres m の位置にあります。';
+  String setHomeBody(String length) {
+    return '現在位置がホーム (0, 0) になります。ホームへの帰還はここに戻り、シーケンスのウェイポイントはここから測られます。デバイスは現在のホームから $length の位置にあります。';
   }
 
   @override
@@ -797,13 +823,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get deployMain => 'メイン展開';
 
   @override
-  String autoDeploy(String metres) {
-    return '自動展開 · 頂点でドローグ · $metres m でメイン';
+  String autoDeploy(String length) {
+    return '自動展開 · 頂点でドローグ · $length でメイン';
   }
 
   @override
   String landedBody(String apogee, String distance) {
-    return '最高到達点 $apogee m · パッドから $distance m に着地。';
+    return '最高到達点 $apogee · パッドから $distance に着地。';
   }
 
   @override
@@ -850,8 +876,8 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String benchLimits(String amps, String celsius) {
-    return '制限：$amps A、$celsius °C。';
+  String benchLimits(String amps, String temperature) {
+    return '制限：$amps A、$temperature。';
   }
 
   @override
@@ -1667,8 +1693,8 @@ class AppLocalizationsJa extends AppLocalizations {
   String get planNoteGeneric => '各ステップは、デバイスの確認を待ってから次に進みます。';
 
   @override
-  String metreGrid(String metres) {
-    return '$metres m グリッド';
+  String metreGrid(String length) {
+    return '$length グリッド';
   }
 
   @override
@@ -1989,8 +2015,8 @@ class AppLocalizationsJa extends AppLocalizations {
   String get off => 'オフ';
 
   @override
-  String metresFromHome(int metres) {
-    return 'ホームから $metres m';
+  String metresFromHome(String length) {
+    return 'ホームから $length';
   }
 
   @override
@@ -3042,17 +3068,17 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String sumTakeoff(String alt) {
-    return '$alt m まで離陸';
+    return '$alt まで離陸';
   }
 
   @override
   String sumFlyTo(String x, String y, String z) {
-    return '$x、$y m へ高度 $z m で飛行';
+    return '$x、$y へ高度 $z で飛行';
   }
 
   @override
   String sumDriveTo(String x, String y) {
-    return '$x、$y m へ走行';
+    return '$x、$y へ走行';
   }
 
   @override
@@ -3118,8 +3144,8 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String metresToGo(String metres) {
-    return '残り $metres m';
+  String metresToGo(String length) {
+    return '残り $length';
   }
 
   @override

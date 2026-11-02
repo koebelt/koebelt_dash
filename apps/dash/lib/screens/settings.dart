@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../core/alerts.dart';
 import '../core/dash.dart';
+import '../core/units.dart' as u;
 import '../l10n/l10n.dart';
 import '../link/protocol.dart';
 import '../scripts/hosts.dart' show hostPort;
@@ -88,7 +89,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   /// A section's name as shown: in the language shown, or shorter in the aside.
   String _title(String label, {bool aside = false}) =>
       {
-        'Language': t.settingsLanguage,
+        'Language': t.secLanguageUnits,
         'Control': t.secControl,
         'Game controller': t.secController,
         'Link and safety': t.secLink,
@@ -220,6 +221,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
               if (t.localeName != 'en') const Padding(padding: EdgeInsets.only(top: 12), child: TranslationNote()),
+              SetRow(
+                phone: phone,
+                title: t.settingsUnits,
+                desc: t.settingsUnitsDesc,
+                child: SizedBox(
+                  width: phone ? double.infinity : 260,
+                  child: KDropdown<String>(
+                    value: st.units,
+                    items: {
+                      '': t.settingsUnitsSystem(u.regionIsImperial() ? t.unitsImperialShort : t.unitsMetricShort),
+                      'metric': t.unitsMetric,
+                      'imperial': t.unitsImperial,
+                    },
+                    onChanged: (v) => d.updateSettings((s) => s.units = v),
+                  ),
+                ),
+              ),
             ]),
             SizedBox(height: phone ? 20 : 32),
             section('Control', [
@@ -321,9 +339,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     children: [
                       Flexible(child: MonoLabel(r.below ? t.below : t.above, maxLines: 1)),
                       const SizedBox(width: 10),
-                      SizedBox(width: 84, child: _LimitField(d, r)),
+                      SizedBox(width: 84, child: _LimitField(d, r, key: ValueKey('${r.id} ${u.imperial}'))),
                       const SizedBox(width: 8),
-                      SizedBox(width: 32, child: MonoLabel(r.unit)),
+                      SizedBox(width: 32, child: MonoLabel(u.convertUnit(r.unit).unit)),
                       const SizedBox(width: 12),
                       KSwitch(checked: d.alertPrefs.isOn(r), onChanged: (v) => d.updateAlerts((p) => p.on[r.id] = v)),
                     ],
@@ -493,7 +511,7 @@ class _TextSettingState extends State<_TextSetting> {
 }
 
 class _LimitField extends StatefulWidget {
-  const _LimitField(this.d, this.r);
+  const _LimitField(this.d, this.r, {super.key});
   final Dash d;
   final AlertRule r;
   @override
@@ -501,9 +519,14 @@ class _LimitField extends StatefulWidget {
 }
 
 class _LimitFieldState extends State<_LimitField> {
+  // Limits are kept metric; typed and shown in the units shown.
+  late final _conv = u.convertUnit(widget.r.unit);
   late final _c = TextEditingController(text: _fmt(widget.d.alertPrefs.limitOf(widget.r)));
 
-  String _fmt(double v) => v == v.roundToDouble() ? v.toStringAsFixed(0) : '$v';
+  String _fmt(double metric) {
+    final v = double.parse(_conv.shown(metric).toStringAsFixed(2));
+    return v == v.roundToDouble() ? v.toStringAsFixed(0) : '$v';
+  }
 
   @override
   void dispose() {
@@ -520,7 +543,7 @@ class _LimitFieldState extends State<_LimitField> {
     keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
     onChanged: (v) {
       final x = double.tryParse(v.trim().replaceAll(',', '.'));
-      widget.d.updateAlerts((p) => x == null ? p.limit.remove(widget.r.id) : p.limit[widget.r.id] = x);
+      widget.d.updateAlerts((p) => x == null ? p.limit.remove(widget.r.id) : p.limit[widget.r.id] = _conv.metric(x));
     },
   );
 }

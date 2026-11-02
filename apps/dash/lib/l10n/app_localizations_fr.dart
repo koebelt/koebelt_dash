@@ -53,6 +53,33 @@ class AppLocalizationsFr extends AppLocalizations {
   String get translationContribute => 'Contribuer sur GitHub';
 
   @override
+  String get secLanguageUnits => 'Langue et unités';
+
+  @override
+  String get settingsUnits => 'Unités';
+
+  @override
+  String get settingsUnitsDesc =>
+      'Longueurs, vitesses et températures. Les appareils, les séquences et les scripts restent en mètres ; seul l’affichage change.';
+
+  @override
+  String settingsUnitsSystem(String name) {
+    return 'Comme la région ($name)';
+  }
+
+  @override
+  String get unitsMetric => 'Métrique (m, m/s, °C)';
+
+  @override
+  String get unitsImperial => 'Impérial (ft, mph, °F)';
+
+  @override
+  String get unitsMetricShort => 'métrique';
+
+  @override
+  String get unitsImperialShort => 'impérial';
+
+  @override
   String settingsLanguageSystem(String name) {
     return 'Celle du système ($name)';
   }
@@ -574,8 +601,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get setHomePoseBody => 'Les angles actuels des articulations deviennent la pose où vont Pose de départ et les étapes Départ des séquences.';
 
   @override
-  String setHomeBody(String metres) {
-    return 'La position actuelle devient le point de départ (0, 0). Le retour au départ revient ici, et les points des séquences se mesurent depuis ici. L’appareil est à $metres m du départ actuel.';
+  String setHomeBody(String length) {
+    return 'La position actuelle devient le point de départ (0, 0). Le retour au départ revient ici, et les points des séquences se mesurent depuis ici. L’appareil est à $length du départ actuel.';
   }
 
   @override
@@ -800,13 +827,13 @@ class AppLocalizationsFr extends AppLocalizations {
   String get deployMain => 'Déployer le principal';
 
   @override
-  String autoDeploy(String metres) {
-    return 'Déploiement auto · extracteur à l’apogée · principal à $metres m';
+  String autoDeploy(String length) {
+    return 'Déploiement auto · extracteur à l’apogée · principal à $length';
   }
 
   @override
   String landedBody(String apogee, String distance) {
-    return 'Apogée $apogee m · posée à $distance m du pas de tir.';
+    return 'Apogée $apogee · posée à $distance du pas de tir.';
   }
 
   @override
@@ -853,8 +880,8 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String benchLimits(String amps, String celsius) {
-    return 'Limites : $amps A, $celsius °C.';
+  String benchLimits(String amps, String temperature) {
+    return 'Limites : $amps A, $temperature.';
   }
 
   @override
@@ -1684,8 +1711,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get planNoteGeneric => 'Chaque étape attend la confirmation de l’appareil avant la suivante.';
 
   @override
-  String metreGrid(String metres) {
-    return 'grille de $metres m';
+  String metreGrid(String length) {
+    return 'grille de $length';
   }
 
   @override
@@ -2009,8 +2036,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get off => 'désactivé';
 
   @override
-  String metresFromHome(int metres) {
-    return '$metres m du départ';
+  String metresFromHome(String length) {
+    return '$length du départ';
   }
 
   @override
@@ -3077,17 +3104,17 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String sumTakeoff(String alt) {
-    return 'Décoller à $alt m';
+    return 'Décoller à $alt';
   }
 
   @override
   String sumFlyTo(String x, String y, String z) {
-    return 'Voler vers $x, $y m à $z m';
+    return 'Voler vers $x, $y à $z';
   }
 
   @override
   String sumDriveTo(String x, String y) {
-    return 'Rouler vers $x, $y m';
+    return 'Rouler vers $x, $y';
   }
 
   @override
@@ -3153,8 +3180,8 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String metresToGo(String metres) {
-    return 'encore $metres m';
+  String metresToGo(String length) {
+    return 'encore $length';
   }
 
   @override

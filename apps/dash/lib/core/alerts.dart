@@ -1,5 +1,6 @@
 import '../l10n/l10n.dart';
 import 'model.dart';
+import 'units.dart' as u;
 import 'telemetry.dart';
 
 /// Warnings fire once; critical alerts repeat their sound until acknowledged.
@@ -62,7 +63,11 @@ class AlertRule {
   final int digits;
   final double? Function(Telemetry t, double latencyMs) read;
 
-  String fmt(double v) => '${v.toStringAsFixed(digits)} $unit';
+  /// A value of this rule's, in the units shown.
+  String fmt(double v) {
+    final c = u.convertUnit(unit);
+    return '${c.shown(v).toStringAsFixed(digits)} ${c.unit}';
+  }
 }
 
 double? _bat(Telemetry t, double _) => t.seen.contains('bat') ? t.battery : null;

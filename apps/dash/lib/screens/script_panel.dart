@@ -8,6 +8,7 @@ import '../core/dash.dart';
 import '../core/gamepad.dart';
 import '../core/compat.dart' show fromPep440;
 import '../core/model.dart';
+import '../core/units.dart' as u;
 import '../scripts/hosts.dart';
 import '../scripts/imports.dart';
 import '../scripts/library.dart';
@@ -551,8 +552,8 @@ class ScriptRunPanel extends StatelessWidget {
       ),
       children: [
         row(t.maxSpeed, '${(l.maxSpeed * 100).round()} %'),
-        row(t.geofence, l.fence == 0 ? t.off : t.metresFromHome(l.fence.round()), muted: l.fence == 0),
-        if (kind == null || kind == DeviceKind.drone) row(t.ceiling, l.ceiling == 0 ? t.off : '${l.ceiling.round()} m', muted: l.ceiling == 0),
+        row(t.geofence, l.fence == 0 ? t.off : t.metresFromHome(u.lenText(l.fence)), muted: l.fence == 0),
+        if (kind == null || kind == DeviceKind.drone) row(t.ceiling, l.ceiling == 0 ? t.off : u.lenText(l.ceiling), muted: l.ceiling == 0),
         row(t.armingTakeoff, l.allowArm ? t.allowed : t.notAllowed, muted: !l.allowArm),
         row(t.paramWrites, l.allowParams ? t.allowed : t.notAllowed, muted: !l.allowParams),
       ],

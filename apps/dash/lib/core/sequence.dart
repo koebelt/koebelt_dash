@@ -4,6 +4,7 @@ import 'dart:math' as math;
 
 import '../l10n/l10n.dart';
 import 'model.dart';
+import 'units.dart' as u;
 
 /// A numeric or choice input of a step.
 class StepField {
@@ -162,9 +163,10 @@ class SeqStep {
   /// One-line summary in the language shown, for lists and the run status.
   String summaryShown(DeviceKind kind) {
     String f(double v) => v == v.roundToDouble() ? v.toStringAsFixed(0) : v.toStringAsFixed(1);
+    String l(double m) => '${f(u.len(m))} ${u.lenUnit}';
     return switch (type) {
-      'takeoff' => t.sumTakeoff(f(n('alt'))),
-      'goto' => kind == DeviceKind.drone ? t.sumFlyTo(f(n('x')), f(n('y')), f(n('z'))) : t.sumDriveTo(f(n('x')), f(n('y'))),
+      'takeoff' => t.sumTakeoff(l(n('alt'))),
+      'goto' => kind == DeviceKind.drone ? t.sumFlyTo(f(u.len(n('x'))), l(n('y')), l(n('z'))) : t.sumDriveTo(f(u.len(n('x'))), l(n('y'))),
       'land' => t.stLand,
       'rth' => t.sumRth,
       'pose' => t.sumPose([for (var i = 1; i <= 6; i++) f(n('j$i'))].join(' / ')),
@@ -471,7 +473,7 @@ class SequenceRunner {
       case 'goto':
         final dx = p[0] - s.n('x'), dy = p[1] - s.n('y');
         final dist = seq.kind == DeviceKind.drone ? math.sqrt(dx * dx + dy * dy + math.pow(p[2] - s.n('z', 8), 2)) : math.sqrt(dx * dx + dy * dy);
-        message = t.metresToGo(dist.toStringAsFixed(1));
+        message = t.metresToGo(u.lenText(dist, 1));
         return within(300, dist < (seq.kind == DeviceKind.drone ? 1.0 : .6));
       case 'land' || 'rth':
         return within(300, stepT > .5 && (!host.seqArmed || (p[2] < .1 && host.seqMode != 'LAND' && host.seqMode != 'RTH')));

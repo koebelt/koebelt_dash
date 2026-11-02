@@ -6,6 +6,7 @@ import '../l10n/l10n.dart';
 import '../core/dash.dart';
 import '../core/model.dart';
 import '../core/sequence.dart';
+import '../core/units.dart' as u;
 import '../theme/tokens.dart';
 import '../ui/components.dart';
 import '../ui/icons.dart';
@@ -486,6 +487,7 @@ class _StepCard extends StatelessWidget {
     final done = run != null && run!.index > i;
     final progress = current ? run!.stepProgress : null;
     Widget field(StepField f) {
+      final c = u.convertUnit(f.unit);
       if (f.isChoice && f.choices!.isEmpty) {
         return SizedBox(
           width: 180,
@@ -530,12 +532,13 @@ class _StepCard extends StatelessWidget {
         children: [
           MonoLabel(f.shown, size: 9),
           const SizedBox(height: 6),
+          // Kept metric, typed in the units shown.
           ParamStepper(
-            p: ParamDef(f.key, f.shown, f.def, f.min, f.max, f.step, f.unit),
-            value: st.n(f.key, f.def),
+            p: ParamDef(f.key, f.shown, c.shown(f.def), c.shown(f.min), c.shown(f.max), f.step, c.unit),
+            value: c.shown(st.n(f.key, f.def)),
             mod: false,
             onChanged: (v) {
-              st.p[f.key] = v;
+              st.p[f.key] = c.metric(v);
               onChanged();
             },
           ),
@@ -809,16 +812,16 @@ class _PlanPainter extends FramePainter {
     final ox = s.width / 2 - (minX + maxX) / 2 * sc, oy = s.height / 2 + (minY + maxY) / 2 * sc;
     Offset P(List<double> p) => Offset(ox + p[0] * sc, oy - p[1] * sc);
 
-    // grid every 5 m
+    // grid every 5 m (or 5 ft), 25 when zoomed out
     final g = Paint()..color = VC.hair2;
-    final step = sc * 5 < 14 ? 25.0 : 5.0;
+    final shown = sc * u.lenToMetres(5) < 14 ? 25.0 : 5.0, step = u.lenToMetres(shown);
     for (var x = (minX / step).floor() * step - step; x <= maxX + step; x += step) {
       c.drawLine(Offset(P([x, 0]).dx, 0), Offset(P([x, 0]).dx, s.height), g);
     }
     for (var y = (minY / step).floor() * step - step; y <= maxY + step; y += step) {
       c.drawLine(Offset(0, P([0, y]).dy), Offset(s.width, P([0, y]).dy), g);
     }
-    drawText(c, t.metreGrid(step.toStringAsFixed(0)).toUpperCase(), Offset(4, s.height - 4), VC.ink300);
+    drawText(c, t.metreGrid('${shown.toStringAsFixed(0)} ${u.lenUnit}').toUpperCase(), Offset(4, s.height - 4), VC.ink300);
 
     // home
     c.drawCircle(

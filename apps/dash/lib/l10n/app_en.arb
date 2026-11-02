@@ -14,6 +14,21 @@
   "settingsLanguageDesc": "The app's language.",
   "translationNote": "This translation was made with AI and may contain mistakes. Corrections are welcome on the GitHub repository.",
   "translationContribute": "Contribute on GitHub",
+  "secLanguageUnits": "Language and units",
+  "settingsUnits": "Units",
+  "settingsUnitsDesc": "Lengths, speeds and temperatures. Devices, sequences and scripts still work in metres; only what is shown changes.",
+  "settingsUnitsSystem": "Same as the region ({name})",
+  "@settingsUnitsSystem": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "unitsMetric": "Metric (m, m/s, °C)",
+  "unitsImperial": "Imperial (ft, mph, °F)",
+  "unitsMetricShort": "metric",
+  "unitsImperialShort": "imperial",
   "settingsLanguageSystem": "Same as the system ({name})",
   "@settingsLanguageSystem": {
     "placeholders": {
@@ -329,10 +344,10 @@
   "useThisPose": "Use this pose",
   "setHome": "Set home",
   "setHomePoseBody": "The current joint angles become the pose that Home pose and sequence Home steps move to.",
-  "setHomeBody": "The current position becomes home (0, 0). Return-to-home flies back here, and sequence waypoints are measured from here. The device is {metres} m from the current home.",
+  "setHomeBody": "The current position becomes home (0, 0). Return-to-home flies back here, and sequence waypoints are measured from here. The device is {length} from the current home.",
   "@setHomeBody": {
     "placeholders": {
-      "metres": {
+      "length": {
         "type": "String"
       }
     }
@@ -445,15 +460,15 @@
   "abortLaunch": "Abort launch",
   "deployDrogue": "Deploy drogue",
   "deployMain": "Deploy main",
-  "autoDeploy": "Auto deploy · drogue at apogee · main at {metres} m",
+  "autoDeploy": "Auto deploy · drogue at apogee · main at {length}",
   "@autoDeploy": {
     "placeholders": {
-      "metres": {
+      "length": {
         "type": "String"
       }
     }
   },
-  "landedBody": "Apogee {apogee} m · landed {distance} m from the pad.",
+  "landedBody": "Apogee {apogee} · landed {distance} from the pad.",
   "@landedBody": {
     "placeholders": {
       "apogee": {
@@ -494,13 +509,13 @@
       }
     }
   },
-  "benchLimits": "Limits: {amps} A, {celsius} °C.",
+  "benchLimits": "Limits: {amps} A, {temperature}.",
   "@benchLimits": {
     "placeholders": {
       "amps": {
         "type": "String"
       },
-      "celsius": {
+      "temperature": {
         "type": "String"
       }
     }
@@ -1032,10 +1047,10 @@
   },
   "planNoteBench": "Current and temperature cutoffs on the device stay active during the sequence.",
   "planNoteGeneric": "Each step waits for the device to confirm before the next one starts.",
-  "metreGrid": "{metres} m grid",
+  "metreGrid": "{length} grid",
   "@metreGrid": {
     "placeholders": {
-      "metres": {
+      "length": {
         "type": "String"
       }
     }
@@ -1231,11 +1246,11 @@
   "maxSpeed": "Max speed",
   "geofence": "Geofence",
   "off": "off",
-  "metresFromHome": "{metres} m from home",
+  "metresFromHome": "{length} from home",
   "@metresFromHome": {
     "placeholders": {
-      "metres": {
-        "type": "int"
+      "length": {
+        "type": "String"
       }
     }
   },
@@ -1917,7 +1932,7 @@
   "fLimit": "Limit",
   "fCommand": "Command",
   "fValue": "Value",
-  "sumTakeoff": "Take off to {alt} m",
+  "sumTakeoff": "Take off to {alt}",
   "@sumTakeoff": {
     "placeholders": {
       "alt": {
@@ -1925,7 +1940,7 @@
       }
     }
   },
-  "sumFlyTo": "Fly to {x}, {y} m at {z} m",
+  "sumFlyTo": "Fly to {x}, {y} at {z}",
   "@sumFlyTo": {
     "placeholders": {
       "x": {
@@ -1939,7 +1954,7 @@
       }
     }
   },
-  "sumDriveTo": "Drive to {x}, {y} m",
+  "sumDriveTo": "Drive to {x}, {y}",
   "@sumDriveTo": {
     "placeholders": {
       "x": {
@@ -2049,10 +2064,10 @@
       }
     }
   },
-  "metresToGo": "{metres} m to go",
+  "metresToGo": "{length} to go",
   "@metresToGo": {
     "placeholders": {
-      "metres": {
+      "length": {
         "type": "String"
       }
     }

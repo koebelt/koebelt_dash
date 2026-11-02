@@ -41,6 +41,7 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     final d = Dash();
     await d.init();
+    d.updateSettings((s) => s.units = 'metric');
     final mule = d.addSimulated(simTemplates().firstWhere((t) => t.id == 'mule'));
     await d.connect(mule.id);
     await Future<void>.delayed(const Duration(milliseconds: 400));
@@ -55,6 +56,10 @@ void main() {
     l.tel.prox = [.2, -1, -1, -1];
     expect((d.nearest!.sensor.id, d.nearest!.d), ('front', .2));
     expect(tileById(d, 'prox')!.val(d), '0.20 m · front');
+    d.updateSettings((s) => s.units = 'imperial');
+    expect(tileById(d, 'prox')!.val(d), '0.66 ft · front', reason: 'shown in feet, kept in metres');
+    expect(d.nearest!.d, .2);
+    d.updateSettings((s) => s.units = 'metric');
     final f = fieldsOf(l);
     expect((f(['prox', 'front']), f(['prox', 'rear']), f(['prox', 'nearest'])), (.2, double.infinity, .2));
     expect(conditionFields(DeviceKind.rover, prox: l.info.prox).map((x) => x.field), containsAll(['prox.nearest', 'prox.front']));

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../l10n/l10n.dart';
 import '../core/dash.dart';
 import '../core/model.dart';
+import '../core/units.dart' as u;
 import '../theme/tokens.dart';
 import '../ui/components.dart';
 import '../video/video_view.dart';
@@ -55,8 +56,8 @@ class TileDef {
 const _D = DeviceKind.drone, _R = DeviceKind.rover, _A = DeviceKind.arm, _K = DeviceKind.rocket, _B = DeviceKind.bench, _G = DeviceKind.generic;
 const j6 = [VC.white, VC.info, VC.warn, VC.pos, VC.neg, VC.ink100];
 
-/// The built-in tiles, in the language shown (built once per language).
-List<TileDef> get tiles => _tiles[t.localeName] ??= _builtIn();
+/// The built-in tiles, in the language and units shown (built once for each).
+List<TileDef> get tiles => _tiles['${t.localeName} ${u.imperial}'] ??= _builtIn();
 final _tiles = <String, List<TileDef>>{};
 
 List<TileDef> _builtIn() => [
@@ -121,7 +122,7 @@ List<TileDef> _builtIn() => [
     body: (d) => MapView(d, interactive: false, controls: false),
     keys: ['spd'],
     labels: [t.tileGroundSpeed],
-    unit: 'm/s',
+    unit: u.speedUnit,
     src: 'GNSS',
   ),
   TileDef(
@@ -129,11 +130,11 @@ List<TileDef> _builtIn() => [
     needs: ['pos'],
     title: t.altitude,
     types: {_D, _K, _G},
-    val: (d) => '${d.tel.pos[2].toStringAsFixed(1)} m',
+    val: (d) => u.lenText(d.tel.pos[2], 1),
     body: (d) => LineChart(d, keys: const ['alt'], colors: const [VC.lime]),
     keys: ['alt'],
     labels: [t.tileAgl],
-    unit: 'm',
+    unit: u.lenUnit,
     src: t.tileSrcBaroRange,
   ),
   TileDef(
@@ -146,7 +147,7 @@ List<TileDef> _builtIn() => [
     body: (d) => LiveCanvas(RadarPainter(d)),
     keys: ['spd'],
     labels: [t.tileOwnSpeed],
-    unit: 'm/s',
+    unit: u.speedUnit,
     src: t.tileSrcRadar,
   ),
   TileDef(
@@ -158,7 +159,7 @@ List<TileDef> _builtIn() => [
     body: (d) => Scene3D(d, view: 'top', interactive: false, label: false, layers: const {'cloud': true, 'grid': true}),
     keys: ['spd'],
     labels: [t.tileOwnSpeed],
-    unit: 'm/s',
+    unit: u.speedUnit,
     src: t.tileSrcLidar,
   ),
   TileDef(
@@ -245,7 +246,7 @@ List<TileDef> _builtIn() => [
     body: (d) => FlightPhases(d),
     keys: ['alt', 'vz'],
     labels: [t.altitude, t.tileVerticalSpeed],
-    unit: 'm · m/s',
+    unit: '${u.lenUnit} · ${u.speedUnit}',
     src: t.tileSrcPhase,
   ),
   TileDef(
@@ -253,11 +254,11 @@ List<TileDef> _builtIn() => [
     needs: ['vel'],
     title: t.tileVerticalSpeed,
     types: {_K},
-    val: (d) => '${f1(d.tel.vel[2], 1)} m/s',
+    val: (d) => '${f1(u.speed(d.tel.vel[2]), 1)} ${u.speedUnit}',
     body: (d) => LineChart(d, keys: const ['vz'], colors: const [VC.lime], sym: true),
     keys: ['vz'],
     labels: ['Vz'],
-    unit: 'm/s',
+    unit: u.speedUnit,
     src: t.tileSrcBaroImu,
     sym: true,
   ),
@@ -314,11 +315,11 @@ List<TileDef> _builtIn() => [
     needs: ['temp'],
     title: t.tileMotorTemp,
     types: {_D, _R, _A, _K, _B, _G},
-    val: (d) => '${d.tel.temp.toStringAsFixed(1)} °C',
+    val: (d) => u.tempText(d.tel.temp, 1),
     body: (d) => LineChart(d, keys: const ['tmp'], colors: const [VC.warn]),
     keys: ['tmp'],
     labels: [t.tileStator],
-    unit: '°C',
+    unit: u.tempUnit,
     src: t.tileSrcNtc,
   ),
   TileDef(
@@ -368,18 +369,18 @@ List<TileDef> proxTiles(Dash d) {
       types: DeviceKind.values.toSet(),
       val: (d) {
         final n = d.nearest;
-        if (n != null) return '${n.d.toStringAsFixed(2)} m · ${n.sensor.id.replaceAll('_', ' ')}';
+        if (n != null) return '${u.lenText(n.d, 2)} · ${n.sensor.id.replaceAll('_', ' ')}';
         final down = [
           for (var i = 0; i < d.proxSensors.length && i < d.tel.prox.length; i++)
             if (d.proxSensors[i].down && d.tel.prox[i] >= 0) d.tel.prox[i],
         ];
-        return down.isNotEmpty ? '↓ ${down.first.toStringAsFixed(1)} m' : t.proxClear;
+        return down.isNotEmpty ? '↓ ${u.lenText(down.first, 1)}' : t.proxClear;
       },
       body: (d) => LiveCanvas(ProxPainter(d)),
       keys: [for (var i = 0; i < ps.length; i++) 'prox:$i'],
       labels: [for (final p in ps) p.id.replaceAll('_', ' ')],
       colors: ps.length > 3 ? j6 : null,
-      unit: 'm',
+      unit: u.lenUnit,
       src: ps.isEmpty ? t.tileSrcProx : {for (final p in ps) p.kind.isEmpty ? t.tileProximity.toLowerCase() : p.kind}.join(' · '),
     ),
   ];
@@ -461,28 +462,28 @@ class ReadoutBody extends StatelessWidget {
     final s = d.tel;
     final rd = switch (d.kind) {
       DeviceKind.arm => [
-        [t.rdToolZ, s.armPts[5][2].toStringAsFixed(3), 'm'],
-        [t.rdReach, hypot2(s.armPts[5][0], s.armPts[5][1]).toStringAsFixed(2), 'm'],
+        [t.rdToolZ, u.len(s.armPts[5][2]).toStringAsFixed(3), u.lenUnit],
+        [t.rdReach, u.len(hypot2(s.armPts[5][0], s.armPts[5][1])).toStringAsFixed(2), u.lenUnit],
         [t.gripper, (s.gripper * 100).toStringAsFixed(0), '%'],
         [t.rdCurrent, s.current.toStringAsFixed(1), 'A'],
       ],
       DeviceKind.rocket => [
-        [t.rdAlt, s.pos[2].toStringAsFixed(0), 'm'],
-        [t.rdVz, f1(s.vel[2], 0), 'm/s'],
-        [t.rdMax, s.maxAlt.toStringAsFixed(0), 'm'],
-        [t.rdRange, s.range.toStringAsFixed(0), 'm'],
+        [t.rdAlt, u.len(s.pos[2]).toStringAsFixed(0), u.lenUnit],
+        [t.rdVz, f1(u.speed(s.vel[2]), 0), u.speedUnit],
+        [t.rdMax, u.len(s.maxAlt).toStringAsFixed(0), u.lenUnit],
+        [t.rdRange, u.len(s.range).toStringAsFixed(0), u.lenUnit],
       ],
       DeviceKind.bench => [
         [t.rdThrust, s.thrust.toStringAsFixed(1), 'N'],
         [t.rdRpm, '${s.rpm.round()}', ''],
         [t.rdPower, s.power.toStringAsFixed(0), 'W'],
-        [t.rdTemp, s.temp.toStringAsFixed(0), '°C'],
+        [t.rdTemp, u.temp(s.temp).toStringAsFixed(0), u.tempUnit],
       ],
       _ => [
-        [t.rdAlt, s.pos[2].toStringAsFixed(1), 'm'],
-        [t.rdSpeed, s.speed.toStringAsFixed(1), 'm/s'],
+        [t.rdAlt, u.len(s.pos[2]).toStringAsFixed(1), u.lenUnit],
+        [t.rdSpeed, u.speed(s.speed).toStringAsFixed(1), u.speedUnit],
         [t.rdHdg, s.heading.round().toString().padLeft(3, '0'), '°'],
-        [t.rdHome, s.range.toStringAsFixed(0), 'm'],
+        [t.rdHome, u.len(s.range).toStringAsFixed(0), u.lenUnit],
       ],
     };
     return LayoutBuilder(
