@@ -117,7 +117,13 @@ class KProx {
 
 class KLink {
  public:
-  enum Kind : uint8_t { DRONE, ROVER, ARM, ROCKET, BENCH, GENERIC };
+  // PLANE and BOAT come last so the older kinds keep their numbers.
+  enum Kind : uint8_t { DRONE, ROVER, ARM, ROCKET, BENCH, GENERIC, PLANE, BOAT };
+
+  // Flies: takes off, holds a height, lands (drones, planes).
+  bool flies() const { return _kind == DRONE || _kind == PLANE; }
+  // Driven on a surface (ground robots, boats).
+  bool drives() const { return _kind == ROVER || _kind == BOAT; }
   enum TransportType : uint8_t { WIFI, BLE, SERIAL_PORT, LORA };
 
   KLink(const char* name, Kind kind, const char* id = nullptr);

@@ -118,3 +118,16 @@ def test_pause_resume_stop_and_estop(drone):
     run(dev, app, loop, 0.2)
     assert last_run(app)["st"] == "fail"
     assert "emergency" in last_run(app)["msg"]
+
+
+def test_planes_and_boats_take_their_own_steps():
+    from koebelt_link.sequence import ARRIVAL, validate
+
+    flight = [["takeoff", {"alt": 30}], ["goto", {"x": 100, "y": 0, "z": 40}], ["land", {}]]
+    assert validate("plane", flight) is None
+    assert validate("boat", [["goto", {"x": 10, "y": 5}]]) is None
+    assert validate("boat", flight) is not None, "a boat does not take off"
+    # A plane passes its waypoints; a boat drifts.
+    assert ARRIVAL["plane"] > ARRIVAL["boat"] > ARRIVAL["rover"]
+    Device("Swift", kind="plane")
+    Device("Otter", kind="boat")

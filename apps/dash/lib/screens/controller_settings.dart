@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../l10n/l10n.dart';
 import '../core/dash.dart';
 import '../core/gamepad.dart';
-import '../core/model.dart';
 import '../theme/tokens.dart';
 import '../ui/components.dart';
 
@@ -340,7 +339,7 @@ class PadChip extends StatelessWidget {
     return Tooltip(
       message: driving
           ? t.padDrives(name, d.deviceName)
-          : d.kind == DeviceKind.drone || d.kind == DeviceKind.rover
+          : d.kind.travels
           ? t.padArmToDrive(name)
           : t.padButtonsWork,
       child: KTag('${t.pad} · $name', tone: driving ? TagTone.accent : TagTone.neutral),

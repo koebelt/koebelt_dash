@@ -187,3 +187,23 @@ fn pause_resume_stop_and_estop() {
     assert_eq!(st(&d, "st").as_deref(), Some(r#""fail""#));
     assert!(st(&d, "msg").unwrap().contains("emergency"));
 }
+
+#[test]
+fn planes_fly_their_steps_and_boats_do_not_take_off() {
+    assert!(Kind::Plane.flies() && Kind::Boat.drives() && !Kind::Boat.flies());
+    assert_eq!((Kind::Plane.as_str(), Kind::Boat.as_str()), ("plane", "boat"));
+    // A plane passes its waypoints; a boat drifts.
+    assert!(Kind::Plane.arrival() > Kind::Boat.arrival() && Kind::Boat.arrival() > Kind::Rover.arrival());
+    for (kind, ok) in [(Kind::Plane, true), (Kind::Boat, false)] {
+        let wire = Mem::default();
+        let mut link = Link::new("K-1", kind, wire.clone());
+        wire.app(r#"{"t":"hello","v":1}"#);
+        wire.app(r#"{"t":"seq","id":"t","steps":[["takeoff",{"alt":30}],["land",{}]]}"#);
+        for i in 1..30 {
+            link.update(i * 10);
+            while link.poll_event().is_some() {}
+        }
+        let ack = wire.of("seqack").pop().unwrap();
+        assert_eq!(json::get(ack.as_bytes(), "ok").and_then(json::as_bool), Some(ok), "{}: {ack}", kind.as_str());
+    }
+}

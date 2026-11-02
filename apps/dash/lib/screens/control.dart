@@ -436,7 +436,7 @@ class MobileControl extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final s = d.liveTel, drone = d.kind == DeviceKind.drone, stacked = w < 640;
+    final s = d.liveTel, drone = d.kind.flies, stacked = w < 640;
     final live = s.armed && !s.estop, dis = !live || d.linkLost;
     final inv = d.settings.invertY ? -1.0 : 1.0, cs = d.settings.control, I = d.input;
     void g() {

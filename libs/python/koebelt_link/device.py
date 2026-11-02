@@ -12,7 +12,7 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tupl
 
 from . import __version__
 from . import sequence as seqmod
-from .protocol import COMPACT_FIELDS, KINDS, VERSION, Msg, encode_points
+from .protocol import COMPACT_FIELDS, FLYING, KINDS, VERSION, Msg, encode_points
 from .transports import RadioTransport, SerialTransport, Transport, UdpTransport
 
 #: A radio port: "/dev/ttyUSB1" (SiK) or ("/dev/ttyUSB1", "hc12").
@@ -749,7 +749,7 @@ class Device:
             self._session = False
             self.control = Control()
             # A stored sequence carries on; otherwise a flying drone holds.
-            if self.kind == "drone" and self.armed and not self.sequence_running:
+            if self.kind in FLYING and self.armed and not self.sequence_running:
                 self._set_mode("HOLD")
             if isinstance(t, UdpTransport):
                 t.drop_peer()
@@ -764,7 +764,7 @@ class Device:
         self.control = Control()
         self._state_dirty = True
         self._emit("control", self.control)
-        if self.kind == "drone":
+        if self.kind in FLYING:
             self._set_mode(self._fs_action)
         elif self.kind == "bench":
             self._set_mode("IDLE")

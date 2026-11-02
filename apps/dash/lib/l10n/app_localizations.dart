@@ -2947,6 +2947,12 @@ abstract class AppLocalizations {
   /// **'take off, fly to waypoints, wait, land'**
   String get stepsDrone;
 
+  /// No description provided for @stepsPlane.
+  ///
+  /// In en, this message translates to:
+  /// **'take off, fly a circuit through waypoints, land'**
+  String get stepsPlane;
+
   /// No description provided for @stepsRover.
   ///
   /// In en, this message translates to:
@@ -3145,11 +3151,23 @@ abstract class AppLocalizations {
   /// **'Waypoints are metres east and north of the take-off point. The drone holds at each one before the next step. The failsafe still applies if the link drops.'**
   String get planNoteDrone;
 
+  /// No description provided for @planNotePlane.
+  ///
+  /// In en, this message translates to:
+  /// **'Waypoints are metres east and north of the take-off point. A plane cannot stop: it flies through each one, and circles while it holds. The failsafe still applies if the link drops.'**
+  String get planNotePlane;
+
   /// No description provided for @planNoteRover.
   ///
   /// In en, this message translates to:
   /// **'Waypoints are metres east and north of the start point. The rover stops at each one before the next step.'**
   String get planNoteRover;
+
+  /// No description provided for @planNoteBoat.
+  ///
+  /// In en, this message translates to:
+  /// **'Waypoints are metres east and north of the start point. The boat slows at each one before the next step; wind and current can push it while it waits.'**
+  String get planNoteBoat;
 
   /// No description provided for @planNoteArm.
   ///
@@ -5437,11 +5455,23 @@ abstract class AppLocalizations {
   /// **'Drone'**
   String get kindDrone;
 
+  /// No description provided for @kindPlane.
+  ///
+  /// In en, this message translates to:
+  /// **'Plane'**
+  String get kindPlane;
+
   /// No description provided for @kindRover.
   ///
   /// In en, this message translates to:
   /// **'Ground robot'**
   String get kindRover;
+
+  /// No description provided for @kindBoat.
+  ///
+  /// In en, this message translates to:
+  /// **'Boat'**
+  String get kindBoat;
 
   /// No description provided for @kindArm.
   ///

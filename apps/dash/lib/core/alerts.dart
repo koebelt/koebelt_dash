@@ -152,7 +152,7 @@ final alertRules = <AlertRule>[
     below: false,
     def: 120,
     hyst: 5,
-    kinds: {DeviceKind.drone},
+    kinds: {DeviceKind.drone, DeviceKind.plane},
     read: (t, _) => t.seen.contains('pos') ? t.alt : null,
   ),
   AlertRule(
@@ -164,7 +164,7 @@ final alertRules = <AlertRule>[
     below: false,
     def: 300,
     hyst: 10,
-    kinds: {DeviceKind.drone, DeviceKind.rover},
+    kinds: {DeviceKind.drone, DeviceKind.plane, DeviceKind.rover, DeviceKind.boat},
     read: (t, _) => t.seen.contains('pos') ? t.range : null,
   ),
   AlertRule(

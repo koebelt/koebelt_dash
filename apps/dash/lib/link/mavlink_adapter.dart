@@ -14,8 +14,10 @@ import 'transport.dart';
 
 /// Vehicle classes the app distinguishes, from MAV_TYPE.
 String mavKind(int type) => switch (type) {
-  1 || 2 || 3 || 4 || 7 || 13 || 14 || 15 || 16 || 19 || 20 || 21 || 22 || 23 || 24 || 25 || 29 || 35 => 'drone',
-  10 || 11 || 12 => 'rover',
+  1 || 19 || 20 || 21 || 22 || 23 || 24 || 25 => 'plane',
+  2 || 3 || 4 || 7 || 13 || 14 || 15 || 16 || 29 || 35 => 'drone',
+  11 => 'boat',
+  10 || 12 => 'rover',
   9 => 'rocket',
   _ => 'generic',
 };

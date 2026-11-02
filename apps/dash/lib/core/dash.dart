@@ -304,6 +304,22 @@ List<DeviceInfo> simTemplates() => [
     model: 'Motor test stand · 25 kg load cell',
     sensors: ['LOAD CELL', 'RPM', 'CURRENT', 'TEMP', 'VIBRATION'],
   ),
+  DeviceInfo(
+    id: 'swift',
+    name: 'Swift',
+    kind: DeviceKind.plane,
+    model: 'Fixed-wing trainer · 1.2 m span',
+    battery: 92,
+    sensors: ['IMU', 'BARO', 'AIRSPEED', 'GPS', 'CAMERA'],
+  ),
+  DeviceInfo(
+    id: 'otter',
+    name: 'Otter',
+    kind: DeviceKind.boat,
+    model: 'Survey boat · twin thrusters',
+    battery: 78,
+    sensors: ['IMU', 'GPS', 'COMPASS', 'SONAR', 'CAMERA'],
+  ),
 ];
 
 /// App state. The Flutter counterpart of the design's `SIM` object.
@@ -605,7 +621,7 @@ class Dash extends ChangeNotifier implements PadTarget {
         !linkLost &&
         s.armed &&
         !s.estop &&
-        (kind == DeviceKind.drone || kind == DeviceKind.rover || kind == DeviceKind.arm || kind == DeviceKind.generic);
+        (kind.travels || kind == DeviceKind.arm || kind == DeviceKind.generic);
   }
 
   @override
@@ -618,7 +634,7 @@ class Dash extends ChangeNotifier implements PadTarget {
       _padArm(v);
       return;
     }
-    final drone = kind != DeviceKind.rover;
+    final drone = !kind.drives;
     input[0] = v[0];
     input[1] = drone ? v[1] : 0;
     input[2] = drone ? v[2] : 0;
@@ -630,7 +646,7 @@ class Dash extends ChangeNotifier implements PadTarget {
   void padAction(PadAction a) {
     if (a == PadAction.stop && links.isNotEmpty) return emergencyStop(); // also during replays
     if (!hasDevice || replay != null) return;
-    final s = liveTel, drone = kind == DeviceKind.drone;
+    final s = liveTel, drone = kind.flies;
     switch (a) {
       case PadAction.stop:
         emergencyStop();
@@ -1083,7 +1099,7 @@ class Dash extends ChangeNotifier implements PadTarget {
   bool nativeModes(DeviceLink l) => l.session.transport is MavlinkTransport;
 
   /// The kinds that use HOLD, MANUAL and AUTO (rockets and benches have their own).
-  static bool modal(DeviceKind k) => k == DeviceKind.drone || k == DeviceKind.rover || k == DeviceKind.arm || k == DeviceKind.generic;
+  static bool modal(DeviceKind k) => k.travels || k == DeviceKind.arm || k == DeviceKind.generic;
 
   /// What drives [l] in AUTO: a sequence or a script; null if neither.
   String? automationOf(DeviceLink l) {

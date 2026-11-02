@@ -1057,7 +1057,7 @@ List<Issue> issuesOf(Dash d) {
   final lf = d.linkLostFor, several = d.links.length > 1;
   final who = several ? '${d.deviceName} · ' : '';
   if (lf > 0) {
-    final fs = d.kind == DeviceKind.drone ? {'HOLD': t.failsafeHold, 'RTH': t.failsafeRth, 'LAND': t.failsafeLand}[d.settings.failsafe]! : t.failsafeHold;
+    final fs = d.kind.flies ? {'HOLD': t.failsafeHold, 'RTH': t.failsafeRth, 'LAND': t.failsafeLand}[d.settings.failsafe]! : t.failsafeHold;
     out.add(
       Issue(
         'link',

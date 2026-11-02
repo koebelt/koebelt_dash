@@ -403,7 +403,7 @@ class RadarPainter extends FramePainter {
       c.drawRect(Rect.fromLTWH(x - 3, y - 3, 6, 6), _fill(VC.warn.withValues(alpha: al)));
       drawText(c, g.id, Offset(x + 6, y - 6), VC.ink100.withValues(alpha: al));
     }
-    drawText(c, rg < 10 ? '${rg.toStringAsFixed(0)} M' : '${rg.toStringAsFixed(0)}M', Offset(cx + 4, cy - R + 10), VC.ink300);
+    drawText(c, u.lenText(rg).toUpperCase(), Offset(cx + 4, cy - R + 10), VC.ink300);
   }
 }
 

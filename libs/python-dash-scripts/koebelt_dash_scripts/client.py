@@ -291,7 +291,7 @@ class Device:
 
     @property
     def kind(self) -> str:
-        """drone, rover, arm, bench, rocket or generic."""
+        """drone, plane, rover, boat, arm, bench, rocket or generic."""
         return self.info.get("kind", "generic")
 
     @property
@@ -332,7 +332,7 @@ class Device:
         self._call("release")
 
     def mode(self, mode: str) -> None:
-        """Switches the device's mode: HOLD, or on drones TAKEOFF, LAND, RTH.
+        """Switches the device's mode: HOLD, or on drones and planes TAKEOFF, LAND, RTH.
         dash chooses MANUAL and AUTO itself (AUTO while a script or a sequence
         drives the device, MANUAL when the operator does): asking for them
         does nothing."""
@@ -366,7 +366,7 @@ class Device:
         self._step("takeoff", wait, alt=alt)
 
     def goto(self, x: float, y: float, z: Optional[float] = None, *, wait: bool = True) -> None:
-        """Goes to x metres east, y north of home (and z up, drones). Returns once there."""
+        """Goes to x metres east, y north of home (and z up, drones and planes). Returns once there."""
         self._step("goto", wait, x=x, y=y, **({} if z is None else {"z": z}))
 
     def land(self, *, wait: bool = True) -> None:

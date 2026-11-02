@@ -303,7 +303,7 @@ ImportedLog _dataflash(Uint8List b) {
           final cls = w.replaceFirst('Ardu', '');
           vehicle = 'Ardu$cls';
           (mavType, kind) = switch (cls) {
-            'Plane' => (1, DeviceKind.drone),
+            'Plane' => (1, DeviceKind.plane),
             'Rover' => (10, DeviceKind.rover),
             'Sub' => (12, DeviceKind.rover),
             _ => (2, DeviceKind.drone),
@@ -522,6 +522,8 @@ ImportedLog _ulog(Uint8List b) {
             });
           case 'vehicle_status':
             final vt = f('vehicle_type');
+            // PX4's vehicle types: 1 multicopter, 2 fixed wing, 3 rover.
+            if (vt == 2) kind = DeviceKind.plane;
             if (vt == 3) kind = DeviceKind.rover;
             final nav = _px4Nav[f('nav_state')?.toInt()] ?? 'MODE ${f('nav_state')}';
             final arm = f('arming_state') == 2;

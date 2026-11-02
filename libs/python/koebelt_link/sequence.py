@@ -7,6 +7,8 @@ telemetry, so a sequence keeps going when the link drops.
 import math
 from typing import Any, Dict, List, Optional
 
+from .protocol import DRIVEN, FLYING
+
 #: The most steps a device stores (advertised in `hello` as "seq").
 MAX_STEPS = 64
 
@@ -14,12 +16,19 @@ MAX_STEPS = 64
 _COMMON = {"wait", "mode", "arm", "speed", "cmd"}
 STEP_TYPES = {
     "drone": _COMMON | {"takeoff", "goto", "land", "rth"},
+    "plane": _COMMON | {"takeoff", "goto", "land", "rth"},
     "rover": _COMMON | {"goto"},
+    "boat": _COMMON | {"goto"},
     "arm": _COMMON | {"pose", "home", "gripper"},
     "bench": {"wait", "arm", "cmd", "throttle", "ramp"},
     "rocket": {"wait", "arm", "cmd"},
     "generic": _COMMON,
 }
+
+
+#: How close a waypoint counts as reached, in metres: a plane cannot stop on
+#: a point, it passes it; a boat drifts.
+ARRIVAL = {"drone": 1.0, "plane": 15.0, "rover": 0.6, "boat": 1.5}
 
 
 def validate(kind: str, steps: Any) -> Optional[str]:
@@ -81,7 +90,7 @@ class Runner:
         typ = self.steps[self.index][0] if self.index < len(self.steps) else ""
         if typ in ("throttle", "ramp"):
             self.host._run_cmd("throttle", {"v": 0})
-        elif self.host.kind in ("drone", "rover") and self.host.armed:
+        elif self.host.kind in FLYING + DRIVEN and self.host.armed:
             self.host._run_mode("HOLD")
 
     def resume(self) -> None:
@@ -97,7 +106,7 @@ class Runner:
         self.state, self.msg = "fail", why
         if self.host.kind == "bench":
             self.host._run_cmd("throttle", {"v": 0})
-        if self.host.kind in ("drone", "rover") and self.host.armed and not self.host.estop:
+        if self.host.kind in FLYING + DRIVEN and self.host.armed and not self.host.estop:
             self.host._run_mode("HOLD")
 
     # ---------------------------------------------------------------- loop
@@ -160,10 +169,10 @@ class Runner:
             return within(60, t > 0.3 and h.mode != "TAKEOFF" and p[2] > n("alt", 6) - 0.6)
         if typ == "goto":
             dx, dy = p[0] - n("x"), p[1] - n("y")
-            drone = h.kind == "drone"
-            dist = math.sqrt(dx * dx + dy * dy + ((p[2] - n("z", 8)) ** 2 if drone else 0.0))
+            flies = h.kind in FLYING
+            dist = math.sqrt(dx * dx + dy * dy + ((p[2] - n("z", 8)) ** 2 if flies else 0.0))
             self.msg = f"{dist:.1f} m to go"
-            return within(300, dist < (1.0 if drone else 0.6))
+            return within(300, dist < ARRIVAL.get(h.kind, 0.6))
         if typ in ("land", "rth"):
             return within(300, t > 0.5 and (not h.armed or (p[2] < 0.1 and h.mode not in ("LAND", "RTH"))))
         if typ == "pose":

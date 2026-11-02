@@ -156,7 +156,15 @@ class SimCamera {
     final poly = _clip(quad, near);
     if (poly.length >= 3) {
       final path = Path()..addPolygon([for (final q in poly) scr(q)], true);
-      c.drawPath(path, Paint()..color = kind == DeviceKind.rover ? const Color(0xFF3F3A33) : const Color(0xFF3D4734));
+      c.drawPath(
+        path,
+        Paint()
+          ..color = switch (kind) {
+            DeviceKind.rover => const Color(0xFF3F3A33),
+            DeviceKind.boat => const Color(0xFF243B47), // water
+            _ => const Color(0xFF3D4734),
+          },
+      );
     }
 
     // Ground grid every 5 m around the camera.

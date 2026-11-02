@@ -96,13 +96,13 @@ pub(super) fn parse(kind: Kind, w: &[u8]) -> Result<Step, &[u8]> {
     let a = it.next().unwrap_or(b"{}");
     let ty = json::as_str(t).unwrap_or("");
     let num = |k: &str| json::get(a, k).and_then(json::as_f64).map(|v| v as f32);
-    let (drone, rover, arm, bench) = (kind == Kind::Drone, kind == Kind::Rover, kind == Kind::Arm, kind == Kind::Bench);
+    let (flies, drives, arm, bench) = (kind.flies(), kind.drives(), kind == Kind::Arm, kind == Kind::Bench);
     let moving = !bench && kind != Kind::Rocket;
     Ok(match ty {
-        "takeoff" if drone => Step::Takeoff(num("alt").unwrap_or(6.0)),
-        "goto" if drone || rover => Step::Goto([num("x").unwrap_or(0.0), num("y").unwrap_or(0.0), num("z").unwrap_or(8.0)]),
-        "land" if drone => Step::Land,
-        "rth" if drone => Step::Rth,
+        "takeoff" if flies => Step::Takeoff(num("alt").unwrap_or(6.0)),
+        "goto" if flies || drives => Step::Goto([num("x").unwrap_or(0.0), num("y").unwrap_or(0.0), num("z").unwrap_or(8.0)]),
+        "land" if flies => Step::Land,
+        "rth" if flies => Step::Rth,
         "pose" if arm => {
             let mut j = [0f32; 6];
             json::as_f32s(json::get(a, "j").unwrap_or(b"[]"), &mut j);
@@ -280,7 +280,7 @@ impl<T: Transport> Link<T> {
         let cur = self.stored.as_ref().and_then(|s| s.steps.get(r.i as usize).copied().flatten());
         match cur {
             Some(Step::Throttle(..) | Step::Ramp(..)) => self.seq_cmd("throttle", args(|w| w.raw(r#"{"v":0}"#))),
-            _ if matches!(self.kind, Kind::Drone | Kind::Rover) && self.armed => self.seq_mode(Mode::Hold),
+            _ if (self.kind.flies() || self.kind.drives()) && self.armed => self.seq_mode(Mode::Hold),
             _ => {}
         }
     }
@@ -296,7 +296,7 @@ impl<T: Transport> Link<T> {
         if self.kind == Kind::Bench {
             self.seq_cmd("throttle", args(|w| w.raw(r#"{"v":0}"#)));
         }
-        if matches!(self.kind, Kind::Drone | Kind::Rover) && self.armed && !self.estop {
+        if (self.kind.flies() || self.kind.drives()) && self.armed && !self.estop {
             self.seq_mode(Mode::Hold);
         }
     }
@@ -367,13 +367,13 @@ impl<T: Transport> Link<T> {
             Step::Wait(s) | Step::Throttle(_, s) => Some(t >= s),
             Step::Takeoff(alt) => within(60.0, t > 0.3 && self.mode != Mode::Takeoff && p[2] > alt - 0.6),
             Step::Goto(g) => {
-                let drone = self.kind == Kind::Drone;
-                let (dx, dy, dz) = (p[0] - g[0], p[1] - g[1], if drone { p[2] - g[2] } else { 0.0 });
+                let flies = self.kind.flies();
+                let (dx, dy, dz) = (p[0] - g[0], p[1] - g[1], if flies { p[2] - g[2] } else { 0.0 });
                 let d = sqrt(dx * dx + dy * dy + dz * dz);
                 r.set_msg(|w| {
                     let _ = core::fmt::Write::write_fmt(w, format_args!("{d:.1} m to go"));
                 });
-                within(300.0, d < if drone { 1.0 } else { 0.6 })
+                within(300.0, d < self.kind.arrival())
             }
             Step::Land | Step::Rth => within(300.0, t > 0.5 && (!self.armed || (p[2] < 0.1 && !matches!(self.mode, Mode::Land | Mode::Rth)))),
             Step::Pose(target) => {
@@ -422,7 +422,7 @@ impl<T: Transport> Link<T> {
                 r.set_msg(|w| {
                     let _ = core::fmt::Write::write_fmt(w, format_args!("Step {i} timed out"));
                 });
-                if matches!(self.kind, Kind::Drone | Kind::Rover) && self.armed {
+                if (self.kind.flies() || self.kind.drives()) && self.armed {
                     self.seq_mode(Mode::Hold);
                 }
             }
@@ -437,13 +437,13 @@ impl<T: Transport> Link<T> {
                 w.raw("}");
             })),
             Step::Goto(g) => {
-                let drone = self.kind == Kind::Drone;
+                let flies = self.kind.flies();
                 self.seq_cmd("goto", args(|w| {
                     w.raw(r#"{"x":"#);
                     w.numf(g[0]);
                     w.raw(r#","y":"#);
                     w.numf(g[1]);
-                    if drone {
+                    if flies {
                         w.raw(r#","z":"#);
                         w.numf(g[2]);
                     }

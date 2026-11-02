@@ -1583,6 +1583,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get stepsDrone => 'take off, fly to waypoints, wait, land';
 
   @override
+  String get stepsPlane => 'take off, fly a circuit through waypoints, land';
+
+  @override
   String get stepsRover => 'drive to waypoints, wait, change speed';
 
   @override
@@ -1690,7 +1693,15 @@ class AppLocalizationsEn extends AppLocalizations {
       'Waypoints are metres east and north of the take-off point. The drone holds at each one before the next step. The failsafe still applies if the link drops.';
 
   @override
+  String get planNotePlane =>
+      'Waypoints are metres east and north of the take-off point. A plane cannot stop: it flies through each one, and circles while it holds. The failsafe still applies if the link drops.';
+
+  @override
   String get planNoteRover => 'Waypoints are metres east and north of the start point. The rover stops at each one before the next step.';
+
+  @override
+  String get planNoteBoat =>
+      'Waypoints are metres east and north of the start point. The boat slows at each one before the next step; wind and current can push it while it waits.';
 
   @override
   String planNoteArm(String button) {
@@ -3009,7 +3020,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get kindDrone => 'Drone';
 
   @override
+  String get kindPlane => 'Plane';
+
+  @override
   String get kindRover => 'Ground robot';
+
+  @override
+  String get kindBoat => 'Boat';
 
   @override
   String get kindArm => 'Robot arm';

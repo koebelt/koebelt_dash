@@ -568,6 +568,24 @@ void test_stored_sequences() {
   CHECK(strstr(r["msg"] | "", "emergency") != nullptr);
 }
 
+// Planes fly their steps and announce themselves as such; boats do not take off.
+void test_planes_and_boats() {
+  for (int k = 0; k < 2; k++) {
+    KLink l(k ? "Otter" : "Swift", k ? KLink::BOAT : KLink::PLANE);
+    FakeTransport t;
+    l.addTransport(&t);
+    run(l, t, 100, false);
+    t.in.push_back("{\"t\":\"hello\",\"v\":1}");
+    t.in.push_back("{\"t\":\"seq\",\"id\":\"t\",\"steps\":[[\"takeoff\",{\"alt\":30}],[\"land\",{}]]}");
+    run(l, t, 100);
+    auto h = t.of("hello");
+    CHECK(h.size() == 1 && strcmp(h[0]["kind"], k ? "boat" : "plane") == 0);
+    CHECK(k ? l.drives() && !l.flies() : l.flies());
+    auto ack = t.of("seqack");
+    CHECK(ack.size() == 1 && ack[0]["ok"] == (k == 0));
+  }
+}
+
 int main() {
   test_handshake();
   test_control_stop_failsafe();
@@ -582,6 +600,7 @@ int main() {
   test_third_party_udp();
   test_bluetooth_module_rates();
   test_stored_sequences();
+  test_planes_and_boats();
   printf("%d checks, %d failures\n", checks, failures);
   return failures ? 1 : 0;
 }

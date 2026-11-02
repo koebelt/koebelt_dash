@@ -36,7 +36,7 @@ void main() {
         final back = SeqStep.fromWire(s.toWire(kind));
         expect(back.type, s.type);
         for (final k in s.p.keys) {
-          if (kind != DeviceKind.drone && def.type == 'goto' && k == 'z') continue;
+          if (!kind.flies && def.type == 'goto' && k == 'z') continue;
           final a = s.p[k], b = back.p[k];
           if (a is num) {
             expect((b as num).toDouble(), closeTo(a.toDouble(), 1e-6), reason: '${def.type}.$k');

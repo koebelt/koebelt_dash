@@ -16,6 +16,7 @@ import 'package:path_provider/path_provider.dart';
 import '../l10n/l10n.dart';
 import '../core/dash.dart';
 import '../core/model.dart';
+import '../core/units.dart' as u;
 import '../core/sequence.dart';
 import '../core/telemetry.dart';
 import '../link/protocol.dart' show appVersion;
@@ -427,7 +428,7 @@ class _MapViewState extends State<MapView> {
             bottom: 8,
             child: IgnorePointer(
               child: MonoLabel(
-                '${here.latitude.toStringAsFixed(6)}  ${here.longitude.toStringAsFixed(6)}  ·  ${tr.rdHome.toUpperCase()} ${metresBetween(home.latitude, home.longitude, here.latitude, here.longitude).round()} M',
+                '${here.latitude.toStringAsFixed(6)}  ${here.longitude.toStringAsFixed(6)}  ·  ${tr.rdHome.toUpperCase()} ${u.lenText(metresBetween(home.latitude, home.longitude, here.latitude, here.longitude)).toUpperCase()}',
                 size: 9,
                 color: K.textSecondary,
               ),
@@ -561,7 +562,8 @@ class _GridPainter extends CustomPainter {
     if (!label) return;
     final tp = TextPainter(
       text: TextSpan(
-        text: '${t.grid.toUpperCase()} ${step >= 1000 ? '${(step / 1000).toStringAsFixed(0)} KM' : '${step.round()} M'}',
+        text:
+            '${t.grid.toUpperCase()} ${u.imperial ? (step >= 1609 ? '${(step / 1609.34).toStringAsFixed(1)} MI' : '${u.len(step).round()} FT') : (step >= 1000 ? '${(step / 1000).toStringAsFixed(0)} KM' : '${step.round()} M')}',
         style: KText.label(size: 9),
       ),
       textDirection: TextDirection.ltr,

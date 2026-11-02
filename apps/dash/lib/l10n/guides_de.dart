@@ -9,7 +9,7 @@ const guidesDe = <String, String>{
   'Add the library to your project. It has no runtime dependencies beyond the platform\'s network stack.':
       'Füge die Bibliothek zu deinem Projekt hinzu. Sie hat zur Laufzeit keine Abhängigkeiten außer dem Netzwerkstack der Plattform.',
   'Declare the device': 'Gerät deklarieren',
-  'Give the device a name and a kind. The kind picks the default dashboard, controls and 3D model in the app: drone, rover, arm, rocket, bench or generic.': 'Gib dem Gerät einen Namen und eine Art. Die Art bestimmt das Standard-Dashboard, die Steuerung und das 3D-Modell in der App: drone, rover, arm, rocket, bench oder generic.',
+  'Give the device a name and a kind. The kind picks the default dashboard, controls and 3D model in the app: drone, plane, rover, boat, arm, rocket, bench or generic.': 'Gib dem Gerät einen Namen und eine Art. Die Art bestimmt das Standard-Dashboard, die Steuerung und das 3D-Modell in der App: drone, plane, rover, boat, arm, rocket, bench oder generic.',
   'Stream sensors': 'Sensoren streamen',
   'Publish values at the rate you read them. The library batches and down-samples to the telemetry rate set in the app, so publishing faster than the link is fine.': 'Veröffentliche Werte in dem Takt, in dem du sie liest. Die Bibliothek bündelt und reduziert auf die in der App eingestellte Telemetrierate, schneller zu veröffentlichen als der Link ist also kein Problem.',
   'Receive control input': 'Steuerbefehle empfangen',

@@ -469,7 +469,7 @@ Future<void> showLimitsDialog(BuildContext context, ScriptLimits lim, {required 
           KSwitch(checked: v, onChanged: (x) => change(() => on(x))),
         ],
       );
-      final flies = kind == null || kind == DeviceKind.drone;
+      final flies = kind == null || kind.flies;
       return KDialogPanel(
         title: t.limits,
         width: 560,

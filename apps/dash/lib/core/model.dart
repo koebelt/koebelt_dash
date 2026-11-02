@@ -4,7 +4,9 @@ import '../l10n/l10n.dart';
 
 enum DeviceKind {
   drone('Drone'),
+  plane('Plane'),
   rover('Ground robot'),
+  boat('Boat'),
   arm('Robot arm'),
   rocket('Rocket'),
   bench('Test bench'),
@@ -16,12 +18,23 @@ enum DeviceKind {
   final String labelEn;
   String get label => switch (this) {
     drone => t.kindDrone,
+    plane => t.kindPlane,
     rover => t.kindRover,
+    boat => t.kindBoat,
     arm => t.kindArm,
     rocket => t.kindRocket,
     bench => t.kindBench,
     generic => t.kindGeneric,
   };
+
+  /// Flies and is flown: takes off, holds a height, lands (drones, planes).
+  bool get flies => this == drone || this == plane;
+
+  /// Driven on a surface, steered and throttled (ground robots, boats).
+  bool get drives => this == rover || this == boat;
+
+  /// Goes places: a position, home, waypoints, a map.
+  bool get travels => flies || drives;
 
   static DeviceKind parse(String? s) => DeviceKind.values.firstWhere((k) => k.name == s, orElse: () => DeviceKind.generic);
 }

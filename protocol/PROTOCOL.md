@@ -55,12 +55,15 @@ manufacturer data (company id `0xFFFF`) holds the ASCII string `KL1`.
 
 ## Device kinds
 
-`drone`, `rover`, `arm`, `rocket`, `bench`, `generic`. The kind picks the
-app's default dashboard, the control screen and the 3D model.
+`drone`, `plane`, `rover`, `boat`, `arm`, `rocket`, `bench`, `generic`. The
+kind picks the app's default dashboard, the control screen and the 3D model.
+A plane is flown like a drone (it takes off, flies to points, lands, returns
+home) but cannot stop: it holds by circling. A boat is driven like a rover.
+Apps before 1.4 show a plane or a boat as a generic device.
 
 ## Modes
 
-`AUTO`, `MANUAL`, `HOLD`, `TAKEOFF`, `LAND`, `RTH` (drones, rovers, arms)
+`AUTO`, `MANUAL`, `HOLD`, `TAKEOFF`, `LAND`, `RTH` (drones, planes, rovers, boats, arms)
 
 - `HOLD`: hold still (position, or stopped). A device powers on disarmed in
   HOLD; the app puts a disarmed device in HOLD when it connects (an armed one
@@ -238,11 +241,11 @@ Echoes `ts` from `ping` so the app can measure round-trip latency.
 
 | Kind   | `c`         | `a`                           |
 |--------|-------------|-------------------------------|
-| drone  | `takeoff`   | `{"alt":10}` arm, climb to alt (m), then HOLD |
-| drone, rover | `goto` | `{"x":15,"y":0,"z":10}` fly/drive to a point (m, ENU from home; `z` drones only). Report `AUTO` while moving, `HOLD` on arrival |
+| drone, plane | `takeoff` | `{"alt":10}` arm, climb to alt (m), then HOLD |
+| drone, plane, rover, boat | `goto` | `{"x":15,"y":0,"z":10}` fly/drive to a point (m, ENU from home; `z` drones and planes only). Report `AUTO` while moving, `HOLD` on arrival |
 | arm    | `pose`      | `{"j":[0,-0.5,1.1,0,0.6,0]}` joint targets (rad), mode MANUAL |
 | arm    | `home`      | –  move to the home pose     |
-| drone, rover | `sethome` | – current position becomes home: `pos` restarts at (0, 0), RTH returns here |
+| drone, plane, rover, boat | `sethome` | – current position becomes home: `pos` restarts at (0, 0), RTH returns here |
 | arm    | `sethome`   | `{"j":[…]}` joint angles (rad) that `home` moves to; current joints when omitted |
 | arm    | `gripper`   | `{"v":0.9}` open fraction     |
 | rocket | `countdown` | `{"s":10}`                    |
@@ -389,7 +392,7 @@ complete:
 | Step | Args | Runs as | Complete when (times out after) |
 |------|------|---------|---------------------------------|
 | `takeoff` | `{"alt":10}` | `cmd takeoff` | 0.3 s passed, mode is not `TAKEOFF`, `z > alt − 0.6` (60 s) |
-| `goto` | `{"x":15,"y":0,"z":10}` | `cmd goto` | within 1 m (drones, 3D) or 0.6 m (rovers, 2D) (300 s) |
+| `goto` | `{"x":15,"y":0,"z":10}` | `cmd goto` | within 1 m (drones, 3D), 15 m (planes, 3D: they pass it), 1.5 m (boats, 2D) or 0.6 m (rovers, 2D) (300 s) |
 | `land` / `rth` | `{}` | `mode LAND` / `RTH` | 0.5 s passed and disarmed, or `z < 0.1` with the mode changed (300 s) |
 | `pose` | `{"j":[…6 rad]}` | `cmd pose` | every joint within 0.03 rad (60 s) |
 | `home` | `{}` | `cmd home` | 0.6 s passed and the joints still for 0.4 s (60 s) |
@@ -404,9 +407,9 @@ complete:
 
 A step that times out fails the sequence; STOP fails it too. While a stored
 sequence runs, the link-loss failsafe does not interrupt it (STOP still
-does), and `bye` does not switch a flying drone to hold. On pause the
+does), and `bye` does not switch a flying drone or plane to hold. On pause the
 device holds where it is and stops a bench motor; resume restarts the
-current step. Stopping switches a moving drone or rover to `HOLD` and a
+current step. Stopping switches a moving drone, plane, rover or boat to `HOLD` and a
 bench to throttle 0.
 
 `vectors.json` has a shared scenario under `sequence` that every library

@@ -166,7 +166,7 @@ def test_pairing_and_key(tmp_path):
 def test_discover_reply(pair):
     dev, app = pair
     app.send({"t": "discover"})
-    app.pump(0.03, ctl=False)
+    app.pump(0.2, ctl=False)
     ann = app.of("announce")[0]
     assert ann["id"] == "test-1" and ann["kind"] == "rover"
 

@@ -107,6 +107,42 @@ final Map<DeviceKind, List<PCat>> paramDefs = {
       ]),
     ]),
   ],
+  DeviceKind.plane: [
+    PCat('Attitude', [
+      PGroup('Roll', _pid('RLL', .6, .1, .02), ['gx']),
+      PGroup('Pitch', _pid('PTCH', .7, .1, .02), ['gy']),
+    ]),
+    const PCat('Navigation', [
+      PGroup('Airspeed', [
+        PDef('TRIM_ARSPD', 'Cruise', 15, 10, 25, .5, 'm/s'),
+        PDef('ARSPD_MIN', 'Minimum', 11, 8, 20, .5, 'm/s'),
+        PDef('ARSPD_MAX', 'Maximum', 22, 12, 35, .5, 'm/s'),
+      ]),
+      PGroup('Turns', [
+        PDef('ROLL_LIMIT', 'Max bank', 45, 15, 65, 1, '°'),
+        PDef('LOIT_RADIUS', 'Loiter radius', 40, 15, 200, 5, 'm'),
+        PDef('WP_RADIUS', 'Waypoint radius', 15, 5, 80, 1, 'm'),
+      ]),
+      PGroup('Height', [
+        PDef('CLMB_MAX', 'Max climb', 4, 1, 10, .1, 'm/s'),
+        PDef('SINK_MAX', 'Max sink', 3, 1, 10, .1, 'm/s'),
+        PDef('RTL_ALT', 'Return height', 40, 15, 120, 1, 'm'),
+      ]),
+    ]),
+  ],
+  DeviceKind.boat: [
+    PCat('Drive PID', [
+      PGroup('Speed', _pid('SPD', .6, .2, .05), ['spd']),
+      PGroup('Heading', _pid('HDG', .9, 0, .2), ['gz']),
+    ]),
+    const PCat('Limits', [
+      PGroup('Motion', [
+        PDef('MAX_SPD', 'Max speed', 3, .5, 8, .1, 'm/s'),
+        PDef('MAX_TURN', 'Max turn rate', 45, 10, 120, 5, '°/s'),
+        PDef('WP_RADIUS', 'Waypoint radius', 1.5, .5, 10, .1, 'm'),
+      ]),
+    ]),
+  ],
   DeviceKind.arm: [
     PCat('Joint gains', [
       for (var i = 0; i < 6; i++)

@@ -206,8 +206,8 @@ class ScriptLibrary {
 /// What a new script starts from, for the selected device's kind.
 String scriptTemplate(String template, DeviceKind kind, String title) {
   final sticks = switch (kind) {
-    DeviceKind.drone => 'dev.sticks(throttle=0, yaw=0, pitch=0, roll=0)',
-    DeviceKind.rover => 'dev.sticks(throttle=0, steer=0)',
+    DeviceKind.drone || DeviceKind.plane => 'dev.sticks(throttle=0, yaw=0, pitch=0, roll=0)',
+    DeviceKind.rover || DeviceKind.boat => 'dev.sticks(throttle=0, steer=0)',
     _ => '# dev.cmd(...)',
   };
   final head =

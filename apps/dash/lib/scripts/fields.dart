@@ -10,13 +10,13 @@ import 'conditions.dart';
 List<({String field, String label, String unit})> conditionFields(DeviceKind kind, {List<ProxSensor> prox = const []}) => [
   (field: 'battery.pct', label: t.fldBattery, unit: '%'),
   (field: 'battery.v', label: t.fldBatteryVoltage, unit: 'V'),
-  if (kind == DeviceKind.drone || kind == DeviceKind.rover || kind == DeviceKind.rocket || kind == DeviceKind.generic) ...[
+  if (kind.travels || kind == DeviceKind.rocket || kind == DeviceKind.generic) ...[
     (field: 'home.distance', label: t.fldDistanceFromHome, unit: 'm'),
     (field: 'alt', label: t.fldHeightAboveHome, unit: 'm'),
     (field: 'speed', label: t.fldSpeed, unit: 'm/s'),
     (field: 'heading', label: t.fldHeading, unit: '°'),
   ],
-  if (kind == DeviceKind.drone) ...[(field: 'roll', label: t.fldRoll, unit: '°'), (field: 'pitch', label: t.fldPitch, unit: '°')],
+  if (kind.flies) ...[(field: 'roll', label: t.fldRoll, unit: '°'), (field: 'pitch', label: t.fldPitch, unit: '°')],
   if (kind == DeviceKind.arm) (field: 'gripper', label: t.fldGripper, unit: '%'),
   if (kind == DeviceKind.bench) ...[
     (field: 'thrust', label: t.fldThrust, unit: 'N'),

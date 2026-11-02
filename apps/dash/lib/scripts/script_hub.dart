@@ -43,11 +43,14 @@ class ScriptLimits {
   Map<String, dynamic> toJson() => {'maxSpeed': maxSpeed, 'fence': fence, 'ceiling': ceiling, 'allowArm': allowArm, 'allowParams': allowParams};
 }
 
-/// Stick names per kind, as the protocol's axes (lx ly rx ry): drones fly
-/// "mode 2", ground robots steer on the left and drive on the right.
+/// Stick names per kind, as the protocol's axes (lx ly rx ry): drones and
+/// planes fly "mode 2", ground robots and boats steer on the left and drive
+/// on the right.
 const stickAxes = <DeviceKind, Map<String, int>>{
   DeviceKind.drone: {'yaw': 0, 'throttle': 1, 'roll': 2, 'pitch': 3},
+  DeviceKind.plane: {'yaw': 0, 'throttle': 1, 'roll': 2, 'pitch': 3},
   DeviceKind.rover: {'steer': 0, 'throttle': 3},
+  DeviceKind.boat: {'steer': 0, 'throttle': 3},
 };
 
 /// A request dash refuses, with its code (protocol/SCRIPTS.md, Errors).
@@ -887,7 +890,7 @@ class ScriptHub {
           data: {'distance': dist, 'fence': lim.fence},
         );
       }
-      if (lim.ceiling > 0 && l.kind == DeviceKind.drone && n('z') > lim.ceiling) {
+      if (lim.ceiling > 0 && l.kind.flies && n('z') > lim.ceiling) {
         return _res(c, id, err: '${n('z')} m is above the ${lim.ceiling.round()} m ceiling.', code: 'E0304', data: {'height': n('z'), 'ceiling': lim.ceiling});
       }
     }
@@ -1151,7 +1154,7 @@ class ScriptHub {
       final p = dr.link.tel.pos, lim = c.limits;
       if (lim.fence > 0 && math.sqrt(p[0] * p[0] + p[1] * p[1]) > lim.fence) {
         _release(c, '${dr.link.info.name} left the ${lim.fence.round()} m geofence: it holds.');
-      } else if (lim.ceiling > 0 && dr.link.kind == DeviceKind.drone && p[2] > lim.ceiling) {
+      } else if (lim.ceiling > 0 && dr.link.kind.flies && p[2] > lim.ceiling) {
         _release(c, '${dr.link.info.name} went above the ${lim.ceiling.round()} m ceiling: it holds.');
       }
     }

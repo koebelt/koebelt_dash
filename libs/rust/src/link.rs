@@ -777,7 +777,7 @@ impl<T: Transport> Link<T> {
         self.push(Event::Control(self.control));
         self.push(Event::Failsafe);
         let m = match self.kind {
-            Kind::Drone => Some(self.fs_mode),
+            Kind::Drone | Kind::Plane => Some(self.fs_mode),
             Kind::Bench => Some(Mode::Idle),
             _ if self.armed => Some(Mode::Hold),
             _ => None,
@@ -1007,7 +1007,7 @@ impl<T: Transport> Link<T> {
                 self.session = false;
                 self.control = Control::default();
                 // A stored sequence carries on; otherwise a flying drone holds.
-                if self.kind == Kind::Drone && self.armed && self.mode != Mode::Hold && !self.sequence_running() {
+                if self.kind.flies() && self.armed && self.mode != Mode::Hold && !self.sequence_running() {
                     self.mode = Mode::Hold;
                     self.push(Event::Mode(Mode::Hold));
                 }

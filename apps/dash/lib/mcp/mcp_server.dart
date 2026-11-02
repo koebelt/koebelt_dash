@@ -282,7 +282,7 @@ class McpServer {
   Future<List<Doc>> _allDocs() async => _docs ??= await loadDocs(rootBundle);
 
   static const _instructions =
-      'koebelt dash is a ground station for drones, rovers, robot arms, rockets and test benches that makers build with the koebelt/link libraries. '
+      'koebelt dash is a ground station for drones, planes, rovers, boats, robot arms, rockets and test benches that makers build with the koebelt/link libraries. '
       'Use search_docs and read_doc to learn its guides and APIs before writing code. Scripts are Python files using koebelt-dash-scripts '
       '(ref:scripts-api); write them with write_script, check them with check_script, and test them on a simulated device first '
       '(add_simulated_device). Actions on real hardware wait for the operator to approve them in dash; simulated devices never ask. '
@@ -478,11 +478,11 @@ class McpServer {
     _tool(
       'add_simulated_device',
       'Add a simulated device',
-      'Adds and connects a simulated device (no hardware): drone, rover, arm, rocket or bench.',
+      'Adds and connects a simulated device (no hardware): drone, plane, rover, boat, arm, rocket or bench.',
       {
         'kind': {
           'type': 'string',
-          'enum': ['drone', 'rover', 'arm', 'rocket', 'bench'],
+          'enum': ['drone', 'plane', 'rover', 'boat', 'arm', 'rocket', 'bench'],
         },
       },
       required: ['kind'],

@@ -13,7 +13,11 @@ BLE_SERVICE = "6e400001-b5a3-f393-e0a9-e50e24dcca9e"
 BLE_RX = "6e400002-b5a3-f393-e0a9-e50e24dcca9e"
 BLE_TX = "6e400003-b5a3-f393-e0a9-e50e24dcca9e"
 
-KINDS = ("drone", "rover", "arm", "rocket", "bench", "generic")
+KINDS = ("drone", "plane", "rover", "boat", "arm", "rocket", "bench", "generic")
+
+#: Kinds that fly (take off, hold a height, land) and kinds driven on a surface.
+FLYING = ("drone", "plane")
+DRIVEN = ("rover", "boat")
 
 #: Radio link profiles (protocol/PROTOCOL.md, "Radio links"): id -> (baud,
 #: telemetry Hz, control Hz). Control Hz 0 means telemetry only. Same table

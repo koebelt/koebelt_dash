@@ -979,6 +979,7 @@
   "flightSequence": "Flight sequence",
   "flightSequenceBody": "The flight computer runs launch, apogee and recovery on board. Set deployment on the Tune screen; use sequences here for pad checks.",
   "stepsDrone": "take off, fly to waypoints, wait, land",
+  "stepsPlane": "take off, fly a circuit through waypoints, land",
   "stepsRover": "drive to waypoints, wait, change speed",
   "stepsArm": "move to poses, open or close the gripper",
   "stepsBench": "hold a throttle, ramp between two throttles",
@@ -1036,7 +1037,9 @@
   "timeline": "Timeline",
   "setPoseAsHome": "Set current pose as home",
   "planNoteDrone": "Waypoints are metres east and north of the take-off point. The drone holds at each one before the next step. The failsafe still applies if the link drops.",
+  "planNotePlane": "Waypoints are metres east and north of the take-off point. A plane cannot stop: it flies through each one, and circles while it holds. The failsafe still applies if the link drops.",
   "planNoteRover": "Waypoints are metres east and north of the start point. The rover stops at each one before the next step.",
+  "planNoteBoat": "Waypoints are metres east and north of the start point. The boat slows at each one before the next step; wind and current can push it while it waits.",
   "planNoteArm": "Move the arm by hand or with jog controls, then use “{button}” to record it.",
   "@planNoteArm": {
     "placeholders": {
@@ -1904,7 +1907,9 @@
   "alTempDesc": "Motor, ESC or board temperature, when the device reports one.",
   "alTempAct": "Let it cool down.",
   "kindDrone": "Drone",
+  "kindPlane": "Plane",
   "kindRover": "Ground robot",
+  "kindBoat": "Boat",
   "kindArm": "Robot arm",
   "kindRocket": "Rocket",
   "kindBench": "Test bench",

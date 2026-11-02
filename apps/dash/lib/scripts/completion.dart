@@ -145,7 +145,7 @@ final deviceApi = <String, Signature?>{
   'next_tlm': _sig('next_tlm', 'timeout=1.0 — seconds to wait', 'Waits for the next telemetry and returns it.'),
   'sticks': _sig(
     'sticks',
-    '**axes — throttle, yaw, pitch, roll (drone) or throttle, steer (rover), −1…1',
+    '**axes — throttle, yaw, pitch, roll (drone, plane) or throttle, steer (rover, boat), −1…1',
     'Sets the sticks until changed; scaled to the script\'s speed limit; the operator\'s sticks win.',
   ),
   'release': _sig('release', '', 'Hands the sticks back; the device holds.'),
@@ -237,7 +237,7 @@ const _deviceDocs = {
   'on_takeover': 'decorator: the operator took the sticks (True/False)',
   'store': 'a dict kept between runs',
   'name': 'the device name',
-  'kind': 'drone, rover, arm, bench, rocket',
+  'kind': 'drone, plane, rover, boat, arm, bench, rocket',
   'simulated': 'True for a simulated device',
   'released': 'why dash took the sticks, or None',
   'taken_over': 'True while the operator holds the sticks',

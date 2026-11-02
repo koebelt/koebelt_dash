@@ -174,7 +174,8 @@ class _ProgramScreenState extends State<ProgramScreen> {
 
   String _stepExamples(DeviceKind k) => switch (k) {
     DeviceKind.drone => t.stepsDrone,
-    DeviceKind.rover => t.stepsRover,
+    DeviceKind.plane => t.stepsPlane,
+    DeviceKind.rover || DeviceKind.boat => t.stepsRover,
     DeviceKind.arm => t.stepsArm,
     DeviceKind.bench => t.stepsBench,
     _ => t.stepsGeneric,
@@ -705,7 +706,7 @@ class _Preview extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (title, Widget body) = switch (q.kind) {
-      DeviceKind.drone || DeviceKind.rover => (t.planTopView, LiveCanvas(_PlanPainter(d, q, run))),
+      _ when q.kind.travels => (t.planTopView, LiveCanvas(_PlanPainter(d, q, run))),
       DeviceKind.bench => (t.throttleProfile, LiveCanvas(_ProfilePainter(d, q, run))),
       DeviceKind.arm => (t.liveView, Scene3D(d, view: 'orbit')),
       _ => (t.timeline, _Timeline(q: q, run: run)),
@@ -727,7 +728,7 @@ class _Preview extends StatelessWidget {
         ),
         const SizedBox(height: 10),
         Text(_hint(q.kind), style: KText.bodySm.copyWith(color: K.textMuted)),
-        if (q.kind == DeviceKind.drone || q.kind == DeviceKind.rover || q.kind == DeviceKind.arm) ...[
+        if (q.kind.travels || q.kind == DeviceKind.arm) ...[
           const SizedBox(height: 10),
           Align(
             alignment: Alignment.centerLeft,
@@ -746,7 +747,9 @@ class _Preview extends StatelessWidget {
 
   String _hint(DeviceKind k) => switch (k) {
     DeviceKind.drone => t.planNoteDrone,
+    DeviceKind.plane => t.planNotePlane,
     DeviceKind.rover => t.planNoteRover,
+    DeviceKind.boat => t.planNoteBoat,
     DeviceKind.arm => t.planNoteArm(t.useCurrentPose),
     DeviceKind.bench => t.planNoteBench,
     _ => t.planNoteGeneric,
@@ -779,7 +782,7 @@ class _PlanPainter extends FramePainter {
 
   @override
   void paint(Canvas c, Size s) {
-    final drone = q.kind == DeviceKind.drone;
+    final drone = q.kind.flies;
     // Waypoints in order, with the step index they belong to.
     final pts = <(int, List<double>)>[
       (-1, [0, 0, 0]),
@@ -865,7 +868,12 @@ class _PlanPainter extends FramePainter {
               ? VC.lime.withValues(alpha: .5)
               : VC.white,
       );
-      drawText(c, '${i + 1}${drone ? ' · ${p[2].toStringAsFixed(0)}M' : ''}', o + const Offset(8, -4), active ? VC.lime : VC.ink100);
+      drawText(
+        c,
+        '${i + 1}${drone ? ' · ${u.len(p[2]).toStringAsFixed(0)}${u.lenUnit.toUpperCase()}' : ''}',
+        o + const Offset(8, -4),
+        active ? VC.lime : VC.ink100,
+      );
     }
 
     // live trail and position

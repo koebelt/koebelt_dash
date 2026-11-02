@@ -173,12 +173,13 @@ class SimDevice {
   }
 
   // ---------------------------------------------------------------- camera
-  bool get hasCamera => kind == DeviceKind.drone || kind == DeviceKind.rover || kind == DeviceKind.rocket;
+  bool get hasCamera => kind.travels || kind == DeviceKind.rocket;
 
   /// Gimbal-levelled camera on drones, body-fixed on rovers, looking down
   /// along the body on rockets.
   CamPose cameraPose() => switch (kind) {
     DeviceKind.drone => CamPose([pos[0], pos[1], pos[2] - .1], yaw, -.22, 0),
+    DeviceKind.plane => CamPose([pos[0] + math.cos(yaw) * .5, pos[1] + math.sin(yaw) * .5, math.max(pos[2], .3)], yaw, pitch - .12, roll),
     DeviceKind.rocket => CamPose([pos[0] + .15, pos[1], pos[2] + 2.4], yaw, -math.pi / 2 + .02, roll * .3), // nose cam looking aft
     _ => CamPose([pos[0] + math.cos(yaw) * .4, pos[1] + math.sin(yaw) * .4, .55], yaw, pitch - .06, roll),
   };
@@ -187,7 +188,7 @@ class SimDevice {
     final hdg = (((90 - yaw * 57.3) % 360 + 360) % 360).round().toString().padLeft(3, '0');
     final sp = hypot2(vel[0], vel[1]).toStringAsFixed(1);
     return switch (kind) {
-      DeviceKind.drone => 'SIM CAM   ALT ${pos[2].toStringAsFixed(1)} M   HDG $hdg   $sp M/S',
+      DeviceKind.drone || DeviceKind.plane => 'SIM CAM   ALT ${pos[2].toStringAsFixed(1)} M   HDG $hdg   $sp M/S',
       DeviceKind.rocket => 'SIM CAM   $mode   ALT ${pos[2].toStringAsFixed(0)} M',
       _ => 'SIM CAM   HDG $hdg   $sp M/S',
     };
@@ -256,7 +257,7 @@ class SimDevice {
       case 'bye':
         _session = false;
         // A stored sequence carries on; otherwise a flying drone holds.
-        if (kind == DeviceKind.drone && armed && pos[2] > .2 && !_seqRunning) mode = 'HOLD';
+        if (kind.flies && armed && pos[2] > .2 && !_seqRunning) mode = 'HOLD';
         input = [0, 0, 0, 0];
       case 'ctl':
         _sinceCtl = 0;
@@ -272,12 +273,13 @@ class SimDevice {
         mode = m['m'];
         _gotoActive = false;
         _homeFrom = null;
-        if (kind == DeviceKind.drone && mode == 'TAKEOFF') armed = true;
+        _holdAt = null;
+        if (kind.flies && mode == 'TAKEOFF') armed = true;
         _sendState();
       case 'arm':
         if (estop) break;
         armed = m['v'] == true;
-        if (armed && kind == DeviceKind.drone && pos[2] < .2) mode = 'HOLD';
+        if (armed && kind.flies && pos[2] < .2) mode = 'HOLD';
         _sendState();
       case 'stop':
         _stop();
@@ -342,7 +344,7 @@ class SimDevice {
   (RunState, int)? _seqLast;
 
   /// The kinds that use HOLD, MANUAL and AUTO.
-  bool get _modal => kind == DeviceKind.drone || kind == DeviceKind.rover || kind == DeviceKind.arm || kind == DeviceKind.generic;
+  bool get _modal => kind.travels || kind == DeviceKind.arm || kind == DeviceKind.generic;
 
   bool get _seqRunning => _seq?.state == RunState.running || _seq?.state == RunState.paused;
 
@@ -421,18 +423,18 @@ class SimDevice {
         if (kind == DeviceKind.arm) {
           final j = a['j'];
           homePose = j is List && j.length >= 6 ? [for (final v in j) (v as num).toDouble()] : List.of(joints);
-        } else if (kind == DeviceKind.drone || kind == DeviceKind.rover) {
+        } else if (kind.travels) {
           homeXY = [pos[0], pos[1]];
           _goto = [pos[0], pos[1], pos[2]];
         }
         _send({'t': 'log', 'lvl': 'info', 'msg': 'Home set'});
       case 'takeoff':
-        if (estop || kind != DeviceKind.drone) return;
+        if (estop || !kind.flies) return;
         armed = true;
         _takeoffAlt = numOr(a['alt'], 6).clamp(1, P('FENCE_ALT', 120));
         mode = 'TAKEOFF';
       case 'goto':
-        if (!live || (kind != DeviceKind.drone && kind != DeviceKind.rover)) return;
+        if (!live || !kind.travels) return;
         _goto = [numOr(a['x'], pos[0] - homeXY[0]) + homeXY[0], numOr(a['y'], pos[1] - homeXY[1]) + homeXY[1], numOr(a['z'], pos[2])];
         mode = 'AUTO';
         _gotoActive = true;
@@ -602,13 +604,13 @@ class SimDevice {
       'rssi': [rssi],
     };
     switch (kind) {
-      case DeviceKind.drone || DeviceKind.rover || DeviceKind.rocket:
+      case DeviceKind.drone || DeviceKind.plane || DeviceKind.rover || DeviceKind.boat || DeviceKind.rocket:
         // IMU, baro/rangefinder or wheel odometry, compass, GNSS
         d['imu'] = [...acc, ...gyro];
         d['att'] = [roll, pitch, yaw];
         d['pos'] = [pos[0] - homeXY[0], pos[1] - homeXY[1], pos[2]]; // local frame: metres from home
         d['vel'] = vel;
-        d['gps'] = [g[0], g[1], pos[2], kind == DeviceKind.rover ? 11 : 14];
+        d['gps'] = [g[0], g[1], pos[2], kind.drives ? 11 : 14];
         if (proxSensors.isNotEmpty) d['prox'] = [for (final v in proxReadings()) (v * 1000).round() / 1000];
         if (kind == DeviceKind.rocket) d['rocket'] = [maxAlt, phaseT, countdown];
       case DeviceKind.arm:
@@ -640,6 +642,8 @@ class SimDevice {
   late final List<double> _field = () {
     const byKind = {
       DeviceKind.rover: [45.0, -30.0],
+      DeviceKind.plane: [-130.0, -20.0],
+      DeviceKind.boat: [90.0, 70.0],
       DeviceKind.rocket: [-70.0, 55.0],
       DeviceKind.arm: [20.0, 60.0],
       DeviceKind.bench: [-40.0, -50.0],
@@ -668,7 +672,7 @@ class SimDevice {
       fsActive = true;
       input = [0, 0, 0, 0];
       jog = List.filled(6, 0);
-      if (kind == DeviceKind.drone) {
+      if (kind.flies) {
         mode = fsAction;
       } else if (kind == DeviceKind.bench) {
         throttle = 0;
@@ -685,8 +689,12 @@ class SimDevice {
     switch (kind) {
       case DeviceKind.drone:
         _drone(dt, live, inp);
+      case DeviceKind.plane:
+        _plane(dt, live, inp);
       case DeviceKind.rover:
         _rover(dt, live, inp);
+      case DeviceKind.boat:
+        _rover(dt, live, inp, boat: true);
       case DeviceKind.rocket:
         _rocket(dt, live);
       case DeviceKind.bench:
@@ -702,7 +710,9 @@ class SimDevice {
           DeviceKind.bench => .05 + rpm / 9000 * .9,
           DeviceKind.rocket => mode == 'BOOST' ? 1.2 : .05,
           DeviceKind.drone => pos[2] > .1 ? .08 : .03,
+          DeviceKind.plane => pos[2] > .1 ? .12 : .2 * hypot2(vel[0], vel[1]) / 10,
           DeviceKind.rover => .25 * hypot2(vel[0], vel[1]),
+          DeviceKind.boat => .05,
           _ => .03,
         };
     acc = [a[0] * .15 + _rnd(vib), a[1] * .15 + _rnd(vib), 9.81 + a[2] * .15 + _rnd(vib)];
@@ -716,6 +726,7 @@ class SimDevice {
     battery = math.max(0, battery - dt * drain);
     final (base, span) = switch (kind) {
       DeviceKind.drone => (13.2, 3.6),
+      DeviceKind.plane || DeviceKind.boat => (14.0, 2.8),
       DeviceKind.rover => (22.0, 3.2),
       DeviceKind.rocket => (7.0, 1.4),
       DeviceKind.bench => (22.2, 0.0),
@@ -796,16 +807,18 @@ class SimDevice {
     current = live && pos[2] > .1 ? 14 + vel[2].abs() * 4 + hypot2(fw, lt) * .6 + _rnd(.8) : .4;
   }
 
-  void _rover(double dt, bool live, List<double> inp) {
+  /// A ground robot, or with [boat] a boat: it keeps drifting, turns only
+  /// while it moves, and the current pushes it.
+  void _rover(double dt, bool live, List<double> inp, {bool boat = false}) {
     var sp = 0.0, tu = 0.0;
     if (live && mode == 'AUTO' && _gotoActive) {
       final dx = _goto[0] - pos[0], dy = _goto[1] - pos[1], dist = hypot2(dx, dy);
       var a = math.atan2(dy, dx) - yaw;
       a = math.atan2(math.sin(a), math.cos(a));
-      // turn on the spot when facing away, slow down on approach
-      sp = a.abs() > 1.2 ? 0 : math.min(P('MAX_SPD', 4) * speed * 2, dist * .9) * math.cos(a).clamp(0, 1);
+      // turn on the spot when facing away (a boat turns ahead slowly), slow down on approach
+      sp = a.abs() > 1.2 && !boat ? 0 : math.min(P('MAX_SPD', 4) * speed * 2, dist * .9) * (boat ? math.max(.35, math.cos(a)) : math.cos(a).clamp(0, 1));
       tu = a * 1.8;
-      if (dist < .3) {
+      if (dist < (boat ? P('WP_RADIUS', 1.5) * .6 : .3)) {
         mode = 'HOLD';
         _gotoActive = false;
         _sendState();
@@ -815,18 +828,121 @@ class SimDevice {
       sp = inp[3] * 4 * speed * 2;
       tu = -inp[0] * 1.2 - inp[2] * .6;
     }
-    final k = math.min(1.0, dt * 2.5);
+    final k = math.min(1.0, dt * (boat ? .8 : 2.5));
     final dir = math.cos(math.atan2(vel[1], vel[0]) - yaw);
     final cur = hypot2(vel[0], vel[1]) * (dir == 0 ? 1 : dir.sign);
     final ns = cur + (sp - cur) * k;
+    // A boat's rudder needs water flowing past it.
+    if (boat) tu *= (ns.abs() / 1.5).clamp(.15, 1.0);
     yawRate += (tu - yawRate) * k;
     yaw += yawRate * dt;
     vel = [math.cos(yaw) * ns, math.sin(yaw) * ns, 0];
-    pos = [pos[0] + vel[0] * dt, pos[1] + vel[1] * dt, 0];
-    pitch = _rnd(.015) + math.sin(t * 3) * .01 * ns;
-    roll = _rnd(.015) + yawRate * ns * .02;
+    // A slow current to the north-east.
+    final drift = boat ? const [.12, .06] : const [0.0, 0.0];
+    pos = [pos[0] + (vel[0] + drift[0]) * dt, pos[1] + (vel[1] + drift[1]) * dt, 0];
+    pitch = _rnd(.015) + math.sin(t * (boat ? 1.1 : 3)) * (boat ? .03 : .01 * ns);
+    roll = _rnd(.015) + yawRate * ns * .02 + (boat ? math.sin(t * .8) * .04 : 0);
     current = 2 + ns.abs() * 2.2 + _rnd(.3);
   }
+
+  /// A fixed-wing plane: it keeps flying forward above its minimum airspeed,
+  /// turns by banking, circles to hold, takes off along a run and lands in a
+  /// glide.
+  void _plane(double dt, bool live, List<double> inp) {
+    final minSp = P('ARSPD_MIN', 11), cruise = P('TRIM_ARSPD', 15), maxSp = P('ARSPD_MAX', 22);
+    final bankMax = P('ROLL_LIMIT', 45) / 57.3;
+    final air = pos[2] > .3;
+    var gs = hypot2(vel[0], vel[1]); // speed along the heading
+    var tSp = cruise, bank = 0.0, climb = 0.0;
+    // Bank towards [heading], within the limit.
+    double steer(double heading) {
+      var a = heading - yaw;
+      a = math.atan2(math.sin(a), math.cos(a));
+      return (a * 1.4).clamp(-bankMax, bankMax);
+    }
+
+    // Circle around the current point (or home) at the loiter radius.
+    double loiter(List<double> c) {
+      final r = P('LOIT_RADIUS', 40), dx = pos[0] - c[0], dy = pos[1] - c[1], d = hypot2(dx, dy);
+      final out = math.atan2(dy, dx), tangent = out + math.pi / 2;
+      // Turning left round the centre, pulled in or out to the radius.
+      return steer(tangent + ((d - r) / r).clamp(-1.0, 1.0) * .9);
+    }
+
+    if (!live) {
+      // Disarmed or stopped: no thrust; it glides down, slowing.
+      tSp = air ? minSp : 0;
+      climb = air ? -5 : 0;
+    } else if (!air && mode != 'TAKEOFF' && mode != 'LAND' && !(mode == 'MANUAL' && inp[1] > .2)) {
+      tSp = 0; // on the ground, waiting
+    } else if (mode == 'MANUAL' || (mode == 'AUTO' && !_gotoActive)) {
+      tSp = minSp + (inp[1] + 1) / 2 * (maxSp - minSp);
+      bank = inp[2] * bankMax;
+      climb = air || gs > minSp ? inp[3] * P('CLMB_MAX', 4) : 0;
+      _holdAt = null;
+    } else if (mode == 'TAKEOFF') {
+      // A run along the heading, then a climb to the take-off height.
+      tSp = cruise;
+      climb = gs > minSp ? P('CLMB_MAX', 4) : 0;
+      if (pos[2] > _takeoffAlt - .5) {
+        mode = 'HOLD';
+        _sendState();
+      }
+    } else if (mode == 'HOLD') {
+      _holdAt ??= [pos[0], pos[1], math.max(pos[2], 20)];
+      bank = loiter(_holdAt!);
+      climb = (_holdAt![2] - pos[2]) * .5;
+    } else if (mode == 'AUTO' && _gotoActive) {
+      final dx = _goto[0] - pos[0], dy = _goto[1] - pos[1];
+      bank = steer(math.atan2(dy, dx));
+      climb = (_goto[2] - pos[2]) * .5;
+      tSp = cruise * (.7 + speed * .6);
+      if (hypot2(dx, dy) < P('WP_RADIUS', 15)) {
+        mode = 'HOLD';
+        _gotoActive = false;
+        _holdAt = [pos[0], pos[1], _goto[2]];
+        _sendState();
+      }
+    } else if (mode == 'RTH') {
+      final dx = homeXY[0] - pos[0], dy = homeXY[1] - pos[1];
+      bank = hypot2(dx, dy) > P('LOIT_RADIUS', 40) * 1.5 ? steer(math.atan2(dy, dx)) : loiter(homeXY);
+      climb = (P('RTL_ALT', 40) - pos[2]) * .5;
+      if (hypot2(dx, dy) < P('LOIT_RADIUS', 40) * 1.5 && (pos[2] - P('RTL_ALT', 40)).abs() < 3) {
+        mode = 'LAND';
+        _sendState();
+      }
+    } else if (mode == 'LAND') {
+      // A glide down that keeps turning back towards home; it rolls to a
+      // stop once on the ground.
+      tSp = air ? minSp : 0;
+      climb = air ? -2 : 0;
+      if (air && hypot2(homeXY[0] - pos[0], homeXY[1] - pos[1]) > 25) bank = steer(math.atan2(homeXY[1] - pos[1], homeXY[0] - pos[0])) * .6;
+      if (!air && gs < .5) {
+        armed = false;
+        mode = 'HOLD';
+        _holdAt = null;
+        _sendState();
+      }
+    }
+    climb = climb.clamp(-P('SINK_MAX', 3) * (live ? 1 : 2), P('CLMB_MAX', 4));
+    gs += (tSp - gs) * math.min(1.0, dt * (air ? .6 : 1.2));
+    if (gs < 0) gs = 0;
+    roll += (bank - roll) * math.min(1.0, dt * 2);
+    // Coordinated turn: rate = g · tan(bank) / speed.
+    yawRate = air && gs > 1 ? 9.81 * math.tan(roll) / gs : 0;
+    yaw += yawRate * dt;
+    vel = [math.cos(yaw) * gs, math.sin(yaw) * gs, climb];
+    pos = [pos[0] + vel[0] * dt, pos[1] + vel[1] * dt, math.max(0.0, pos[2] + climb * dt)];
+    if (pos[2] <= 0) {
+      vel[2] = 0;
+      if (roll.abs() > .05) roll *= .9;
+    }
+    pitch = gs > 1 ? math.atan2(vel[2], gs) + _rnd(.01) : 0;
+    current = live && tSp > 0 ? 4 + (tSp - minSp).abs() * 1.2 + math.max(0.0, climb) * 2 + _rnd(.5) : .3;
+  }
+
+  /// Where a plane circles while it holds.
+  List<double>? _holdAt;
 
   void _rocket(double dt, bool live) {
     const g = 9.81;

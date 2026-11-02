@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 
 import '../core/dash.dart';
 import '../core/model.dart';
+import '../core/units.dart' as u;
 import '../ui/components.dart' show f1;
 import '../ui/mark.dart' show paintOrientationGizmo;
 import 'viz.dart';
@@ -235,7 +236,7 @@ class _ScenePainter extends FramePainter {
         if (p == null) continue;
         final sz = math.max(3.0, 120 / p[2]);
         c.drawRect(Rect.fromLTWH(p[0] - sz, p[1] - sz, sz * 2, sz * 2), st(VC.warn, 1.25));
-        drawText(c, '${g.id} ${g.r.toStringAsFixed(0)}M', Offset(p[0] + sz + 4, p[1]), VC.warn);
+        drawText(c, '${g.id} ${u.lenText(g.r).toUpperCase()}', Offset(p[0] + sz + 4, p[1]), VC.warn);
       }
     }
 
@@ -267,6 +268,47 @@ class _ScenePainter extends FramePainter {
         c.drawPath(_dash(drop), st(const Color(0x40FFFFFF)));
         final hd = Path();
         line(hd, p, [p[0] + cyw * 2, p[1] + syw * 2, p[2]]);
+        c.drawPath(hd, st(VC.white));
+      case DeviceKind.plane:
+        // Body axes: forward, left, up; rolled, pitched, then yawed.
+        final p = S.rPos, cy = math.cos(S.rYaw), sy = math.sin(S.rYaw), cp = math.cos(S.rPitch), sp = math.sin(S.rPitch);
+        final cr = math.cos(S.rRoll), sr = math.sin(S.rRoll);
+        List<double> b(double fu, double lv, double up) {
+          final l1 = lv * cr - up * sr, u1 = lv * sr + up * cr; // roll about forward
+          final f2 = fu * cp - u1 * sp, u2 = fu * sp + u1 * cp; // pitch about left
+          return [p[0] + cy * f2 - sy * l1, p[1] + sy * f2 + cy * l1, p[2] + u2];
+        }
+        line(model, b(1.1, 0, 0), b(-1.3, 0, 0)); // fuselage
+        for (final sd in const [1.0, -1.0]) {
+          line(model, b(.3, 0, 0), b(.15, 1.7 * sd, .08)); // wing leading edge
+          line(model, b(.15, 1.7 * sd, .08), b(-.2, 1.7 * sd, .08));
+          line(model, b(-.2, 1.7 * sd, .08), b(-.25, 0, 0)); // trailing edge
+          line(model, b(-1.05, 0, 0), b(-1.2, .55 * sd, 0)); // tailplane
+          line(model, b(-1.2, .55 * sd, 0), b(-1.3, .55 * sd, 0));
+        }
+        line(model, b(-1.0, 0, 0), b(-1.3, 0, .5)); // fin
+        line(model, b(-1.3, 0, .5), b(-1.3, 0, 0));
+        c.drawPath(model, lime2);
+        final drop = Path();
+        line(drop, p, [p[0], p[1], 0]);
+        c.drawPath(_dash(drop), st(const Color(0x40FFFFFF)));
+        final hd = Path();
+        line(hd, b(1.1, 0, 0), b(3.1, 0, 0));
+        c.drawPath(hd, st(VC.white));
+      case DeviceKind.boat:
+        final p = S.rPos, cyw = math.cos(S.rYaw), syw = math.sin(S.rYaw);
+        List<double> b(double u, double v, double z) => [p[0] + cyw * u - syw * v, p[1] + syw * u + cyw * v, z + math.sin(S.rRoll) * v * .5];
+        // A pointed hull: the deck, the waterline under it, and the stems.
+        final deck = [b(1.5, 0, .45), b(.6, .65, .45), b(-1.2, .65, .45), b(-1.2, -.65, .45), b(.6, -.65, .45)];
+        final water = [b(1.2, 0, 0), b(.5, .5, 0), b(-1.1, .5, 0), b(-1.1, -.5, 0), b(.5, -.5, 0)];
+        for (var i = 0; i < 5; i++) {
+          line(model, deck[i], deck[(i + 1) % 5]);
+          line(model, water[i], water[(i + 1) % 5]);
+          line(model, deck[i], water[i]);
+        }
+        c.drawPath(model, lime2);
+        final hd = Path();
+        line(hd, b(1.5, 0, .45), b(3.5, 0, .45));
         c.drawPath(hd, st(VC.white));
       case DeviceKind.rover:
         final p = S.rPos, cyw = math.cos(S.rYaw), syw = math.sin(S.rYaw);
@@ -442,12 +484,12 @@ class _ScenePainter extends FramePainter {
       if (p != null) {
         drawText(c, dash.deviceName.toUpperCase(), Offset(p[0] + 14, p[1] - 12), VC.white);
         final sub = isArm
-            ? 'Z ${S.armPts[5][2].toStringAsFixed(2)}M'
+            ? 'Z ${u.len(S.armPts[5][2]).toStringAsFixed(2)}${u.lenUnit.toUpperCase()}'
             : kind == DeviceKind.bench
             ? 'THRUST ${S.thrust.toStringAsFixed(1)}N · ${S.rpm.round()} RPM'
             : kind == DeviceKind.rocket
-            ? '${S.mode} · ALT ${S.pos[2].toStringAsFixed(0)}M · ${f1(S.vel[2], 0)}M/S'
-            : 'ALT ${S.pos[2].toStringAsFixed(1)}M · ${S.speed.toStringAsFixed(1)}M/S';
+            ? '${S.mode} · ALT ${u.lenText(S.pos[2]).toUpperCase()} · ${f1(u.speed(S.vel[2]), 0)} ${u.speedUnit.toUpperCase()}'
+            : 'ALT ${u.lenText(S.pos[2], 1).toUpperCase()} · ${u.speedText(S.speed).toUpperCase()}';
         drawText(c, sub, Offset(p[0] + 14, p[1] + 2), VC.ink200);
       }
     }

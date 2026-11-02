@@ -253,4 +253,4 @@ TriggerSource sourceForKind(String kind) => kind == 'switch'
     : TriggerSource.button;
 
 /// For tests and lists: whether a device kind has sticks a script can drive.
-bool drivable(DeviceKind k) => k == DeviceKind.drone || k == DeviceKind.rover;
+bool drivable(DeviceKind k) => k.travels;

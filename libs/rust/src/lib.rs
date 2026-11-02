@@ -101,7 +101,9 @@ pub const UDP_ANNOUNCE_PORT: u16 = 47801;
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Kind {
     Drone,
+    Plane,
     Rover,
+    Boat,
     Arm,
     Rocket,
     Bench,
@@ -112,11 +114,34 @@ impl Kind {
     pub fn as_str(self) -> &'static str {
         match self {
             Kind::Drone => "drone",
+            Kind::Plane => "plane",
             Kind::Rover => "rover",
+            Kind::Boat => "boat",
             Kind::Arm => "arm",
             Kind::Rocket => "rocket",
             Kind::Bench => "bench",
             Kind::Generic => "generic",
+        }
+    }
+
+    /// Flies: takes off, holds a height, lands (drones, planes).
+    pub fn flies(self) -> bool {
+        matches!(self, Kind::Drone | Kind::Plane)
+    }
+
+    /// Driven on a surface (ground robots, boats).
+    pub fn drives(self) -> bool {
+        matches!(self, Kind::Rover | Kind::Boat)
+    }
+
+    /// How close a waypoint counts as reached, in metres: a plane cannot
+    /// stop on a point, it passes it; a boat drifts.
+    pub fn arrival(self) -> f32 {
+        match self {
+            Kind::Drone => 1.0,
+            Kind::Plane => 15.0,
+            Kind::Boat => 1.5,
+            _ => 0.6,
         }
     }
 }

@@ -10,7 +10,7 @@
 
 static const char* const MODE_NAMES[] = {"AUTO", "MANUAL", "HOLD", "TAKEOFF", "LAND", "RTH", "PAD", "COUNT", "BOOST",
                                          "COAST", "DROGUE", "MAIN", "LANDED", "IDLE", "RAMP", "STEPS", "CUTOFF", "UNKNOWN"};
-static const char* const KIND_NAMES[] = {"drone", "rover", "arm", "rocket", "bench", "generic"};
+static const char* const KIND_NAMES[] = {"drone", "rover", "arm", "rocket", "bench", "generic", "plane", "boat"};
 
 const char* kModeName(KMode m) { return MODE_NAMES[static_cast<uint8_t>(m)]; }
 
@@ -348,7 +348,7 @@ void KLink::checkFailsafe(uint32_t now) {
   _ctl = KControl();
   _stateDirty = true;
   if (_cbControl) _cbControl(_ctl);
-  if (_kind == DRONE) {
+  if (flies()) {
     changeMode(_fsMode, true);
   } else if (_kind == BENCH) {
     changeMode(KMode::IDLE, true);
@@ -542,7 +542,7 @@ void KLink::handle(KTransport* t, const char* json, size_t len) {
     _session = false;
     _ctl = KControl();
     // A stored sequence carries on; otherwise a flying drone holds.
-    if (_kind == DRONE && _armed && !sequenceRunning()) changeMode(KMode::HOLD, true);
+    if (flies() && _armed && !sequenceRunning()) changeMode(KMode::HOLD, true);
     t->dropPeer();
   }
 }
@@ -679,7 +679,7 @@ void KLink::seqStore(KTransport* t, JsonDocument& m) {
   const char* err = nullptr;
   char why[64];
   uint8_t n = 0;
-  bool drone = _kind == DRONE, rover = _kind == ROVER, arm = _kind == ARM, bench = _kind == BENCH;
+  bool drone = flies(), rover = drives(), arm = _kind == ARM, bench = _kind == BENCH;
   bool moving = !bench && _kind != ROCKET;
   if (sequenceRunning()) {
     err = "A sequence is running";
@@ -790,7 +790,7 @@ void KLink::seqPause() {
     JsonDocument a;
     a["v"] = 0;
     seqCmd("throttle", a);
-  } else if ((_kind == DRONE || _kind == ROVER) && _armed) {
+  } else if ((flies() || drives()) && _armed) {
     seqMode(KMode::HOLD);
   }
 }
@@ -805,7 +805,7 @@ void KLink::seqStop(const char* why) {
     a["v"] = 0;
     seqCmd("throttle", a);
   }
-  if ((_kind == DRONE || _kind == ROVER) && _armed && !_estop) seqMode(KMode::HOLD);
+  if ((flies() || drives()) && _armed && !_estop) seqMode(KMode::HOLD);
 }
 
 // The same callbacks the app's messages reach.
@@ -858,7 +858,7 @@ void KLink::seqEnter(const Step& s) {
     case S_GOTO:
       a["x"] = s.v[0];
       a["y"] = s.v[1];
-      if (_kind == DRONE) a["z"] = s.v[2];
+      if (flies()) a["z"] = s.v[2];
       seqCmd("goto", a);
       break;
     case S_LAND:
@@ -930,11 +930,12 @@ void KLink::seqStep(float dt) {
       r = within(60, t > 0.3f && _mode != KMode::TAKEOFF && p[2] > s.v[0] - 0.6f);
       break;
     case S_GOTO: {
-      bool drone = _kind == DRONE;
-      float dx = p[0] - s.v[0], dy = p[1] - s.v[1], dz = drone ? p[2] - s.v[2] : 0;
+      float dx = p[0] - s.v[0], dy = p[1] - s.v[1], dz = flies() ? p[2] - s.v[2] : 0;
       float d = sqrtf(dx * dx + dy * dy + dz * dz);
       snprintf(_runMsg, sizeof(_runMsg), "%.1f m to go", d);
-      r = within(300, d < (drone ? 1.0f : 0.6f));
+      // A plane cannot stop on a point, it passes it; a boat drifts.
+      float arrive = _kind == PLANE ? 15.0f : _kind == BOAT ? 1.5f : _kind == DRONE ? 1.0f : 0.6f;
+      r = within(300, d < arrive);
       break;
     }
     case S_LAND:
@@ -988,7 +989,7 @@ void KLink::seqStep(float dt) {
   } else if (r == -1) {
     _run = R_FAIL;
     snprintf(_runMsg, sizeof(_runMsg), "Step %d timed out", _runI + 1);
-    if ((_kind == DRONE || _kind == ROVER) && _armed) seqMode(KMode::HOLD);
+    if ((flies() || drives()) && _armed) seqMode(KMode::HOLD);
   }
 }
 

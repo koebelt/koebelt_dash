@@ -553,7 +553,7 @@ class ScriptRunPanel extends StatelessWidget {
       children: [
         row(t.maxSpeed, '${(l.maxSpeed * 100).round()} %'),
         row(t.geofence, l.fence == 0 ? t.off : t.metresFromHome(u.lenText(l.fence)), muted: l.fence == 0),
-        if (kind == null || kind == DeviceKind.drone) row(t.ceiling, l.ceiling == 0 ? t.off : u.lenText(l.ceiling), muted: l.ceiling == 0),
+        if (kind == null || kind.flies) row(t.ceiling, l.ceiling == 0 ? t.off : u.lenText(l.ceiling), muted: l.ceiling == 0),
         row(t.armingTakeoff, l.allowArm ? t.allowed : t.notAllowed, muted: !l.allowArm),
         row(t.paramWrites, l.allowParams ? t.allowed : t.notAllowed, muted: !l.allowParams),
       ],

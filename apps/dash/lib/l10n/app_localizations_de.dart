@@ -1588,6 +1588,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get stepsDrone => 'starten, Wegpunkte anfliegen, warten, landen';
 
   @override
+  String get stepsPlane => 'starten, eine Runde über Wegpunkte fliegen, landen';
+
+  @override
   String get stepsRover => 'Wegpunkte anfahren, warten, Tempo ändern';
 
   @override
@@ -1695,7 +1698,15 @@ class AppLocalizationsDe extends AppLocalizations {
       'Wegpunkte sind Meter östlich und nördlich vom Startpunkt. Die Drohne hält an jedem, bevor der nächste Schritt kommt. Das Failsafe gilt weiter, wenn der Link abbricht.';
 
   @override
+  String get planNotePlane =>
+      'Wegpunkte sind Meter östlich und nördlich vom Startpunkt. Ein Flugzeug kann nicht anhalten: Es fliegt durch jeden Punkt und kreist, während es wartet. Der Failsafe greift weiterhin, wenn der Link abbricht.';
+
+  @override
   String get planNoteRover => 'Wegpunkte sind Meter östlich und nördlich vom Startpunkt. Der Rover hält an jedem, bevor der nächste Schritt kommt.';
+
+  @override
+  String get planNoteBoat =>
+      'Wegpunkte sind Meter östlich und nördlich vom Startpunkt. Das Boot wird an jedem Punkt langsamer, bevor der nächste Schritt beginnt; Wind und Strömung können es beim Warten versetzen.';
 
   @override
   String planNoteArm(String button) {
@@ -3015,7 +3026,13 @@ class AppLocalizationsDe extends AppLocalizations {
   String get kindDrone => 'Drohne';
 
   @override
+  String get kindPlane => 'Flugzeug';
+
+  @override
   String get kindRover => 'Bodenroboter';
+
+  @override
+  String get kindBoat => 'Boot';
 
   @override
   String get kindArm => 'Roboterarm';

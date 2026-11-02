@@ -86,7 +86,7 @@ class Guide {
   /// 'connections', 'devices' or 'more'.
   final String section;
 
-  /// Device kind for device examples (drone, rover, arm, rocket, bench, generic).
+  /// Device kind for device examples (drone, plane, rover, boat, arm, rocket, bench, generic).
   final String? kind;
 }
 
@@ -105,7 +105,7 @@ Guide quickstart(String pair) => Guide('quickstart', 'Quickstart', "Install the 
   }),
   const Step(
     'Declare the device',
-    'Give the device a name and a kind. The kind picks the default dashboard, controls and 3D model in the app: drone, rover, arm, rocket, bench or generic.',
+    'Give the device a name and a kind. The kind picks the default dashboard, controls and 3D model in the app: drone, plane, rover, boat, arm, rocket, bench or generic.',
     {
       'arduino': [
         'cpp',

@@ -69,38 +69,42 @@ class StepDef {
   final String? capture;
 }
 
-const _all = {DeviceKind.drone, DeviceKind.rover, DeviceKind.arm, DeviceKind.rocket, DeviceKind.bench, DeviceKind.generic};
+const _all = {...DeviceKind.values};
 
 List<String> modesFor(DeviceKind k) => switch (k) {
-  DeviceKind.drone => const ['AUTO', 'MANUAL', 'HOLD'],
-  DeviceKind.rover || DeviceKind.arm || DeviceKind.generic => const ['AUTO', 'MANUAL', 'HOLD'],
+  DeviceKind.drone || DeviceKind.plane || DeviceKind.rover || DeviceKind.boat || DeviceKind.arm || DeviceKind.generic => const ['AUTO', 'MANUAL', 'HOLD'],
   DeviceKind.rocket => const ['PAD'],
   DeviceKind.bench => const ['IDLE'],
 };
 
+/// Take off, fly to, land and return home, for what flies.
+List<StepDef> _flying(DeviceKind k, {required double alt, required double z, required double range}) => [
+  StepDef('takeoff', 'Take off', {k}, [StepField('alt', 'Altitude', alt, min: 1, max: 120, step: .5, unit: 'm')]),
+  StepDef(
+    'goto',
+    'Fly to',
+    {k},
+    [
+      StepField('x', 'East', 0, min: -range, max: range, step: .5, unit: 'm'),
+      StepField('y', 'North', 0, min: -range, max: range, step: .5, unit: 'm'),
+      StepField('z', 'Altitude', z, min: 1, max: 120, step: .5, unit: 'm'),
+    ],
+    capture: 'pos',
+  ),
+  StepDef('land', 'Land', {k}, const []),
+  StepDef('rth', 'Return home', {k}, const []),
+];
+
 List<StepDef> stepDefs(DeviceKind kind) => [
-  if (kind == DeviceKind.drone) ...[
-    const StepDef('takeoff', 'Take off', {DeviceKind.drone}, [StepField('alt', 'Altitude', 6, min: 1, max: 120, step: .5, unit: 'm')]),
-    const StepDef(
-      'goto',
-      'Fly to',
-      {DeviceKind.drone},
-      [
-        StepField('x', 'East', 0, min: -500, max: 500, step: .5, unit: 'm'),
-        StepField('y', 'North', 0, min: -500, max: 500, step: .5, unit: 'm'),
-        StepField('z', 'Altitude', 8, min: 1, max: 120, step: .5, unit: 'm'),
-      ],
-      capture: 'pos',
-    ),
-    const StepDef('land', 'Land', {DeviceKind.drone}, []),
-    const StepDef('rth', 'Return home', {DeviceKind.drone}, []),
-  ],
-  if (kind == DeviceKind.rover)
-    const StepDef(
+  // A plane climbs higher and flies wider than a drone.
+  if (kind == DeviceKind.drone) ..._flying(DeviceKind.drone, alt: 6, z: 8, range: 500),
+  if (kind == DeviceKind.plane) ..._flying(DeviceKind.plane, alt: 30, z: 40, range: 2000),
+  if (kind.drives)
+    StepDef(
       'goto',
       'Drive to',
-      {DeviceKind.rover},
-      [StepField('x', 'East', 0, min: -500, max: 500, step: .5, unit: 'm'), StepField('y', 'North', 0, min: -500, max: 500, step: .5, unit: 'm')],
+      {kind},
+      const [StepField('x', 'East', 0, min: -500, max: 500, step: .5, unit: 'm'), StepField('y', 'North', 0, min: -500, max: 500, step: .5, unit: 'm')],
       capture: 'pos',
     ),
   if (kind == DeviceKind.arm) ...[
@@ -166,7 +170,7 @@ class SeqStep {
     String l(double m) => '${f(u.len(m))} ${u.lenUnit}';
     return switch (type) {
       'takeoff' => t.sumTakeoff(l(n('alt'))),
-      'goto' => kind == DeviceKind.drone ? t.sumFlyTo(f(u.len(n('x'))), l(n('y')), l(n('z'))) : t.sumDriveTo(f(u.len(n('x'))), l(n('y'))),
+      'goto' => kind.flies ? t.sumFlyTo(f(u.len(n('x'))), l(n('y')), l(n('z'))) : t.sumDriveTo(f(u.len(n('x'))), l(n('y'))),
       'land' => t.stLand,
       'rth' => t.sumRth,
       'pose' => t.sumPose([for (var i = 1; i <= 6; i++) f(n('j$i'))].join(' / ')),
@@ -188,7 +192,7 @@ class SeqStep {
     String f(double v) => v == v.roundToDouble() ? v.toStringAsFixed(0) : v.toStringAsFixed(1);
     return switch (type) {
       'takeoff' => 'Take off to ${f(n('alt'))} m',
-      'goto' => kind == DeviceKind.drone ? 'Fly to ${f(n('x'))}, ${f(n('y'))} m at ${f(n('z'))} m' : 'Drive to ${f(n('x'))}, ${f(n('y'))} m',
+      'goto' => kind.flies ? 'Fly to ${f(n('x'))}, ${f(n('y'))} m at ${f(n('z'))} m' : 'Drive to ${f(n('x'))}, ${f(n('y'))} m',
       'land' => 'Land',
       'rth' => 'Return home and land',
       'pose' => 'Move to pose ${[for (var i = 1; i <= 6; i++) f(n('j$i'))].join(' / ')}°',
@@ -212,7 +216,7 @@ class SeqStep {
     type,
     switch (type) {
       'takeoff' => {'alt': n('alt', 6)},
-      'goto' => {'x': n('x'), 'y': n('y'), if (kind == DeviceKind.drone) 'z': n('z', 8)},
+      'goto' => {'x': n('x'), 'y': n('y'), if (kind.flies) 'z': n('z', 8)},
       'pose' => {
         'j': [for (var i = 1; i <= 6; i++) n('j$i') / 57.2958],
       },
@@ -282,6 +286,14 @@ class Sequence {
   Sequence copyAs(String id, String name) => Sequence(id: id, name: name, kind: kind, steps: [for (final s in steps) s.copy()]);
 }
 
+/// How close a step's waypoint counts as reached, in metres.
+double _arrival(DeviceKind k) => switch (k) {
+  DeviceKind.drone => 1.0,
+  DeviceKind.plane => 15.0,
+  DeviceKind.boat => 1.5,
+  _ => .6,
+};
+
 /// Example sequences for the simulated devices.
 List<Sequence> exampleSequences(String deviceId, DeviceKind kind) {
   Sequence q(String name, List<SeqStep> steps) => Sequence(id: 'ex-$deviceId-${name.hashCode.abs()}', name: name, kind: kind, steps: steps);
@@ -304,6 +316,26 @@ List<Sequence> exampleSequences(String deviceId, DeviceKind kind) {
         SeqStep('goto', {'x': 10.0, 'y': 8.0}),
         SeqStep('wait', {'s': 3.0}),
         SeqStep('goto', {'x': 0.0, 'y': 8.0}),
+        SeqStep('goto', {'x': 0.0, 'y': 0.0}),
+      ]),
+    ],
+    DeviceKind.plane => [
+      q('Circuit', [
+        SeqStep('takeoff', {'alt': 30.0}),
+        SeqStep('goto', {'x': 150.0, 'y': 0.0, 'z': 40.0}),
+        SeqStep('goto', {'x': 150.0, 'y': 120.0, 'z': 40.0}),
+        SeqStep('goto', {'x': -50.0, 'y': 120.0, 'z': 40.0}),
+        SeqStep('goto', {'x': -50.0, 'y': 0.0, 'z': 30.0}),
+        SeqStep('land', {}),
+      ]),
+    ],
+    DeviceKind.boat => [
+      q('Harbour loop', [
+        SeqStep('speed', {'pct': 70.0}),
+        SeqStep('goto', {'x': 30.0, 'y': 0.0}),
+        SeqStep('goto', {'x': 30.0, 'y': 25.0}),
+        SeqStep('wait', {'s': 3.0}),
+        SeqStep('goto', {'x': 0.0, 'y': 25.0}),
         SeqStep('goto', {'x': 0.0, 'y': 0.0}),
       ]),
     ],
@@ -398,7 +430,7 @@ class SequenceRunner {
     state = RunState.failed;
     message = why;
     if (seq.kind == DeviceKind.bench) host.seqCmd('throttle', {'v': 0});
-    if (seq.kind == DeviceKind.drone || seq.kind == DeviceKind.rover) {
+    if (seq.kind.travels) {
       if (host.seqArmed && !host.seqStopped) host.seqSetMode('HOLD');
     }
   }
@@ -435,7 +467,7 @@ class SequenceRunner {
       case 'takeoff':
         host.seqCmd('takeoff', {'alt': s.n('alt', 6)});
       case 'goto':
-        host.seqCmd('goto', {'x': s.n('x'), 'y': s.n('y'), if (seq.kind == DeviceKind.drone) 'z': s.n('z', 8)});
+        host.seqCmd('goto', {'x': s.n('x'), 'y': s.n('y'), if (seq.kind.flies) 'z': s.n('z', 8)});
       case 'land':
         host.seqSetMode('LAND');
       case 'rth':
@@ -472,9 +504,10 @@ class SequenceRunner {
         return within(60, stepT > .3 && host.seqMode != 'TAKEOFF' && p[2] > s.n('alt', 6) - .6);
       case 'goto':
         final dx = p[0] - s.n('x'), dy = p[1] - s.n('y');
-        final dist = seq.kind == DeviceKind.drone ? math.sqrt(dx * dx + dy * dy + math.pow(p[2] - s.n('z', 8), 2)) : math.sqrt(dx * dx + dy * dy);
+        final dist = seq.kind.flies ? math.sqrt(dx * dx + dy * dy + math.pow(p[2] - s.n('z', 8), 2)) : math.sqrt(dx * dx + dy * dy);
         message = t.metresToGo(u.lenText(dist, 1));
-        return within(300, dist < (seq.kind == DeviceKind.drone ? 1.0 : .6));
+        // A plane cannot stop on a point: it passes it.
+        return within(300, dist < _arrival(seq.kind));
       case 'land' || 'rth':
         return within(300, stepT > .5 && (!host.seqArmed || (p[2] < .1 && host.seqMode != 'LAND' && host.seqMode != 'RTH')));
       case 'pose':

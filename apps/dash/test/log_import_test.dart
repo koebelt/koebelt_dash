@@ -74,7 +74,7 @@ void main() {
     if (b == null) return markTestSkipped('offline');
     final l = parseLog('test.BIN', b);
     expect(l.deviceName, 'ArduPlane');
-    expect(l.kind, DeviceKind.drone);
+    expect(l.kind, DeviceKind.plane);
     expect(l.startedAt!.year, 2017);
     final f = _firstWith(l.frames, 'att')!;
     // pymavlink: first ATT Roll −7.18°, Pitch 2.58°, Yaw 337.1°.

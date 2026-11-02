@@ -53,7 +53,8 @@ class TileDef {
   String titleFor(DeviceKind k) => tt[k] ?? title;
 }
 
-const _D = DeviceKind.drone, _R = DeviceKind.rover, _A = DeviceKind.arm, _K = DeviceKind.rocket, _B = DeviceKind.bench, _G = DeviceKind.generic;
+const _D = DeviceKind.drone, _P = DeviceKind.plane, _A = DeviceKind.arm, _K = DeviceKind.rocket, _B = DeviceKind.bench, _G = DeviceKind.generic;
+const _all = {...DeviceKind.values};
 const j6 = [VC.white, VC.info, VC.warn, VC.pos, VC.neg, VC.ink100];
 
 /// The built-in tiles, in the language and units shown (built once for each).
@@ -64,7 +65,7 @@ List<TileDef> _builtIn() => [
   TileDef(
     id: 'readout',
     title: t.tileReadouts,
-    types: {_D, _R, _A, _K, _B, _G},
+    types: _all,
     hudOnly: true,
     val: (_) => '',
     body: (d) => ReadoutBody(d),
@@ -77,7 +78,7 @@ List<TileDef> _builtIn() => [
     id: 'attitude',
     needs: ['att'],
     title: t.tileAttitude,
-    types: {_D, _R, _A, _K, _B, _G},
+    types: _all,
     val: (d) => 'R ${deg(d.tel.roll)}  P ${deg(d.tel.pitch)}',
     body: (d) => LiveCanvas(AttitudePainter(d)),
     keys: ['gx', 'gy', 'gz'],
@@ -90,7 +91,7 @@ List<TileDef> _builtIn() => [
     id: 'accel',
     needs: ['imu'],
     title: t.tileAccelerometer,
-    types: {_D, _R, _A, _K, _B, _G},
+    types: _all,
     tt: {_B: t.tileVibration, _K: t.tileAcc200},
     val: (d) => '${f1(hypot3(d.tel.acc[0], d.tel.acc[1], d.tel.acc[2]) / 9.81, 2)} g',
     body: (d) => LineChart(d, keys: const ['ax', 'ay', 'az'], sym: true),
@@ -104,7 +105,7 @@ List<TileDef> _builtIn() => [
     id: 'gyro',
     needs: ['imu'],
     title: t.tileGyroscope,
-    types: {_D, _R, _A, _K, _B, _G},
+    types: _all,
     val: (d) => '${f1(d.tel.gyro[2], 2)} rad/s',
     body: (d) => LineChart(d, keys: const ['gx', 'gy', 'gz'], sym: true),
     keys: ['gx', 'gy', 'gz'],
@@ -117,7 +118,7 @@ List<TileDef> _builtIn() => [
     id: 'gps',
     needs: ['gps'],
     title: 'GPS',
-    types: {_D, _R, _A, _K, _B, _G},
+    types: _all,
     val: (d) => '${d.tel.lat.toStringAsFixed(5)} ${d.tel.lon.toStringAsFixed(5)}',
     body: (d) => MapView(d, interactive: false, controls: false),
     keys: ['spd'],
@@ -129,7 +130,7 @@ List<TileDef> _builtIn() => [
     id: 'alt',
     needs: ['pos'],
     title: t.altitude,
-    types: {_D, _K, _G},
+    types: {_D, _P, _K, _G},
     val: (d) => u.lenText(d.tel.pos[2], 1),
     body: (d) => LineChart(d, keys: const ['alt'], colors: const [VC.lime]),
     keys: ['alt'],
@@ -141,7 +142,7 @@ List<TileDef> _builtIn() => [
     id: 'radar',
     needs: ['tracks'],
     title: t.tileRadar,
-    types: {_D, _R, _A, _K, _B, _G},
+    types: _all,
     tt: {_A: t.tileSafetyScanner},
     val: (d) => t.tracks(d.tel.targets.length),
     body: (d) => LiveCanvas(RadarPainter(d)),
@@ -154,7 +155,7 @@ List<TileDef> _builtIn() => [
     id: 'lidar',
     needs: ['pc'],
     title: t.tileLidar,
-    types: {_D, _R, _A, _K, _B, _G},
+    types: _all,
     val: (d) => t.points(d.tel.cloud.length),
     body: (d) => Scene3D(d, view: 'top', interactive: false, label: false, layers: const {'cloud': true, 'grid': true}),
     keys: ['spd'],
@@ -166,7 +167,7 @@ List<TileDef> _builtIn() => [
     id: 'joints',
     needs: ['joints'],
     title: t.tileJoints,
-    types: {_D, _R, _A, _K, _B, _G},
+    types: _all,
     val: (_) => t.axes(6),
     body: (d) => LiveCanvas(JointBarsPainter(d)),
     keys: ['j0', 'j1', 'j2', 'j3', 'j4', 'j5'],
@@ -180,7 +181,7 @@ List<TileDef> _builtIn() => [
     id: 'ft',
     needs: ['ft'],
     title: t.tileForceTorque,
-    types: {_D, _R, _A, _K, _B, _G},
+    types: _all,
     val: (d) => '${f1(d.tel.ft[2], 1)} N',
     body: (d) => LineChart(d, keys: const ['fx', 'fy', 'fz'], sym: true),
     keys: ['fx', 'fy', 'fz'],
@@ -193,7 +194,7 @@ List<TileDef> _builtIn() => [
     id: 'power',
     needs: ['bat'],
     title: t.rdPower,
-    types: {_D, _R, _A, _K, _B, _G},
+    types: _all,
     val: (d) => d.kind == _A || d.kind == _B ? '${d.tel.current.toStringAsFixed(1)} A' : '${d.tel.battery.round()}%',
     body: (d) => LineChart(d, keys: const ['volt'], colors: const [VC.lime]),
     keys: ['volt', 'cur'],
@@ -205,7 +206,7 @@ List<TileDef> _builtIn() => [
     id: 'link',
     needs: ['rssi'],
     title: t.statLink,
-    types: {_D, _R, _A, _K, _B, _G},
+    types: _all,
     val: (d) => '${d.tel.rssi.round()} dBm',
     body: (d) => LineChart(d, keys: const ['rssi'], colors: const [VC.info]),
     keys: ['rssi', 'lat'],
@@ -216,7 +217,7 @@ List<TileDef> _builtIn() => [
   TileDef(
     id: 'video',
     title: t.tileCamera,
-    types: {_D, _R, _A, _K, _B, _G},
+    types: _all,
     when: (d) => d.video.isNotEmpty,
     val: (d) => d.video.isEmpty ? '' : (d.video.first.label.isEmpty ? d.video.first.id : d.video.first.label),
     body: (d) => VideoView(d, fit: BoxFit.cover, compact: true),
@@ -228,7 +229,7 @@ List<TileDef> _builtIn() => [
   TileDef(
     id: 'fleet',
     title: t.fleet,
-    types: {_D, _R, _A, _K, _B, _G},
+    types: _all,
     when: (d) => d.links.length > 1,
     val: (d) => t.connectedCount(d.links.length),
     body: (d) => FleetTile(d),
@@ -278,7 +279,7 @@ List<TileDef> _builtIn() => [
     id: 'thrust',
     needs: ['thrust'],
     title: t.rdThrust,
-    types: {_D, _R, _A, _K, _B, _G},
+    types: _all,
     val: (d) => '${d.tel.thrust.toStringAsFixed(2)} N',
     body: (d) => LineChart(d, keys: const ['thr'], colors: const [VC.lime]),
     keys: ['thr'],
@@ -290,7 +291,7 @@ List<TileDef> _builtIn() => [
     id: 'rpm',
     needs: ['rpm'],
     title: 'RPM',
-    types: {_D, _R, _A, _K, _B, _G},
+    types: _all,
     val: (d) => '${d.tel.rpm.round()}',
     body: (d) => LineChart(d, keys: const ['rpm'], colors: const [VC.white]),
     keys: ['rpm'],
@@ -302,7 +303,7 @@ List<TileDef> _builtIn() => [
     id: 'torque',
     needs: ['thrust'],
     title: t.tileTorque,
-    types: {_D, _R, _A, _K, _B, _G},
+    types: _all,
     val: (d) => '${d.tel.torque.toStringAsFixed(3)} N·m',
     body: (d) => LineChart(d, keys: const ['tq'], colors: const [VC.info]),
     keys: ['tq'],
@@ -314,7 +315,7 @@ List<TileDef> _builtIn() => [
     id: 'temp',
     needs: ['temp'],
     title: t.tileMotorTemp,
-    types: {_D, _R, _A, _K, _B, _G},
+    types: _all,
     val: (d) => u.tempText(d.tel.temp, 1),
     body: (d) => LineChart(d, keys: const ['tmp'], colors: const [VC.warn]),
     keys: ['tmp'],
@@ -480,7 +481,7 @@ class ReadoutBody extends StatelessWidget {
         [t.rdTemp, u.temp(s.temp).toStringAsFixed(0), u.tempUnit],
       ],
       _ => [
-        [t.rdAlt, u.len(s.pos[2]).toStringAsFixed(1), u.lenUnit],
+        if (!d.kind.drives) [t.rdAlt, u.len(s.pos[2]).toStringAsFixed(1), u.lenUnit],
         [t.rdSpeed, u.speed(s.speed).toStringAsFixed(1), u.speedUnit],
         [t.rdHdg, s.heading.round().toString().padLeft(3, '0'), '°'],
         [t.rdHome, u.len(s.range).toStringAsFixed(0), u.lenUnit],
@@ -649,7 +650,8 @@ List<HudItem> hudDefault(DeviceKind type, String cls) {
       DeviceKind.bench => [h('readout', 0, 0, 5, 4), h('thrust', 0, 8, 5, 4), h('temp', 9, 8, 3, 4)],
       DeviceKind.arm => [h('readout', 0, 0, 5, 4), h('joints', 8, 0, 4, 8), h('power', 0, 8, 4, 4)],
       DeviceKind.rover => [h('readout', 0, 0, 5, 4), h('gps', 9, 0, 3, 4), h('attitude', 0, 8, 3, 4), h('lidar', 9, 8, 3, 4)],
-      DeviceKind.drone => [h('readout', 0, 0, 5, 4), h('gps', 9, 0, 3, 4), h('attitude', 0, 8, 3, 4), h('alt', 9, 8, 3, 4)],
+      DeviceKind.boat => [h('readout', 0, 0, 5, 4), h('gps', 9, 0, 3, 4), h('attitude', 0, 8, 3, 4), h('gyro', 9, 8, 3, 4)],
+      DeviceKind.drone || DeviceKind.plane => [h('readout', 0, 0, 5, 4), h('gps', 9, 0, 3, 4), h('attitude', 0, 8, 3, 4), h('alt', 9, 8, 3, 4)],
       DeviceKind.generic => [h('readout', 0, 0, 5, 4), h('attitude', 0, 8, 3, 4), h('power', 9, 8, 3, 4)],
     };
   }
@@ -668,7 +670,11 @@ List<HudItem> hudDefault(DeviceKind type, String cls) {
       return p
           ? [h('readout', 0, 0, 12, 2), h('attitude', 0, 9, 6, 3), h('lidar', 6, 9, 6, 3)]
           : [h('readout', 0, 0, 5, 2), h('gps', 9, 0, 3, 4), h('attitude', 0, 9, 2, 3), h('gyro', 3, 10, 5, 2), h('lidar', 10, 9, 2, 3)];
-    case DeviceKind.drone:
+    case DeviceKind.boat:
+      return p
+          ? [h('readout', 0, 0, 12, 2), h('attitude', 0, 9, 6, 3), h('gyro', 6, 9, 6, 3)]
+          : [h('readout', 0, 0, 5, 2), h('gps', 9, 0, 3, 4), h('attitude', 0, 9, 2, 3), h('gyro', 3, 10, 5, 2)];
+    case DeviceKind.drone || DeviceKind.plane:
       return p
           ? [h('readout', 0, 0, 12, 2), h('attitude', 0, 9, 6, 3), h('alt', 6, 9, 6, 3)]
           : [h('readout', 0, 0, 5, 2), h('gps', 9, 0, 3, 4), h('attitude', 0, 9, 2, 3), h('accel', 3, 10, 5, 2), h('alt', 10, 9, 2, 3)];

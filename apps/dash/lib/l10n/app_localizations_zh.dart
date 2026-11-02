@@ -1571,6 +1571,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get stepsDrone => '起飞、飞往航点、等待、降落';
 
   @override
+  String get stepsPlane => '起飞、经航点绕圈飞行、降落';
+
+  @override
   String get stepsRover => '行驶至航点、等待、改变速度';
 
   @override
@@ -1677,7 +1680,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get planNoteDrone => '航点是相对起飞点向东和向北的米数。无人机在每个航点保持，然后执行下一步。链路中断时失控保护仍然有效。';
 
   @override
+  String get planNotePlane => '航点是相对起飞点向东和向北的米数。飞机无法停下：它会飞过每个航点，保持时盘旋。链路中断时失控保护仍然有效。';
+
+  @override
   String get planNoteRover => '航点是相对起点向东和向北的米数。地面机器人在每个航点停下，然后执行下一步。';
+
+  @override
+  String get planNoteBoat => '航点是相对起点向东和向北的米数。船在每个航点减速，然后执行下一步；等待时风和水流可能会把它推离。';
 
   @override
   String planNoteArm(String button) {
@@ -2974,7 +2983,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get kindDrone => '无人机';
 
   @override
+  String get kindPlane => '固定翼飞机';
+
+  @override
   String get kindRover => '地面机器人';
+
+  @override
+  String get kindBoat => '船';
 
   @override
   String get kindArm => '机械臂';

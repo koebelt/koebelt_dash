@@ -1573,6 +1573,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get stepsDrone => '離陸、ウェイポイントへ飛行、待機、着陸';
 
   @override
+  String get stepsPlane => '離陸、ウェイポイントを巡る周回飛行、着陸';
+
+  @override
   String get stepsRover => 'ウェイポイントへ走行、待機、速度変更';
 
   @override
@@ -1679,7 +1682,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get planNoteDrone => 'ウェイポイントは離陸地点から東と北へのメートルです。ドローンは次のステップの前に各ポイントで停止します。リンクが切れてもフェイルセーフは有効です。';
 
   @override
+  String get planNotePlane => 'ウェイポイントは離陸地点から東と北へのメートルです。飛行機は止まれないため、各地点を通過し、待機中は旋回します。リンクが切れてもフェイルセーフは有効です。';
+
+  @override
   String get planNoteRover => 'ウェイポイントは出発地点から東と北へのメートルです。ローバーは次のステップの前に各ポイントで停止します。';
+
+  @override
+  String get planNoteBoat => 'ウェイポイントはスタート地点から東と北へのメートルです。ボートは各地点で減速してから次のステップに進みます。待機中は風や潮流で流されることがあります。';
 
   @override
   String planNoteArm(String button) {
@@ -2983,7 +2992,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get kindDrone => 'ドローン';
 
   @override
+  String get kindPlane => '固定翼機';
+
+  @override
   String get kindRover => '地上ロボット';
+
+  @override
+  String get kindBoat => 'ボート';
 
   @override
   String get kindArm => 'ロボットアーム';
