@@ -2,6 +2,7 @@ import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 
+import '../l10n/l10n.dart';
 import '../core/dash.dart';
 import '../theme/tokens.dart';
 import '../core/model.dart';
@@ -42,7 +43,7 @@ class RecordButton extends StatelessWidget {
                   if (label) ...[
                     const SizedBox(width: 8),
                     Text(
-                      rec ? mmss(d.t - d.recStart) : 'REC',
+                      rec ? mmss(d.t - d.recStart) : t.rec.toUpperCase(),
                       style: KText.mono(11, color: rec ? K.negative : K.textPrimary, tracking: K.trLabel),
                     ),
                   ],
@@ -57,9 +58,9 @@ class RecordButton extends StatelessWidget {
 }
 
 class SpeedSlider extends StatelessWidget {
-  const SpeedSlider(this.d, {super.key, this.label = 'Speed limit'});
+  const SpeedSlider(this.d, {super.key, this.label});
   final Dash d;
-  final String label;
+  final String? label;
   @override
   Widget build(BuildContext context) => ConstrainedBox(
     constraints: const BoxConstraints(minWidth: 140),
@@ -69,7 +70,7 @@ class SpeedSlider extends StatelessWidget {
       children: [
         Row(
           children: [
-            Expanded(child: MonoLabel(label, maxLines: 1)),
+            Expanded(child: MonoLabel(label ?? t.speedLimit, maxLines: 1)),
             const SizedBox(width: 8),
             Flexible(child: MonoLabel('${(d.speed * 100).round()}%', color: K.textPrimary, maxLines: 1)),
           ],
@@ -84,17 +85,17 @@ class SpeedSlider extends StatelessWidget {
 /// Confirms and sets the home point (vehicles) or home pose (arms).
 Future<void> confirmSetHome(BuildContext context, Dash d) async {
   final arm = d.kind == DeviceKind.arm;
-  final t = d.liveTel;
+  final tel = d.liveTel;
   await showKDialog<void>(
     context,
     builder: (ctx) => KDialogPanel(
-      title: arm ? 'Set home pose' : 'Set home here',
+      title: arm ? t.setHomePose : t.setHomeHere,
       width: 460,
       onClose: () => Navigator.pop(ctx),
       footer: [
-        KButton('Cancel', variant: KButtonVariant.ghost, onPressed: () => Navigator.pop(ctx)),
+        KButton(t.cancel, variant: KButtonVariant.ghost, onPressed: () => Navigator.pop(ctx)),
         KButton(
-          arm ? 'Use this pose' : 'Set home',
+          arm ? t.useThisPose : t.setHome,
           onPressed: () {
             d.setHome();
             Navigator.pop(ctx);
@@ -103,14 +104,11 @@ Future<void> confirmSetHome(BuildContext context, Dash d) async {
       ],
       children: [
         if (arm) ...[
-          Text('The current joint angles become the pose that Home pose and sequence Home steps move to.'),
-          Text([for (final j in t.joints) '${(j * 57.3).toStringAsFixed(1)}°'].join('  ·  '), style: KText.mono(12, color: K.textPrimary)),
+          Text(t.setHomePoseBody),
+          Text([for (final j in tel.joints) '${(j * 57.3).toStringAsFixed(1)}°'].join('  ·  '), style: KText.mono(12, color: K.textPrimary)),
         ] else ...[
-          Text(
-            'The current position becomes home (0, 0). Return-to-home flies back here, and sequence waypoints are measured from here. '
-            'The device is ${t.range.toStringAsFixed(1)} m from the current home.',
-          ),
-          if (t.hasGps) Text('${t.lat.toStringAsFixed(6)}, ${t.lon.toStringAsFixed(6)}', style: KText.mono(12, color: K.textPrimary)),
+          Text(t.setHomeBody(tel.range.toStringAsFixed(1))),
+          if (tel.hasGps) Text('${tel.lat.toStringAsFixed(6)}, ${tel.lon.toStringAsFixed(6)}', style: KText.mono(12, color: K.textPrimary)),
         ],
       ],
     ),
@@ -162,9 +160,7 @@ class ModePicker extends StatelessWidget {
     // What drives it, by name: "follow_person" for a script, the sequence's name.
     final name = who?.substring(who.indexOf('·') + 1).trim().replaceAll(RegExp(r'\.py$'), '');
     final autoItem = Tooltip(
-      message: auto
-          ? '${who ?? 'dash drives it'}. Choose MANUAL or HOLD, or move the sticks, to take it back.'
-          : 'dash\'s mode: while a sequence or a script drives the device. Run one from Automate.',
+      message: auto ? '${who ?? t.autoDashDrives}. ${t.autoTakeBack}' : t.autoTip,
       waitDuration: const Duration(milliseconds: 400),
       child: AnimatedContainer(
         duration: K.durFast,

@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../l10n/l10n.dart';
 import '../core/dash.dart';
 import '../core/model.dart';
 import '../theme/tokens.dart';
@@ -82,7 +83,7 @@ class _ParamStepperState extends State<ParamStepper> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          btn('−', -p.step, 'Decrease'),
+          btn('−', -p.step, t.decrease),
           SizedBox(
             width: 64,
             child: TextField(
@@ -98,7 +99,7 @@ class _ParamStepperState extends State<ParamStepper> {
             ),
           ),
           if (p.unit.isNotEmpty) Padding(padding: const EdgeInsets.only(right: 4), child: MonoLabel(p.unit, size: 9)),
-          btn('+', p.step, 'Increase'),
+          btn('+', p.step, t.increase),
         ],
       ),
     );
@@ -143,7 +144,7 @@ class ParamRow extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 5),
-                    MonoLabel('${p.key}${mod ? ' · was ${fmtP(dev, p.step)}' : ''}', size: 9, maxLines: 1),
+                    MonoLabel('${p.key}${mod ? ' · ${t.was(fmtP(dev, p.step))}' : ''}', size: 9, maxLines: 1),
                   ],
                 ),
               ),
@@ -220,28 +221,28 @@ class _ParamsScreenState extends State<ParamsScreen> {
             children: [
               PageHead(
                 phone: phone,
-                eyebrow: '$dn · firmware ${d.fwVersion ?? '—'} · ${dev.length} parameters',
-                title: 'Parameters',
+                eyebrow: '$dn · ${t.firmware(d.fwVersion ?? '—')} · ${t.parametersCount(dev.length)}',
+                title: t.parameters,
                 right: Wrap(
                   spacing: 10,
                   runSpacing: 10,
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     changed.isNotEmpty
-                        ? KBadge('${changed.length} unsaved', tone: Tone.accent)
-                        : KBadge(wr != null ? 'Written $wr' : 'In sync', tone: Tone.positive),
+                        ? KBadge(t.unsaved(changed.length), tone: Tone.accent)
+                        : KBadge(wr != null ? t.written(wr) : t.inSync, tone: Tone.positive),
                     KButton(
-                      'Revert',
+                      t.revert,
                       size: KSize.sm,
                       variant: KButtonVariant.ghost,
                       onPressed: changed.isEmpty || d.paramWriting ? null : () => d.revertParams(),
                     ),
                     KButton(
                       d.paramWriting
-                          ? 'Writing…'
+                          ? t.writing
                           : lost
-                          ? 'Link lost'
-                          : 'Write to device',
+                          ? t.linkLost
+                          : t.writeToDevice,
                       size: KSize.sm,
                       onPressed: changed.isEmpty || d.paramWriting || lost || d.replay != null ? null : d.writeParams,
                     ),
@@ -277,13 +278,7 @@ class _ParamsScreenState extends State<ParamsScreen> {
                     padding: const EdgeInsets.only(bottom: 10),
                     child: SizedBox(
                       width: phone ? double.infinity : 260,
-                      child: KInput(
-                        controller: _qc,
-                        placeholder: 'Search parameters',
-                        height: 38,
-                        style: KText.bodySm,
-                        onChanged: (v) => setState(() => q = v),
-                      ),
+                      child: KInput(controller: _qc, placeholder: t.searchParameters, height: 38, style: KText.bodySm, onChanged: (v) => setState(() => q = v)),
                     ),
                   ),
                 ],
@@ -295,9 +290,9 @@ class _ParamsScreenState extends State<ParamsScreen> {
           child: SingleChildScrollView(
             padding: phone ? const EdgeInsets.all(16) : const EdgeInsets.fromLTRB(40, 24, 40, 40),
             child: groups.isEmpty
-                ? MonoLabel(d.hasDevice ? 'Waiting for the parameter table…' : 'No device', height: 1.6)
+                ? MonoLabel(d.hasDevice ? t.waitingParams : t.noDevice, height: 1.6)
                 : shown.isEmpty
-                ? MonoLabel('No parameters match "$q"')
+                ? MonoLabel(t.noParamsMatch(q))
                 : LayoutBuilder(
                     builder: (_, c) {
                       final gap = phone ? 12.0 : 16.0, cw = (c.maxWidth - gap * (cols - 1)) / cols;
@@ -346,7 +341,7 @@ class _ParamsScreenState extends State<ParamsScreen> {
               if (gm > 0)
                 Pressable(
                   onTap: () => d.revertParams(g.params.map((p) => p.key)),
-                  builder: (_, _, _) => MonoLabel('Revert $gm', color: K.textAccent),
+                  builder: (_, _, _) => MonoLabel(t.revertName('$gm'), color: K.textAccent),
                 ),
             ],
           ),
@@ -363,7 +358,7 @@ class _ParamsScreenState extends State<ParamsScreen> {
               ),
             ),
             const SizedBox(height: 6),
-            MonoLabel('Live response · ${chart.join(' ')}', size: 9),
+            MonoLabel('${t.liveResponse} · ${chart.join(' ')}', size: 9),
           ],
           const SizedBox(height: 12),
           for (final p in g.params) ParamRow(p: p, val: draft[p.key] ?? p.def, dev: dev[p.key] ?? p.def, onChanged: (v) => d.setParam(p.key, v)),

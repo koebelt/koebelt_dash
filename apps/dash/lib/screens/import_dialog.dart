@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/l10n.dart';
 import '../core/dash.dart';
 import '../core/log_import.dart';
 import '../core/save_io.dart';
@@ -26,7 +27,7 @@ class _ImportDialogState extends State<_ImportDialog> {
   String? reading, error;
 
   Future<void> _choose() async {
-    final f = await openBytes('Recordings and flight logs', importExtensions);
+    final f = await openBytes(t.recordingsAndLogs, importExtensions);
     if (f == null || !mounted) return;
     setState(() {
       reading = f.$1;
@@ -40,7 +41,7 @@ class _ImportDialogState extends State<_ImportDialog> {
     } on LogImportError catch (e) {
       if (mounted) setState(() => error = e.message);
     } catch (e) {
-      if (mounted) setState(() => error = 'The file could not be read: $e');
+      if (mounted) setState(() => error = t.fileUnreadable('$e'));
     } finally {
       if (mounted) setState(() => reading = null);
     }
@@ -64,28 +65,23 @@ class _ImportDialogState extends State<_ImportDialog> {
     return ListenableBuilder(
       listenable: d,
       builder: (context, _) => KDialogPanel(
-        title: 'Import',
+        title: t.import,
         width: 480,
         onClose: () => Navigator.pop(context),
-        footer: [KButton('Close', variant: KButtonVariant.ghost, onPressed: () => Navigator.pop(context))],
+        footer: [KButton(t.close, variant: KButtonVariant.ghost, onPressed: () => Navigator.pop(context))],
         children: [
-          const MonoLabel('From a file'),
-          Text('Opens as a session: replay, the map, the charts and export all work on it.', style: KText.bodySm.copyWith(color: K.textSecondary)),
+          MonoLabel(t.fromFile),
+          Text(t.fromFileDesc, style: KText.bodySm.copyWith(color: K.textSecondary)),
           Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              format('.json', 'A recording exported from koebelt/dash'),
-              format('.bin', 'ArduPilot log, from the SD card or Mission Planner'),
-              format('.tlog', 'Ground station log: Mission Planner, QGroundControl, MAVProxy'),
-              format('.ulg', 'PX4 log, from the SD card or QGroundControl'),
-            ],
+            children: [format('.json', t.fmtJson), format('.bin', t.fmtBin), format('.tlog', t.fmtTlog), format('.ulg', t.fmtUlg)],
           ),
           if (busy)
             Row(
               children: [
                 const MarkMotion(MarkLoop.loading, size: 28, gap: K.surfaceRaised),
                 const SizedBox(width: 12),
-                Expanded(child: MonoLabel('Reading $reading…', maxLines: 1)),
+                Expanded(child: MonoLabel(t.reading(reading!), maxLines: 1)),
               ],
             )
           else
@@ -93,20 +89,15 @@ class _ImportDialogState extends State<_ImportDialog> {
               alignment: Alignment.centerLeft,
               child: KButton('Choose file…', iconLeft: const KIcon('upload', size: 16), onPressed: d.recording ? null : _choose),
             ),
-          if (d.recording) const MonoLabel('Stop the recording first', height: 1.5),
-          if (error != null) KNotice(tone: Tone.negative, title: 'Not imported', child: Text(error!)),
+          if (d.recording) MonoLabel(t.stopRecordingFirst, height: 1.5),
+          if (error != null) KNotice(tone: Tone.negative, title: t.notImported, child: Text(error!)),
           hairline,
-          const MonoLabel('Sample recordings'),
-          Text(
-            d.hasSamples
-                ? 'The three demo sessions are in your list, marked Demo.'
-                : 'Three demo sessions recorded with the simulated devices: a survey flight, a pick and place, a rocket launch.',
-            style: KText.bodySm.copyWith(color: K.textSecondary),
-          ),
+          MonoLabel(t.sampleRecordings),
+          Text(d.hasSamples ? t.samplesIn : t.samplesDesc, style: KText.bodySm.copyWith(color: K.textSecondary)),
           Align(
             alignment: Alignment.centerLeft,
             child: KButton(
-              d.hasSamples ? 'Remove samples' : 'Load samples',
+              d.hasSamples ? t.removeSamples : t.loadSamples,
               variant: KButtonVariant.secondary,
               iconLeft: KIcon(d.hasSamples ? 'trash' : 'replay', size: 16),
               onPressed: busy ? null : (d.hasSamples ? d.removeSamples : d.loadSamples),

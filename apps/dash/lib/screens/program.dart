@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../l10n/l10n.dart';
 import '../core/dash.dart';
 import '../core/model.dart';
 import '../core/sequence.dart';
@@ -36,7 +37,7 @@ class _ProgramScreenState extends State<ProgramScreen> {
   Dash get d => widget.d;
 
   Sequence _new(List<Sequence> seqs) {
-    final q = Sequence(id: 'q${DateTime.now().microsecondsSinceEpoch}', name: 'Sequence ${seqs.length + 1}', kind: d.kind, steps: []);
+    final q = Sequence(id: 'q${DateTime.now().microsecondsSinceEpoch}', name: t.sequenceN(seqs.length + 1), kind: d.kind, steps: []);
     seqs.add(q);
     d.saveSequences();
     return q;
@@ -57,8 +58,8 @@ class _ProgramScreenState extends State<ProgramScreen> {
 
     final head = PageHead(
       phone: phone,
-      eyebrow: '${dev.name} · ${seqs.length} ${seqs.length == 1 ? 'sequence' : 'sequences'}',
-      title: 'Sequences',
+      eyebrow: '${dev.name} · ${t.sequencesCount(seqs.length)}',
+      title: t.navSequences,
       right: q == null ? null : _runControls(q, run, runningThis, busy),
     );
 
@@ -72,7 +73,7 @@ class _ProgramScreenState extends State<ProgramScreen> {
       onDuplicate: q == null
           ? null
           : () {
-              final c = q.copyAs('q${DateTime.now().microsecondsSinceEpoch}', '${q.name} copy');
+              final c = q.copyAs('q${DateTime.now().microsecondsSinceEpoch}', t.copyOf(q.name));
               seqs.add(c);
               d.saveSequences();
               setState(() => selected = c.id);
@@ -93,15 +94,11 @@ class _ProgramScreenState extends State<ProgramScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('No sequences for ${dev.name} yet.', style: KText.bodyMd),
+            Text(t.noSequencesFor(dev.name), style: KText.bodyMd),
             const SizedBox(height: 8),
             ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 520),
-              child: Text(
-                'A sequence is a list of steps (${_stepExamples(d.kind)}) that the app runs one after the other, '
-                'waiting for the device to confirm each one.',
-                style: KText.bodySm.copyWith(color: K.textMuted),
-              ),
+              child: Text(t.sequenceIntro(_stepExamples(d.kind)), style: KText.bodySm.copyWith(color: K.textMuted)),
             ),
             const SizedBox(height: 16),
             KButton('New sequence', iconLeft: const KIcon('plus', size: 16), onPressed: () => setState(() => selected = _new(seqs).id)),
@@ -158,19 +155,13 @@ class _ProgramScreenState extends State<ProgramScreen> {
               const SizedBox(height: 16),
               KNotice(
                 tone: run.state == RunState.done ? Tone.positive : Tone.warning,
-                title: run.state == RunState.done ? 'Sequence complete' : 'Sequence stopped',
+                title: run.state == RunState.done ? t.sequenceComplete : t.sequenceStopped,
                 child: Text(run.message),
               ),
             ],
             if (d.kind == DeviceKind.rocket) ...[
               const SizedBox(height: 16),
-              const KNotice(
-                tone: Tone.info,
-                title: 'Flight sequence',
-                child: Text(
-                  'The flight computer runs launch, apogee and recovery on board. Set deployment on the Tune screen; use sequences here for pad checks.',
-                ),
-              ),
+              KNotice(tone: Tone.info, title: t.flightSequence, child: Text(t.flightSequenceBody)),
             ],
             SizedBox(height: phone ? 16 : 24),
             body,
@@ -181,24 +172,24 @@ class _ProgramScreenState extends State<ProgramScreen> {
   }
 
   String _stepExamples(DeviceKind k) => switch (k) {
-    DeviceKind.drone => 'take off, fly to waypoints, wait, land',
-    DeviceKind.rover => 'drive to waypoints, wait, change speed',
-    DeviceKind.arm => 'move to poses, open or close the gripper',
-    DeviceKind.bench => 'hold a throttle, ramp between two throttles',
-    _ => 'wait, set a mode, send commands',
+    DeviceKind.drone => t.stepsDrone,
+    DeviceKind.rover => t.stepsRover,
+    DeviceKind.arm => t.stepsArm,
+    DeviceKind.bench => t.stepsBench,
+    _ => t.stepsGeneric,
   };
 
   Widget _runControls(Sequence q, SequenceRunner? run, bool runningThis, bool busy) {
     final s = d.liveTel;
     final blocked = !d.hasDevice || d.replay != null || s.estop || d.linkLost || q.steps.isEmpty;
     final why = d.replay != null
-        ? 'Exit replay to run'
+        ? t.whyExitReplay
         : s.estop
-        ? 'Reset the stop first'
+        ? t.whyResetStop
         : d.linkLost
-        ? 'Link lost'
+        ? t.linkLost
         : q.steps.isEmpty
-        ? 'Add steps first'
+        ? t.whyAddSteps
         : null;
     return Wrap(
       spacing: 10,
@@ -208,22 +199,22 @@ class _ProgramScreenState extends State<ProgramScreen> {
         if (runningThis)
           KBadge(
             [
-              if (run!.onDevice) 'On device',
+              if (run!.onDevice) t.onDevice,
               if (run is DeviceSequenceRunner && run.uploading)
-                'Uploading'
+                t.uploading
               else
-                '${run.state == RunState.paused ? 'Paused' : 'Running'} · step ${run.index + 1} of ${q.steps.length}',
+                '${run.state == RunState.paused ? t.paused : t.running} · ${t.stepOf(run.index + 1, q.steps.length)}',
             ].join(' · '),
             tone: run.state == RunState.paused ? Tone.warning : Tone.accent,
           )
         else if (why != null)
           MonoLabel(why)
         else if (d.seqCap >= q.steps.length)
-          const MonoLabel('Runs on the device: it carries on if the link drops', maxLines: 2),
+          MonoLabel(t.runsOnDevice, maxLines: 2),
         if (runningThis) ...[
           if (run!.state == RunState.running)
             KButton(
-              'Pause',
+              t.pause,
               size: KSize.sm,
               variant: KButtonVariant.secondary,
               iconLeft: const KIcon('pause', size: 14),
@@ -236,7 +227,7 @@ class _ProgramScreenState extends State<ProgramScreen> {
             )
           else
             KButton(
-              'Resume',
+              t.resume,
               size: KSize.sm,
               variant: KButtonVariant.secondary,
               iconLeft: const KIcon('play', size: 14),
@@ -248,17 +239,17 @@ class _ProgramScreenState extends State<ProgramScreen> {
                     },
             ),
           KButton(
-            'Stop sequence',
+            t.stopSequence,
             size: KSize.sm,
             variant: KButtonVariant.ghost,
             iconLeft: const KIcon('square', size: 14),
             onPressed: () {
-              run.stop('Stopped from the app');
+              run.stop(t.stoppedFromApp);
               d.emit();
             },
           ),
         ] else
-          KButton('Run', size: KSize.sm, iconLeft: const KIcon('play', size: 14), onPressed: blocked || busy ? null : () => d.runSequence(q)),
+          KButton(t.run, size: KSize.sm, iconLeft: const KIcon('play', size: 14), onPressed: blocked || busy ? null : () => d.runSequence(q)),
       ],
     );
   }
@@ -284,8 +275,8 @@ class _SeqList extends StatelessWidget {
   final VoidCallback? onDuplicate, onDelete;
 
   String _meta(Sequence q) {
-    final t = q.steps.fold<double>(0, (a, s) => a + (s.duration ?? 0));
-    return '${q.steps.length} steps${t > 0 ? ' · ${t.toStringAsFixed(0)} s timed' : ''}';
+    final secs = q.steps.fold<double>(0, (a, s) => a + (s.duration ?? 0));
+    return '${t.stepsCount(q.steps.length)}${secs > 0 ? ' · ${t.secondsTimed(secs.toStringAsFixed(0))}' : ''}';
   }
 
   @override
@@ -293,9 +284,9 @@ class _SeqList extends StatelessWidget {
     final actions = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        KIconButton('plus', label: 'New sequence', size: KSize.sm, variant: KIconButtonVariant.bare, onPressed: onNew),
-        KIconButton('copy', label: 'Duplicate', size: KSize.sm, variant: KIconButtonVariant.bare, onPressed: onDuplicate),
-        KIconButton('trash', label: 'Delete', size: KSize.sm, variant: KIconButtonVariant.bare, onPressed: onDelete),
+        KIconButton('plus', label: t.newSequence, size: KSize.sm, variant: KIconButtonVariant.bare, onPressed: onNew),
+        KIconButton('copy', label: t.duplicate, size: KSize.sm, variant: KIconButtonVariant.bare, onPressed: onDuplicate),
+        KIconButton('trash', label: t.delete, size: KSize.sm, variant: KIconButtonVariant.bare, onPressed: onDelete),
       ],
     );
     if (phone) {
@@ -327,7 +318,7 @@ class _SeqList extends StatelessWidget {
       children: [
         Row(
           children: [
-            const Expanded(child: MonoLabel('Sequences')),
+            Expanded(child: MonoLabel(t.navSequences)),
             actions,
           ],
         ),
@@ -387,7 +378,7 @@ class _Editor extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const MonoLabel('Name'),
+        MonoLabel(t.name),
         const SizedBox(height: 8),
         KInput(
           controller: name,
@@ -401,14 +392,14 @@ class _Editor extends StatelessWidget {
         const SizedBox(height: 20),
         Row(
           children: [
-            Expanded(child: MonoLabel('Steps · ${q.steps.length}')),
-            if (locked) const MonoLabel('Locked while running', color: K.textAccent),
+            Expanded(child: MonoLabel('${t.steps} · ${q.steps.length}')),
+            if (locked) MonoLabel(t.lockedWhileRunning, color: K.textAccent),
           ],
         ),
         const SizedBox(height: 8),
         if (q.steps.isEmpty)
           Panel(
-            child: Text('Add the first step below. Steps run top to bottom.', style: KText.bodySm.copyWith(color: K.textMuted)),
+            child: Text(t.addFirstStep, style: KText.bodySm.copyWith(color: K.textMuted)),
           ),
         // Drag a card by its grip to reorder. Screen readers get move up/down actions.
         ReorderableListView.builder(
@@ -437,7 +428,7 @@ class _Editor extends StatelessWidget {
         ),
         if (!locked) ...[
           const SizedBox(height: 12),
-          const MonoLabel('Add step'),
+          MonoLabel(t.addStep),
           const SizedBox(height: 10),
           Wrap(
             spacing: 8,
@@ -445,7 +436,7 @@ class _Editor extends StatelessWidget {
             children: [
               for (final def in defs)
                 KButton(
-                  def.label,
+                  def.shown,
                   size: KSize.sm,
                   variant: KButtonVariant.secondary,
                   iconLeft: const KIcon('plus', size: 14),
@@ -501,7 +492,7 @@ class _StepCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              MonoLabel(f.label, size: 9),
+              MonoLabel(f.shown, size: 9),
               const SizedBox(height: 6),
               _TextField(
                 value: st.s(f.key),
@@ -519,7 +510,7 @@ class _StepCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            MonoLabel(f.label, size: 9),
+            MonoLabel(f.shown, size: 9),
             const SizedBox(height: 6),
             Seg(
               small: true,
@@ -537,10 +528,10 @@ class _StepCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          MonoLabel(f.label, size: 9),
+          MonoLabel(f.shown, size: 9),
           const SizedBox(height: 6),
           ParamStepper(
-            p: ParamDef(f.key, f.label, f.def, f.min, f.max, f.step, f.unit),
+            p: ParamDef(f.key, f.shown, f.def, f.min, f.max, f.step, f.unit),
             value: st.n(f.key, f.def),
             mod: false,
             onChanged: (v) {
@@ -574,11 +565,11 @@ class _StepCard extends StatelessWidget {
                         if (!locked)
                           ReorderableDragStartListener(
                             index: i,
-                            child: const MouseRegion(
+                            child: MouseRegion(
                               cursor: SystemMouseCursors.grab,
                               child: Tooltip(
-                                message: 'Drag to reorder',
-                                waitDuration: Duration(milliseconds: 600),
+                                message: t.dragToReorder,
+                                waitDuration: const Duration(milliseconds: 600),
                                 child: Padding(
                                   padding: EdgeInsets.fromLTRB(0, 6, 8, 6),
                                   child: KIcon('grip-vertical', size: 16, color: K.textMuted),
@@ -596,18 +587,18 @@ class _StepCard extends StatelessWidget {
                           child: Row(
                             children: [
                               Flexible(
-                                child: Text(def?.label ?? st.type, style: KText.headingXs.copyWith(fontSize: 16), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                child: Text(def?.shown ?? st.type, style: KText.headingXs.copyWith(fontSize: 16), maxLines: 1, overflow: TextOverflow.ellipsis),
                               ),
                               const SizedBox(width: 10),
                               if (done) const KIcon('check', size: 14, color: K.positive),
-                              if (current) Flexible(child: MonoLabel(run!.message.isEmpty ? 'Running' : run!.message, color: K.textAccent, maxLines: 1)),
+                              if (current) Flexible(child: MonoLabel(run!.message.isEmpty ? t.running : run!.message, color: K.textAccent, maxLines: 1)),
                             ],
                           ),
                         ),
                         if (!locked) ...[
                           KIconButton(
                             'trash',
-                            label: 'Delete step',
+                            label: t.deleteStep,
                             size: KSize.sm,
                             variant: KIconButtonVariant.bare,
                             onPressed: () {
@@ -630,7 +621,7 @@ class _StepCard extends StatelessWidget {
                             for (final f in def.fields) field(f),
                             if (def.capture != null && !locked)
                               KButton(
-                                def.capture == 'pos' ? 'Use current position' : 'Use current pose',
+                                def.capture == 'pos' ? t.useCurrentPosition : t.useCurrentPose,
                                 size: KSize.sm,
                                 variant: KButtonVariant.ghost,
                                 iconLeft: const KIcon('crosshair', size: 14),
@@ -694,7 +685,7 @@ class _TextFieldState extends State<_TextField> {
   Widget build(BuildContext context) => KInput(
     controller: _c,
     height: 38,
-    placeholder: 'e.g. deploy',
+    placeholder: t.egDeploy,
     style: KText.mono(13, w: FontWeight.w400),
     onChanged: widget.onChanged,
   );
@@ -711,10 +702,10 @@ class _Preview extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (title, Widget body) = switch (q.kind) {
-      DeviceKind.drone || DeviceKind.rover => ('Plan · top view', LiveCanvas(_PlanPainter(d, q, run))),
-      DeviceKind.bench => ('Throttle profile', LiveCanvas(_ProfilePainter(d, q, run))),
-      DeviceKind.arm => ('Live view', Scene3D(d, view: 'orbit')),
-      _ => ('Timeline', _Timeline(q: q, run: run)),
+      DeviceKind.drone || DeviceKind.rover => (t.planTopView, LiveCanvas(_PlanPainter(d, q, run))),
+      DeviceKind.bench => (t.throttleProfile, LiveCanvas(_ProfilePainter(d, q, run))),
+      DeviceKind.arm => (t.liveView, Scene3D(d, view: 'orbit')),
+      _ => (t.timeline, _Timeline(q: q, run: run)),
     };
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -738,7 +729,7 @@ class _Preview extends StatelessWidget {
           Align(
             alignment: Alignment.centerLeft,
             child: KButton(
-              q.kind == DeviceKind.arm ? 'Set current pose as home' : 'Set home here',
+              q.kind == DeviceKind.arm ? t.setPoseAsHome : t.setHomeHere,
               size: KSize.sm,
               variant: KButtonVariant.secondary,
               iconLeft: const KIcon('crosshair', size: 14),
@@ -751,11 +742,11 @@ class _Preview extends StatelessWidget {
   }
 
   String _hint(DeviceKind k) => switch (k) {
-    DeviceKind.drone => 'Waypoints are metres east and north of the take-off point. The drone holds at each one before the next step. The failsafe still applies if the link drops.',
-    DeviceKind.rover => 'Waypoints are metres east and north of the start point. The rover stops at each one before the next step.',
-    DeviceKind.arm => 'Move the arm by hand or with jog controls, then use "Use current pose" to record it.',
-    DeviceKind.bench => 'Current and temperature cutoffs on the device stay active during the sequence.',
-    _ => 'Each step waits for the device to confirm before the next one starts.',
+    DeviceKind.drone => t.planNoteDrone,
+    DeviceKind.rover => t.planNoteRover,
+    DeviceKind.arm => t.planNoteArm(t.useCurrentPose),
+    DeviceKind.bench => t.planNoteBench,
+    _ => t.planNoteGeneric,
   };
 }
 
@@ -770,7 +761,7 @@ class _Timeline extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 4),
           child: Text(
-            '${(i + 1).toString().padLeft(2, '0')}  ${q.steps[i].summary(q.kind)}',
+            '${(i + 1).toString().padLeft(2, '0')}  ${q.steps[i].summaryShown(q.kind)}',
             style: KText.mono(12, color: run?.index == i ? K.textAccent : K.textSecondary),
           ),
         ),
@@ -827,7 +818,7 @@ class _PlanPainter extends FramePainter {
     for (var y = (minY / step).floor() * step - step; y <= maxY + step; y += step) {
       c.drawLine(Offset(0, P([0, y]).dy), Offset(s.width, P([0, y]).dy), g);
     }
-    drawText(c, '${step.toStringAsFixed(0)} M GRID', Offset(4, s.height - 4), VC.ink300);
+    drawText(c, t.metreGrid(step.toStringAsFixed(0)).toUpperCase(), Offset(4, s.height - 4), VC.ink300);
 
     // home
     c.drawCircle(
@@ -837,7 +828,7 @@ class _PlanPainter extends FramePainter {
         ..color = VC.ink300
         ..style = PaintingStyle.stroke,
     );
-    drawText(c, 'HOME', P([0, 0]) + const Offset(-14, 18), VC.ink300);
+    drawText(c, t.rdHome.toUpperCase(), P([0, 0]) + const Offset(-14, 18), VC.ink300);
 
     // planned path
     final cur = run?.index ?? -1;
@@ -919,31 +910,31 @@ class _ProfilePainter extends FramePainter {
       [0, 0],
     ];
     final starts = <double>[];
-    var t = 0.0, thr = 0.0;
+    var at = 0.0, thr = 0.0;
     for (final st in q.steps) {
-      starts.add(t);
+      starts.add(at);
       switch (st.type) {
         case 'throttle':
           thr = st.n('pct');
-          pts.add([t, thr]);
-          t += st.n('s');
-          pts.add([t, thr]);
+          pts.add([at, thr]);
+          at += st.n('s');
+          pts.add([at, thr]);
         case 'ramp':
-          pts.add([t, st.n('from')]);
-          t += st.n('s');
+          pts.add([at, st.n('from')]);
+          at += st.n('s');
           thr = st.n('to');
-          pts.add([t, thr]);
+          pts.add([at, thr]);
         case 'wait':
-          t += st.n('s');
-          pts.add([t, thr]);
+          at += st.n('s');
+          pts.add([at, thr]);
         case 'arm':
           if (st.s('v') == 'DISARM') {
             thr = 0;
-            pts.add([t, 0]);
+            pts.add([at, 0]);
           }
       }
     }
-    final total = math.max(1.0, t);
+    final total = math.max(1.0, at);
     const L = 34.0, B = 16.0;
     double X(double v) => L + v / total * (s.width - L - 4);
     double Y(double v) => (s.height - B) - v / 100 * (s.height - B - 6);
@@ -972,7 +963,7 @@ class _ProfilePainter extends FramePainter {
     }
     // live throttle output
     if (dash.hasDevice) {
-      drawText(c, 'NOW ${(dash.tel.throttleOut * 100).round()}%', Offset(s.width - 4, 10), VC.ink200, align: TextAlign.right);
+      drawText(c, '${t.now.toUpperCase()} ${(dash.tel.throttleOut * 100).round()}%', Offset(s.width - 4, 10), VC.ink200, align: TextAlign.right);
     }
   }
 }

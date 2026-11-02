@@ -1,5 +1,7 @@
 import 'dart:math' as math;
 
+import '../l10n/l10n.dart';
+
 enum DeviceKind {
   drone('Drone'),
   rover('Ground robot'),
@@ -8,8 +10,18 @@ enum DeviceKind {
   bench('Test bench'),
   generic('Device');
 
-  const DeviceKind(this.label);
-  final String label;
+  const DeviceKind(this.labelEn);
+
+  /// The kind's name in English; [label] is in the language shown.
+  final String labelEn;
+  String get label => switch (this) {
+    drone => t.kindDrone,
+    rover => t.kindRover,
+    arm => t.kindArm,
+    rocket => t.kindRocket,
+    bench => t.kindBench,
+    generic => t.kindGeneric,
+  };
 
   static DeviceKind parse(String? s) => DeviceKind.values.firstWhere((k) => k.name == s, orElse: () => DeviceKind.generic);
 }
@@ -23,8 +35,15 @@ enum TransportKind {
   serial('USB'),
   radio('Radio');
 
-  const TransportKind(this.label);
-  final String label;
+  const TransportKind(this.labelEn);
+  final String labelEn;
+
+  /// In the language shown (Wi-Fi, Bluetooth and USB are the same in all).
+  String get label => switch (this) {
+    sim => t.simulator,
+    radio => t.pairRadio,
+    _ => labelEn,
+  };
 }
 
 /// A camera stream the device declared in `hello`.

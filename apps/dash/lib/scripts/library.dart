@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:archive/archive.dart';
 import 'package:path_provider/path_provider.dart';
 
+import '../l10n/l10n.dart';
 import '../core/model.dart';
 import 'requirements.dart';
 
@@ -241,7 +242,7 @@ for _ in every(0.05):  # 20 Hz
 }
 
 /// Templates offered by New script.
-const scriptTemplates = {'loop': 'A control loop', 'button': 'A button action'};
+Map<String, String> get scriptTemplates => {'loop': t.tplLoop, 'button': t.tplButton};
 
 /// JSON helpers for configs kept by the store.
 Map<String, dynamic> jsonMap(Object? v) => v is Map ? v.cast<String, dynamic>() : <String, dynamic>{};

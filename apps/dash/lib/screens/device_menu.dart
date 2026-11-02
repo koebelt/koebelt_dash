@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../l10n/l10n.dart';
 import '../core/dash.dart';
 import '../core/device_link.dart';
 import '../core/sequence.dart';
@@ -97,13 +98,13 @@ class _DeviceBtnState extends State<DeviceBtn> {
   @override
   Widget build(BuildContext context) {
     final d = widget.d, dev = d.device;
-    final nm = d.replay?.session.deviceName ?? dev?.name ?? (d.connecting != null ? 'Connecting…' : 'No device');
+    final nm = d.replay?.session.deviceName ?? dev?.name ?? (d.connecting != null ? '${t.connecting}…' : t.noDevice);
     return CompositedTransformTarget(
       link: _link,
       child: Semantics(
         button: true,
         expanded: open,
-        label: 'Devices',
+        label: t.navDevices,
         child: Pressable(
           onTap: _toggle,
           builder: (_, h, _) => Row(
@@ -126,9 +127,9 @@ class _DeviceBtnState extends State<DeviceBtn> {
                         clipBehavior: Clip.hardEdge,
                         children: [
                           Text(nm, style: KText.headingXs, maxLines: 1, overflow: TextOverflow.ellipsis),
-                          if (d.replay != null) const KTag('Replay', tone: TagTone.info, height: 20),
+                          if (d.replay != null) KTag(t.navReplay, tone: TagTone.info, height: 20),
                           // On a phone (no second line) one tag: Replay wins.
-                          if (d.simulated && (widget.sub || d.replay == null)) SimTag(text: d.replay != null ? 'Demo' : 'Sim', height: 20),
+                          if (d.simulated && (widget.sub || d.replay == null)) SimTag(text: d.replay != null ? t.tagDemo : t.tagSim, height: 20),
                           if (!widget.sub && d.replay == null && d.links.length > 1) MonoLabel('+${d.links.length - 1}', color: K.textAccent),
                         ],
                       ),
@@ -137,8 +138,8 @@ class _DeviceBtnState extends State<DeviceBtn> {
                       const SizedBox(height: 6),
                       MonoLabel(
                         [
-                          if (d.replay != null) 'Replay · ${groupTitle(d.replay!.session)}' else if (dev != null) d.kind.label else 'Not connected',
-                          if (d.replay == null && d.links.length > 1) '+${d.links.length - 1} connected',
+                          if (d.replay != null) '${t.navReplay} · ${groupTitle(d.replay!.session)}' else if (dev != null) d.kind.label else t.notConnected,
+                          if (d.replay == null && d.links.length > 1) t.moreConnected(d.links.length - 1),
                         ].join(' · '),
                         maxLines: 1,
                       ),
@@ -203,15 +204,15 @@ class DeviceMenu extends StatelessWidget {
                       padding: const EdgeInsets.fromLTRB(16, 10, 8, 4),
                       child: Row(
                         children: [
-                          const Expanded(child: MonoLabel('Also connected')),
-                          KButton('Disconnect all', size: KSize.sm, variant: KButtonVariant.ghost, onPressed: d.disconnectAll),
+                          Expanded(child: MonoLabel(t.alsoConnected)),
+                          KButton(t.disconnectAll, size: KSize.sm, variant: KButtonVariant.ghost, onPressed: d.disconnectAll),
                         ],
                       ),
                     ),
                     for (final l in connected) _linked(l),
                   ],
                   if (others.isNotEmpty) ...[
-                    Padding(padding: const EdgeInsets.fromLTRB(16, 10, 16, 4), child: MonoLabel(d.links.isNotEmpty ? 'Connect another' : 'Paired devices')),
+                    Padding(padding: const EdgeInsets.fromLTRB(16, 10, 16, 4), child: MonoLabel(d.links.isNotEmpty ? t.connectAnother : t.pairedDevices)),
                     for (final x in others) _row(x),
                   ],
                   if (d.devices.isEmpty)
@@ -220,9 +221,9 @@ class DeviceMenu extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('No paired devices', style: KText.bodyMd),
+                          Text(t.noPairedDevicesShort, style: KText.bodyMd),
                           const SizedBox(height: 6),
-                          Text('Pair one, add a simulated device, or follow the quickstart.', style: KText.bodySm.copyWith(color: K.textMuted)),
+                          Text(t.noPairedDevicesHint, style: KText.bodySm.copyWith(color: K.textMuted)),
                         ],
                       ),
                     ),
@@ -242,10 +243,10 @@ class DeviceMenu extends StatelessWidget {
             ),
             child: Row(
               children: [
-                KButton('Pair device', size: KSize.sm, variant: KButtonVariant.secondary, iconLeft: const KIcon('plus', size: 14), onPressed: pair),
+                KButton(t.pairDevice, size: KSize.sm, variant: KButtonVariant.secondary, iconLeft: const KIcon('plus', size: 14), onPressed: pair),
                 const Spacer(),
                 KButton(
-                  d.devices.isEmpty ? 'Quickstart' : 'Manage',
+                  d.devices.isEmpty ? t.quickstart : t.manage,
                   size: KSize.sm,
                   variant: KButtonVariant.ghost,
                   iconRight: const KIcon('arrow-right', size: 14),
@@ -266,14 +267,14 @@ class DeviceMenu extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const MonoLabel('Replaying', color: K.textAccent),
+          MonoLabel(t.replaying, color: K.textAccent),
           const SizedBox(height: 8),
           Text(r.name, style: KText.bodyMd, maxLines: 1, overflow: TextOverflow.ellipsis),
           const SizedBox(height: 4),
           MonoLabel('${r.deviceName} · ${r.date}', maxLines: 1),
           const SizedBox(height: 10),
           KButton(
-            'Close replay',
+            t.closeReplay,
             size: KSize.sm,
             variant: KButtonVariant.secondary,
             onPressed: () {
@@ -287,11 +288,11 @@ class DeviceMenu extends StatelessWidget {
   }
 
   Widget _active(DeviceInfo x) {
-    final t = d.liveTel;
+    final tel = d.liveTel;
     final facts = [
       x.kind.label,
-      x.simulated ? 'Simulator' : (x.via.isEmpty ? x.transport.label : x.via),
-      '${t.battery.round()} %',
+      x.simulated ? t.simulator : (x.via.isEmpty ? x.transport.label : x.via),
+      '${tel.battery.round()} %',
       if (!x.simulated || d.latency > 0) '${d.latency.round()} ms',
     ];
     return Container(
@@ -322,7 +323,7 @@ class DeviceMenu extends StatelessWidget {
           Row(
             children: [
               KButton(
-                'Disconnect',
+                t.disconnect,
                 size: KSize.sm,
                 variant: KButtonVariant.ghost,
                 onPressed: () {
@@ -331,7 +332,7 @@ class DeviceMenu extends StatelessWidget {
                 },
               ),
               const Spacer(),
-              KButton('Open', size: KSize.sm, variant: KButtonVariant.secondary, onPressed: () => go('live')),
+              KButton(t.open, size: KSize.sm, variant: KButtonVariant.secondary, onPressed: () => go('live')),
             ],
           ),
         ],
@@ -341,13 +342,13 @@ class DeviceMenu extends StatelessWidget {
 
   /// A connected device that is not focused: tap to show it, ✕ to disconnect.
   Widget _linked(DeviceLink l) {
-    final x = l.info, t = l.tel, lost = l.linkLostFor > 0, alerts = l.alerts.shown.length;
+    final x = l.info, tel = l.tel, lost = l.linkLostFor > 0, alerts = l.alerts.shown.length;
     final facts = [
-      if (lost) 'link lost' else t.mode,
-      if (t.armed) 'armed',
-      if (t.seen.contains('bat')) '${t.battery.round()} %',
-      if (alerts > 0) '$alerts alert${alerts == 1 ? '' : 's'}',
-      if (l.runner?.state == RunState.running) 'sequence running',
+      if (lost) t.linkLost else tel.mode,
+      if (tel.armed) t.armed,
+      if (tel.seen.contains('bat')) '${tel.battery.round()} %',
+      if (alerts > 0) t.alerts(alerts),
+      if (l.runner?.state == RunState.running) t.sequenceRunning,
     ];
     return Pressable(
       onTap: () => d.focusDevice(x.id),
@@ -356,7 +357,7 @@ class DeviceMenu extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
         child: Row(
           children: [
-            PulseDot(color: lost || t.estop ? K.negative : (alerts > 0 ? K.warning : K.positive), animate: !lost),
+            PulseDot(color: lost || tel.estop ? K.negative : (alerts > 0 ? K.warning : K.positive), animate: !lost),
             const SizedBox(width: 10),
             Expanded(
               child: Column(
@@ -368,10 +369,10 @@ class DeviceMenu extends StatelessWidget {
                 ],
               ),
             ),
-            MonoLabel('Show', color: h ? K.textAccent : K.textMuted),
+            MonoLabel(t.show, color: h ? K.textAccent : K.textMuted),
             KIconButton(
               'x',
-              label: 'Disconnect ${x.name}',
+              label: t.disconnectName(x.name),
               size: KSize.sm,
               variant: KIconButtonVariant.bare,
               onPressed: () => d.disconnect(id: x.id),
@@ -412,22 +413,22 @@ class DeviceMenu extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 4),
-                    MonoLabel('${x.kind.label}${x.online ? '' : ' · offline'}', size: 9),
+                    MonoLabel('${x.kind.label}${x.online ? '' : ' · ${t.offline}'}', size: 9),
                   ],
                 ),
               ),
               const SizedBox(width: 8),
               if (connecting)
-                const Row(
+                Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    MarkMotion(MarkLoop.loading, size: 28, gap: K.surfaceRaised),
-                    SizedBox(width: 8),
-                    MonoLabel('Connecting'),
+                    const MarkMotion(MarkLoop.loading, size: 28, gap: K.surfaceRaised),
+                    const SizedBox(width: 8),
+                    MonoLabel(t.connecting),
                   ],
                 )
               else if (!disabled)
-                MonoLabel('Connect', color: h ? K.textAccent : K.textMuted),
+                MonoLabel(t.connect, color: h ? K.textAccent : K.textMuted),
             ],
           ),
         ),

@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
+import '../l10n/l10n.dart';
 import '../core/dash.dart';
 import '../core/export.dart';
 import '../core/save_io.dart';
@@ -66,15 +67,15 @@ class _ExportDialogState extends State<_ExportDialog> {
     final r = widget.r, formats = formatsFor(r);
     final cols = format == ExportFormat.csv ? toCsv(r).split('\n')[1].split(',').length : null;
     return KDialogPanel(
-      title: 'Export ${r.name}',
+      title: t.exportName(r.name),
       width: 480,
       onClose: () => Navigator.pop(context),
       footer: [
-        KButton(done != null ? 'Close' : 'Cancel', variant: KButtonVariant.ghost, onPressed: () => Navigator.pop(context)),
-        KButton(busy ? 'Exporting…' : 'Export ${format.label}', onPressed: busy ? null : _export),
+        KButton(done != null ? t.close : t.cancel, variant: KButtonVariant.ghost, onPressed: () => Navigator.pop(context)),
+        KButton(busy ? t.exporting : t.exportFormat(format.label), onPressed: busy ? null : _export),
       ],
       children: [
-        MonoLabel('${r.deviceName} · ${r.date} · ${mmss(r.dur)} · ${r.frames.length} frames'),
+        MonoLabel('${r.deviceName} · ${r.date} · ${mmss(r.dur)} · ${t.frames(r.frames.length)}'),
         Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -118,18 +119,18 @@ class _ExportDialogState extends State<_ExportDialog> {
               ),
           ],
         ),
-        if (cols != null) MonoLabel('$cols columns · only channels this device sent', height: 1.5),
-        if (!formats.contains(ExportFormat.gpx)) const MonoLabel('No GPS in this recording, so no GPX track', height: 1.5),
+        if (cols != null) MonoLabel(t.csvColumns(cols), height: 1.5),
+        if (!formats.contains(ExportFormat.gpx)) MonoLabel(t.noGpx, height: 1.5),
         if (busy)
           Row(
             children: [
               MarkMotion(MarkLoop.progress, size: 44, progress: progress, gap: K.surfaceRaised),
               const SizedBox(width: 12),
-              MonoLabel('Encoding ${format.label} · ${(progress * 100).round()}%'),
+              MonoLabel(t.encoding(format.label, (progress * 100).round())),
             ],
           ),
-        if (done != null) KNotice(tone: Tone.positive, title: 'Exported', child: Text(done!)),
-        if (error != null) KNotice(tone: Tone.negative, title: 'Export failed', child: Text(error!)),
+        if (done != null) KNotice(tone: Tone.positive, title: t.exported, child: Text(done!)),
+        if (error != null) KNotice(tone: Tone.negative, title: t.exportFailed, child: Text(error!)),
       ],
     );
   }

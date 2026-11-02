@@ -1,0 +1,2313 @@
+{
+  "@@locale": "en",
+  "navLive": "Live",
+  "navControl": "Control",
+  "navAutomate": "Automate",
+  "navTune": "Tune",
+  "navReplay": "Replay",
+  "navDevices": "Devices",
+  "navGuides": "Guides",
+  "navSettings": "Settings",
+  "navSequences": "Sequences",
+  "navScripts": "Scripts",
+  "settingsLanguage": "Language",
+  "settingsLanguageDesc": "The app's language. Guides not yet translated stay in English.",
+  "settingsLanguageSystem": "Same as the system ({name})",
+  "@settingsLanguageSystem": {
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "English"
+      }
+    }
+  },
+  "toastSaved": "Saved as {name}",
+  "@toastSaved": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "stopEngagedBar": "Stop engaged · tap to reset",
+  "stopEngagedTitle": "Emergency stop engaged",
+  "stopKeep": "Keep stopped",
+  "stopResetAll": "Reset all",
+  "stopReset": "Reset stop",
+  "stopBody": "Motors are stopped and all motion commands are blocked on {names}.",
+  "@stopBody": {
+    "placeholders": {
+      "names": {
+        "type": "String"
+      }
+    }
+  },
+  "theDevice": "the device",
+  "stopCheck": "Check the device before you reset. After reset it stays disarmed until you arm it again.",
+  "fleet": "Fleet",
+  "tagSim": "Sim",
+  "fleetActive": "Active",
+  "fleetLost": "Lost",
+  "fleetLinked": "Linked",
+  "fleetOff": "Off",
+  "fleetOn": "On",
+  "connecting": "Connecting",
+  "noLink": "No link",
+  "simulated": "Simulated",
+  "statLink": "Link",
+  "statLost": "Lost",
+  "statLatency": "Latency",
+  "statBattery": "Battery",
+  "statRecording": "Recording",
+  "armed": "Armed",
+  "disarmed": "Disarmed",
+  "stopLabelAll": "Emergency stop, all {count} devices",
+  "@stopLabelAll": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "stopLabel": "Emergency stop",
+  "stopTipAll": "Stops all {count} connected devices",
+  "@stopTipAll": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "stopTipSlowRadio": "STOP is still sent over this telemetry-only radio, but it is slow: up to a second",
+  "stopAll": "Stop all",
+  "stop": "Stop",
+  "failsafeHold": "holding position",
+  "failsafeRth": "returning home",
+  "failsafeLand": "landing in place",
+  "linkLostFor": "Link lost · {seconds} s",
+  "@linkLostFor": {
+    "placeholders": {
+      "seconds": {
+        "type": "String"
+      }
+    }
+  },
+  "failsafeActive": "Failsafe active: {action}.",
+  "@failsafeActive": {
+    "placeholders": {
+      "action": {
+        "type": "String"
+      }
+    }
+  },
+  "reconnecting": "Reconnecting. Failsafe starts at 1.8 s.",
+  "controlsLocked": "Controls are locked until the link is back.",
+  "linkRestored": "Link restored",
+  "linkRestoredBody": "Manual control is available again.",
+  "alertBelow": "Below {limit}.",
+  "@alertBelow": {
+    "placeholders": {
+      "limit": {
+        "type": "String"
+      }
+    }
+  },
+  "alertAbove": "Above {limit}.",
+  "@alertAbove": {
+    "placeholders": {
+      "limit": {
+        "type": "String"
+      }
+    }
+  },
+  "linkLostOther": "Its failsafe takes over after 1.8 s.",
+  "compatNewerApp": "Needs a newer app",
+  "compatOldLib": "Library too old",
+  "compatSome": "Some features may not work: {why}.",
+  "@compatSome": {
+    "placeholders": {
+      "why": {
+        "type": "String"
+      }
+    }
+  },
+  "compatUpdateApp": "Update koebelt dash.",
+  "compatUpdateLib": "Update the koebelt/link library on the device, or install an older koebelt dash in Settings > Updates.",
+  "show": "Show",
+  "alerts": "{count, plural, =1{1 alert} other{{count} alerts}}",
+  "@alerts": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "linkLost": "Link lost",
+  "replayOffControl": "Controls are off during a replay",
+  "replayOffControlWhy": "Controls act on a connected device, not on a recording.",
+  "replayOffSequences": "Sequences are off during a replay",
+  "replayOffSequencesWhy": "Sequences run on a connected device, not on a recording.",
+  "replayOffTune": "Tuning is off during a replay",
+  "replayOffTuneWhy": "Parameters are read and written on a connected device, not on a recording.",
+  "replayExitTo": "Exit the replay to get back to {name}.",
+  "@replayExitTo": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "replayExitConnect": "Exit the replay, then connect a device.",
+  "replayBack": "Back to the replay",
+  "replayExitBackTo": "Exit replay, back to {name}",
+  "@replayExitBackTo": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "replayExit": "Exit replay",
+  "notConnected": "Not connected",
+  "noDeviceTitle": "No device connected",
+  "noDeviceBody": "Pick a paired device or pair a new one. Telemetry and controls appear once the link is up.",
+  "connectFailed": "Could not connect",
+  "noPairedDevices": "No paired devices yet.",
+  "offline": "Offline",
+  "batteryPct": "{pct}% battery",
+  "@batteryPct": {
+    "placeholders": {
+      "pct": {
+        "type": "int"
+      }
+    }
+  },
+  "connect": "Connect",
+  "pairNewDevice": "Pair new device",
+  "or": "Or",
+  "addSimulated": "Add a simulated device",
+  "addSimulatedDesc": "A virtual drone, rover, arm, rocket or test bench, to try the app without hardware.",
+  "openRecording": "Open a recording",
+  "openRecordingDesc": "Replay a session, a flight log or the sample recordings.",
+  "setUpLibrary": "Set up the library",
+  "setUpLibraryDesc": "Add koebelt/link to your Arduino, Python, ROS 2 or Rust project.",
+  "noDevice": "No device",
+  "tagDemo": "Demo",
+  "moreConnected": "+{count} connected",
+  "@moreConnected": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "alsoConnected": "Also connected",
+  "disconnectAll": "Disconnect all",
+  "connectAnother": "Connect another",
+  "pairedDevices": "Paired devices",
+  "noPairedDevicesShort": "No paired devices",
+  "noPairedDevicesHint": "Pair one, add a simulated device, or follow the quickstart.",
+  "pairDevice": "Pair device",
+  "quickstart": "Quickstart",
+  "manage": "Manage",
+  "replaying": "Replaying",
+  "closeReplay": "Close replay",
+  "simulator": "Simulator",
+  "disconnect": "Disconnect",
+  "open": "Open",
+  "sequenceRunning": "sequence running",
+  "disconnectName": "Disconnect {name}",
+  "@disconnectName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "automateSeqBlurb": "Steps in order, no code: take off, fly to, wait, land; drive to; move to a pose.",
+  "automateSeqPoint1": "No code: build it in the app",
+  "automateSeqPoint2": "Runs on the device when it can store it",
+  "automateSeqPoint3": "Keeps going if the link drops",
+  "automateSeqConnect": "Connect a device to build its sequences",
+  "automateSeqCount": "{count, plural, =0{No sequence} =1{1 sequence} other{{count} sequences}} for {name}",
+  "@automateSeqCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "automateScriptBlurb": "Python that reads the telemetry and the camera, decides, and drives the device.",
+  "automateScriptPoint1": "Logic, sensors, the camera",
+  "automateScriptPoint2": "Any package: OpenCV, PyTorch, YOLO",
+  "automateScriptPoint3": "Triggers: buttons, keys, conditions, timers",
+  "automateScriptPoint3Host": "Runs on a script host: a computer on your network",
+  "scriptsCount": "{count, plural, =0{No script} =1{1 script} other{{count} scripts}}",
+  "@scriptsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "automateEyebrow": "Two ways to automate",
+  "runningOn": "{what} on {device}",
+  "@runningOn": {
+    "placeholders": {
+      "what": {
+        "type": "String"
+      },
+      "device": {
+        "type": "String"
+      }
+    }
+  },
+  "automateTogether1": "Together: a script can start a sequence, ",
+  "automateTogether2": ", and decide when.",
+  "sequenceOrScript": "Sequence or script?",
+  "running": "Running",
+  "layoutHud": "HUD",
+  "layoutWall": "WALL",
+  "editLayout": "Edit layout",
+  "sceneLayers3d": "3D scene layers",
+  "layerCloud": "Point cloud",
+  "layerTrail": "Trajectory",
+  "layerRadar": "Radar tracks",
+  "layerGrid": "Ground grid",
+  "sceneLayers": "Scene layers",
+  "addWidget": "Add widget",
+  "widgetsSavedFor": "Widgets are saved for {device} on {screens} screens.",
+  "@widgetsSavedFor": {
+    "placeholders": {
+      "device": {
+        "type": "String"
+      },
+      "screens": {
+        "type": "String"
+      }
+    }
+  },
+  "thisDevice": "this device",
+  "screenPhone": "phone",
+  "screenShort": "sideways phone",
+  "screenPortrait": "upright tablet",
+  "screenTablet": "tablet",
+  "screenDesktop": "desktop",
+  "reset": "Reset",
+  "cancel": "Cancel",
+  "saveLayout": "Save layout",
+  "back": "Back",
+  "paused": "Paused",
+  "stale": "Stale",
+  "hzLive": "{hz} Hz live",
+  "@hzLive": {
+    "placeholders": {
+      "hz": {
+        "type": "int"
+      }
+    }
+  },
+  "resume": "Resume",
+  "pause": "Pause",
+  "statMin": "Min",
+  "statMax": "Max",
+  "statMean": "Mean",
+  "unit": "Unit",
+  "window": "Window",
+  "windowValue": "10 s · 300 samples",
+  "source": "Source",
+  "tapChannelToHide": "Tap a channel to hide it",
+  "rec": "Rec",
+  "speedLimit": "Speed limit",
+  "setHomePose": "Set home pose",
+  "setHomeHere": "Set home here",
+  "useThisPose": "Use this pose",
+  "setHome": "Set home",
+  "setHomePoseBody": "The current joint angles become the pose that Home pose and sequence Home steps move to.",
+  "setHomeBody": "The current position becomes home (0, 0). Return-to-home flies back here, and sequence waypoints are measured from here. The device is {metres} m from the current home.",
+  "@setHomeBody": {
+    "placeholders": {
+      "metres": {
+        "type": "String"
+      }
+    }
+  },
+  "autoDashDrives": "dash drives it",
+  "autoTakeBack": "Choose MANUAL or HOLD, or move the sticks, to take it back.",
+  "autoTip": "dash’s mode: while a sequence or a script drives the device. Run one from Automate.",
+  "tiltDrag": "Tilt · drag to simulate",
+  "stickThrottle": "Throttle",
+  "stickDrive": "Drive",
+  "stickYaw": "Yaw",
+  "stickPitchRoll": "Pitch · roll",
+  "stickSteer": "Steer",
+  "stickThrottleYaw": "Throttle · yaw",
+  "tiltPitchRoll": "Tilt · pitch and roll",
+  "tiltSteerDrive": "Tilt · steer and drive",
+  "axUp": "UP",
+  "axDn": "DN",
+  "axFwd": "FWD",
+  "axRev": "REV",
+  "axBack": "BACK",
+  "axL": "L",
+  "axR": "R",
+  "axYaw": "YAW",
+  "rdAlt": "Alt",
+  "rdOdom": "Odom",
+  "rdSpeed": "Speed",
+  "rdHdg": "Hdg",
+  "rdHome": "Home",
+  "rdVz": "Vz",
+  "rdMax": "Max",
+  "rdRange": "Range",
+  "rdToolX": "Tool X",
+  "rdToolY": "Tool Y",
+  "rdToolZ": "Tool Z",
+  "rdThrust": "Thrust",
+  "rdRpm": "RPM",
+  "rdCurrent": "Current",
+  "rdPower": "Power",
+  "rdTemp": "Temp",
+  "rdEfficiency": "Efficiency",
+  "homePose": "Home pose",
+  "setAsHome": "Set as home",
+  "armJoint": "Joint",
+  "armCartesian": "Cartesian",
+  "toolFrame": "Tool frame · base-relative",
+  "armPadHelp": "Controller · {frame}: joint / cartesian · {wristBtn}: {wrist} · {gripper}: gripper",
+  "@armPadHelp": {
+    "placeholders": {
+      "frame": {
+        "type": "String"
+      },
+      "wristBtn": {
+        "type": "String"
+      },
+      "wrist": {
+        "type": "String"
+      },
+      "gripper": {
+        "type": "String"
+      }
+    }
+  },
+  "armWrist": "wrist",
+  "gripper": "Gripper",
+  "gripperOpenPct": "{pct}% open",
+  "@gripperOpenPct": {
+    "placeholders": {
+      "pct": {
+        "type": "int"
+      }
+    }
+  },
+  "gripperOpen": "Open",
+  "gripperClose": "Close",
+  "flightPhase": "Flight phase",
+  "phasePad": "On pad",
+  "phaseCount": "Countdown",
+  "phaseBoost": "Boost",
+  "phaseCoast": "Coast",
+  "phaseDrogue": "Drogue",
+  "phaseMain": "Main",
+  "phaseLanded": "Landed",
+  "preflight": "Pre-flight",
+  "checkPyro": "Pyro continuity · drogue, main",
+  "ok": "OK",
+  "check": "Check",
+  "checkGps": "GPS lock",
+  "sats": "{count} sats",
+  "@sats": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "noFix": "No fix",
+  "checkFlightComputer": "Flight computer",
+  "safe": "Safe",
+  "armFlightComputer": "Arm flight computer",
+  "armPadClear": "Arm only when the pad is clear",
+  "startCountdown": "Start countdown · {seconds} s",
+  "@startCountdown": {
+    "placeholders": {
+      "seconds": {
+        "type": "String"
+      }
+    }
+  },
+  "abortLaunch": "Abort launch",
+  "deployDrogue": "Deploy drogue",
+  "deployMain": "Deploy main",
+  "autoDeploy": "Auto deploy · drogue at apogee · main at {metres} m",
+  "@autoDeploy": {
+    "placeholders": {
+      "metres": {
+        "type": "String"
+      }
+    }
+  },
+  "landedBody": "Apogee {apogee} m · landed {distance} m from the pad.",
+  "@landedBody": {
+    "placeholders": {
+      "apogee": {
+        "type": "String"
+      },
+      "distance": {
+        "type": "String"
+      }
+    }
+  },
+  "resetToPad": "Reset to pad",
+  "altitude": "Altitude",
+  "cutoff": "Cutoff",
+  "cutoffLimit": "limit",
+  "cutoffBody": "Throttle was set to 0. Check the motor before running again.",
+  "clear": "Clear",
+  "benchDisarmed": "Arm the bench to spin the motor. Keep clear of the propeller.",
+  "testSequence": "Test sequence",
+  "benchRamp": "RAMP",
+  "benchSteps": "STEPS",
+  "runAndRecord": "Run and record",
+  "benchRampDesc": "Ramp 0 to 100 % over {seconds} s, hold 2 s, stop.",
+  "@benchRampDesc": {
+    "placeholders": {
+      "seconds": {
+        "type": "String"
+      }
+    }
+  },
+  "benchStepsDesc": "Steps of {size} %, {seconds} s each, up to 100 %.",
+  "@benchStepsDesc": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      },
+      "seconds": {
+        "type": "String"
+      }
+    }
+  },
+  "benchLimits": "Limits: {amps} A, {celsius} °C.",
+  "@benchLimits": {
+    "placeholders": {
+      "amps": {
+        "type": "String"
+      },
+      "celsius": {
+        "type": "String"
+      }
+    }
+  },
+  "mspTitle": "Monitoring and tuning",
+  "mspBody": "{name} runs {firmware} and is connected over MSP, the configuration link. The app shows its telemetry, tunes its PID gains on the Tune screen, and STOP disarms it. Fly it with your RC transmitter.",
+  "@mspBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "firmware": {
+        "type": "String"
+      }
+    }
+  },
+  "radioOnlyTitle": "Telemetry-only link",
+  "radioOnlyBody": "{name} is connected through {radio}, which carries telemetry only. Sticks, modes and commands do not reach the device this way; STOP does, within about a second. Control it over its main link (Wi-Fi, Bluetooth or a SiK radio) and rely on its failsafe when that link is out of range.",
+  "@radioOnlyBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "radio": {
+        "type": "String"
+      }
+    }
+  },
+  "aRadio": "a radio",
+  "tileReadouts": "Readouts",
+  "tileSrcFused": "Fused state",
+  "tileAttitude": "Attitude",
+  "tileAccelerometer": "Accelerometer",
+  "tileGyroscope": "Gyroscope",
+  "tileSrcBaroRange": "Baro + rangefinder",
+  "tileRadar": "Radar",
+  "tileSrcRadar": "Radar / safety scanner",
+  "tileLidar": "Lidar",
+  "tileSrcLidar": "Scanning lidar",
+  "tileJoints": "Joints",
+  "tileSrcJoints": "Joint encoders",
+  "tileForceTorque": "Force / torque",
+  "tileSrcWrist": "Wrist F/T sensor",
+  "tileSrcPower": "Power module",
+  "tileSrcRadio": "Radio link",
+  "tileCamera": "Camera",
+  "tileSrcCamera": "Device camera · MJPEG",
+  "tileSrcFleet": "Every connected device",
+  "tileSrcPhase": "Flight computer state machine",
+  "tileVerticalSpeed": "Vertical speed",
+  "tileSrcBaroImu": "Baro + IMU fusion",
+  "tilePyro": "Pyro channels",
+  "tileSrcPyro": "4-channel pyro board",
+  "tileSrcTacho": "Optical tachometer",
+  "tileTorque": "Torque",
+  "tileSrcTorque": "Reaction torque cell",
+  "tileMotorTemp": "Motor temp",
+  "tileSrcNtc": "NTC thermistor",
+  "tileRollRate": "Roll rate",
+  "tilePitchRate": "Pitch rate",
+  "tileYawRate": "Yaw rate",
+  "tileGroundSpeed": "Ground speed",
+  "tileAgl": "AGL",
+  "tileOwnSpeed": "Own speed",
+  "tileVoltage": "Voltage",
+  "tilePyroBus": "Pyro bus",
+  "tileStator": "Stator",
+  "tileVibration": "Vibration",
+  "tileAcc200": "Accelerometer · 200 G",
+  "tileSafetyScanner": "Safety scanner",
+  "tracks": "{count} tracks",
+  "@tracks": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "points": "{count} pts",
+  "@points": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "axes": "{count} axes",
+  "@axes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "connectedCount": "{count} connected",
+  "@connectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "armedCount": "{count} armed",
+  "@armedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "proxClear": "clear",
+  "tileProximity": "Proximity",
+  "tileSrcProx": "Proximity sensors",
+  "tileSrcCustom": "Custom channel · {hz} Hz",
+  "@tileSrcCustom": {
+    "placeholders": {
+      "hz": {
+        "type": "String"
+      }
+    }
+  },
+  "tagScript": "Script",
+  "viewEnded": "ended",
+  "series": "{count} series",
+  "@series": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "rdReach": "Reach",
+  "pyroDrogue": "Drogue",
+  "pyroMain": "Main",
+  "pyroAirstart": "Airstart",
+  "pyroSpare": "Spare",
+  "pyroContinuity": "Continuity",
+  "pyroFired": "Fired",
+  "pyroNotWired": "Not wired",
+  "removeTitle": "Remove {name}?",
+  "@removeTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "removeDevice": "Remove device",
+  "removeBody": "The pairing key, HUD layouts and parameter drafts for {name} are deleted from this app.",
+  "@removeBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "removeDisconnectFirst": "It will be disconnected first.",
+  "removeKept": "Recordings are kept. To use the device again, pair it with a new code.",
+  "onlineOf": "{online} of {total} online",
+  "@onlineOf": {
+    "placeholders": {
+      "online": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "devicesEmptyHint": "Pair a device, or follow the quickstart to add the library to your project.",
+  "devicesSeveral": "Several devices can be connected at once. The one shown gets the sticks; the others hold on centred sticks, and STOP stops them all.",
+  "connected": "Connected",
+  "removeName": "Remove {name}",
+  "@removeName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "online": "Online",
+  "batShort": "BAT",
+  "myRobot": "My robot",
+  "radioNothingHeard": "Nothing heard on {port} at {baud} baud. Check that the device is on, both radios use the same channel and air rate, and the baud rate matches. You can still add the link and connect later.",
+  "@radioNothingHeard": {
+    "placeholders": {
+      "port": {
+        "type": "String"
+      },
+      "baud": {
+        "type": "int"
+      }
+    }
+  },
+  "pairTitle": "Pair a device",
+  "pairNearby": "Nearby",
+  "pairRadio": "Radio",
+  "pairSimulated": "Simulated",
+  "pairSimulatedIntro": "Simulated devices run inside this app and speak the same protocol as real hardware. Add only the ones you need; each one is listed with a SIM tag.",
+  "added": "Added",
+  "addAnother": "Add another",
+  "add": "Add",
+  "radioRatesTlm": "Telemetry {tlm} Hz · no control",
+  "@radioRatesTlm": {
+    "placeholders": {
+      "tlm": {
+        "type": "int"
+      }
+    }
+  },
+  "radioRates": "Telemetry {tlm} Hz · control {ctl} Hz",
+  "@radioRates": {
+    "placeholders": {
+      "tlm": {
+        "type": "int"
+      },
+      "ctl": {
+        "type": "int"
+      }
+    }
+  },
+  "radioIntro": "A radio link is a radio modem plugged into this computer or phone over USB, talking to a matching radio on the device.",
+  "radioIntroMore": "To the app it is a serial port; the radio type sets the speed and how much it can carry.",
+  "radioNoSerial": "No USB serial on this platform",
+  "radioNoSerialBody": "iOS apps cannot open USB serial adapters. Use the app on Android, macOS, Windows or Linux for radio links, or connect over Wi-Fi or Bluetooth.",
+  "radioLora": "LoRa modules are not USB devices on their own. Flash the ground-station sketch from the LoRa guide onto a second board with the radio, and plug that board in.",
+  "usbPort": "USB port",
+  "refresh": "Refresh",
+  "noSerialPorts": "No serial ports found. Plug in the radio’s USB adapter.",
+  "baudRate": "Baud rate",
+  "heard": "Heard {name}",
+  "@heard": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "heardMavlink": "It speaks MAVLink: no pairing needed.",
+  "heardPairing": "It is in pairing mode and will get a key.",
+  "heardNoPairing": "It is not in pairing mode; it is added without a key.",
+  "listening": "Listening",
+  "listenForDevice": "Listen for device",
+  "pairName": "Pair {name}",
+  "@pairName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "addRadioLink": "Add radio link",
+  "pairNearbyIntro": "Plug in or power on the board. Flight controllers and drones appear on their own; boards running the koebelt/link library also show up here while in pairing mode.",
+  "scanning": "Scanning Wi-Fi, Bluetooth and USB boards…",
+  "stillScanning": "Still scanning for more devices…",
+  "addByIp": "Add by IP address",
+  "name": "Name",
+  "mavlinkPortNote": "The app listens on UDP 14550, like any ground station; the port is the vehicle’s, if you know it.",
+  "addDevice": "Add device",
+  "notShowingUp": "Device not showing up? Boards with ArduPilot, PX4, Betaflight or INAV connect as they are; anything else needs the koebelt/link library.",
+  "openQuickstart": "Open the quickstart",
+  "orLower": "or",
+  "addItByIp": "add it by IP address",
+  "secControl": "Control",
+  "secController": "Game controller",
+  "secLink": "Link and safety",
+  "secRecording": "Recording",
+  "secAlerts": "Alerts",
+  "secMap": "Map",
+  "secPairing": "Pairing",
+  "secAi": "AI assistants (MCP)",
+  "secAiShort": "AI assistants",
+  "secUpdates": "Updates",
+  "setInput": "Input method",
+  "setInputDesc": "Sticks: two virtual joysticks. Sliders: spring-loaded throttle and yaw with one stick. Tilt: steer by tilting the phone or tablet.",
+  "csSticks": "STICKS",
+  "csSliders": "SLIDERS",
+  "csTilt": "TILT",
+  "setInvert": "Invert pitch",
+  "setInvertDesc": "Push forward to pitch up.",
+  "setHaptics": "Haptic feedback",
+  "setHapticsDesc": "Vibrate at stick centre and on warnings.",
+  "setLinkLoss": "On link loss",
+  "setLinkLossDesc": "What a drone does after 1.8 s without a control packet. Ground robots and arms hold, test benches stop the motor, rockets continue their flight sequence.",
+  "setRate": "Telemetry rate",
+  "setRateDesc": "Higher rates use more bandwidth and battery.",
+  "setTestFailsafe": "Test failsafe",
+  "setTestFailsafeDesc": "Drops the control link for six seconds so you can check the configured behaviour.",
+  "runTest": "Run test",
+  "setRecordVideo": "Record video",
+  "setRecordVideoDesc": "Keep the device’s camera with each recording. The camera stays connected while recording, even when no screen shows it.",
+  "setVideoFps": "Video frame rate",
+  "setVideoFpsDesc": "Most frames a second kept. An ESP32-CAM at 640×480 takes about 10 MB a minute at 10 fps.",
+  "setAlertSound": "Alert sound",
+  "setAlertSoundDesc": "Plays on alerts and when the link is lost. Phones vibrate instead when haptics are on.",
+  "kindsOnly": "{kinds} only.",
+  "@kindsOnly": {
+    "placeholders": {
+      "kinds": {
+        "type": "String"
+      }
+    }
+  },
+  "below": "Below",
+  "above": "Above",
+  "setMapTiles": "Map tiles",
+  "setMapTilesDesc": "Background for the map view: Mapbox Dark, Outdoors (terrain) or Satellite, your own tiles, or none (a metre grid). Tiles you have looked at stay on this device for a while.",
+  "mapDark": "DARK",
+  "mapOutdoors": "OUTDOORS",
+  "mapSatellite": "SATELLITE",
+  "mapCustom": "CUSTOM",
+  "mapNone": "NONE",
+  "setMapboxToken": "Your Mapbox token",
+  "setMapboxTokenDesc": "Optional: a public token (pk.…) from your own Mapbox account, to use your quota instead of the app’s.",
+  "setTileUrl": "Tile URL",
+  "setTileUrlDesc": "A template with {z}, {x} and {y}, for example a satellite layer from your map provider with its key. Respect the provider’s terms.",
+  "@setTileUrlDesc": {
+    "placeholders": {
+      "z": {
+        "type": "String"
+      },
+      "x": {
+        "type": "String"
+      },
+      "y": {
+        "type": "String"
+      }
+    }
+  },
+  "setAttribution": "Attribution",
+  "setAttributionDesc": "The credit your provider requires, shown on the map.",
+  "provider": "Provider",
+  "setGuides": "Integration guides",
+  "setGuidesDesc": "Add the koebelt/link library to Arduino, Python, ROS 2 or Rust projects.",
+  "scriptHostAt": "Script host at {address}",
+  "@scriptHostAt": {
+    "placeholders": {
+      "address": {
+        "type": "String"
+      }
+    }
+  },
+  "forget": "Forget",
+  "setScriptHosts": "Script hosts",
+  "setScriptHostsDesc": "Computers on the network that run scripts for this device, with any Python package. On the computer: pip install koebelt-dash-scripts, then koebelt-dash-scripts host.",
+  "setScriptHostsDescPhone": "Computers on the network that run scripts for this phone, with any Python package. On the computer: pip install koebelt-dash-scripts, then koebelt-dash-scripts host.",
+  "setBeHost": "Be a script host",
+  "setBeHostDesc": "Run scripts for phones and tablets on this network, with the scripts’ Python.",
+  "setBeHostCode": "Pairing code: {code}. Phones pair in Scripts > Runs on > Add a script host.",
+  "@setBeHostCode": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "sessionsCount": "{count, plural, =1{1 session} other{{count} sessions}}",
+  "@sessionsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "import": "Import",
+  "record": "Record",
+  "noRecordings": "No recordings yet. Record a connected device, or use Import for a file or the sample recordings.",
+  "tagNew": "New",
+  "tagVideo": "Video",
+  "devicesCount": "{count, plural, =1{1 device} other{{count} devices}}",
+  "@devicesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "deleteName": "Delete {name}",
+  "@deleteName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "exportName": "Export {name}",
+  "@exportName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "replayEyebrow": "Recording and playback",
+  "sessions": "Sessions",
+  "export": "Export",
+  "exitToLive": "Exit to live",
+  "play": "Play",
+  "deleteTitle": "Delete {name}?",
+  "@deleteTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "exportFirst": "Export first",
+  "delete": "Delete",
+  "deleteRecordingBody": "The recording is removed from this device. This cannot be undone.",
+  "deleteAllN": "Delete all {count}",
+  "@deleteAllN": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "deleteSessionBody": "Every device’s recording of this session is removed from this device, with its video. This cannot be undone.",
+  "sequenceN": "Sequence {n}",
+  "@sequenceN": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "sequencesCount": "{count, plural, =0{no sequence} =1{1 sequence} other{{count} sequences}}",
+  "@sequencesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "copyOf": "{name} copy",
+  "@copyOf": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "noSequencesFor": "No sequences for {name} yet.",
+  "@noSequencesFor": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "sequenceIntro": "A sequence is a list of steps ({examples}) that the app runs one after the other, waiting for the device to confirm each one.",
+  "@sequenceIntro": {
+    "placeholders": {
+      "examples": {
+        "type": "String"
+      }
+    }
+  },
+  "sequenceComplete": "Sequence complete",
+  "sequenceStopped": "Sequence stopped",
+  "flightSequence": "Flight sequence",
+  "flightSequenceBody": "The flight computer runs launch, apogee and recovery on board. Set deployment on the Tune screen; use sequences here for pad checks.",
+  "stepsDrone": "take off, fly to waypoints, wait, land",
+  "stepsRover": "drive to waypoints, wait, change speed",
+  "stepsArm": "move to poses, open or close the gripper",
+  "stepsBench": "hold a throttle, ramp between two throttles",
+  "stepsGeneric": "wait, set a mode, send commands",
+  "whyExitReplay": "Exit replay to run",
+  "whyResetStop": "Reset the stop first",
+  "whyAddSteps": "Add steps first",
+  "onDevice": "On device",
+  "uploading": "Uploading",
+  "stepOf": "step {n} of {total}",
+  "@stepOf": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "runsOnDevice": "Runs on the device: it carries on if the link drops",
+  "stopSequence": "Stop sequence",
+  "stoppedFromApp": "Stopped from the app",
+  "run": "Run",
+  "stepsCount": "{count, plural, =1{1 step} other{{count} steps}}",
+  "@stepsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "secondsTimed": "{seconds} s timed",
+  "@secondsTimed": {
+    "placeholders": {
+      "seconds": {
+        "type": "String"
+      }
+    }
+  },
+  "newSequence": "New sequence",
+  "duplicate": "Duplicate",
+  "steps": "Steps",
+  "lockedWhileRunning": "Locked while running",
+  "addFirstStep": "Add the first step below. Steps run top to bottom.",
+  "addStep": "Add step",
+  "dragToReorder": "Drag to reorder",
+  "deleteStep": "Delete step",
+  "useCurrentPosition": "Use current position",
+  "useCurrentPose": "Use current pose",
+  "egDeploy": "e.g. deploy",
+  "planTopView": "Plan · top view",
+  "throttleProfile": "Throttle profile",
+  "liveView": "Live view",
+  "timeline": "Timeline",
+  "setPoseAsHome": "Set current pose as home",
+  "planNoteDrone": "Waypoints are metres east and north of the take-off point. The drone holds at each one before the next step. The failsafe still applies if the link drops.",
+  "planNoteRover": "Waypoints are metres east and north of the start point. The rover stops at each one before the next step.",
+  "planNoteArm": "Move the arm by hand or with jog controls, then use “{button}” to record it.",
+  "@planNoteArm": {
+    "placeholders": {
+      "button": {
+        "type": "String"
+      }
+    }
+  },
+  "planNoteBench": "Current and temperature cutoffs on the device stay active during the sequence.",
+  "planNoteGeneric": "Each step waits for the device to confirm before the next one starts.",
+  "metreGrid": "{metres} m grid",
+  "@metreGrid": {
+    "placeholders": {
+      "metres": {
+        "type": "String"
+      }
+    }
+  },
+  "now": "Now",
+  "and": "and",
+  "checkNeedsPython": "Check needs Python on this computer: Set up Python on the script’s page.",
+  "couldNotCheck": "Could not check with {python}.",
+  "@couldNotCheck": {
+    "placeholders": {
+      "python": {
+        "type": "String"
+      }
+    }
+  },
+  "scriptErrors": "{count, plural, =1{This script has an error} other{This script has {count} errors}}",
+  "@scriptErrors": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "runAnyway": "Run anyway",
+  "showThem": "Show them",
+  "checkFound": "Check found what would stop it, probably before it moves anything:",
+  "lineN": "line {n}",
+  "@lineN": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "andMore": "and {count} more",
+  "@andMore": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "installImports": "Install what this script imports?",
+  "installAndRun": "Install and run",
+  "missingImports": "{count, plural, =1{{names} is not in this Python, so the script would stop at its imports.} other{{names} are not in this Python, so the script would stop at its imports.}}",
+  "@missingImports": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "names": {
+        "type": "String"
+      }
+    }
+  },
+  "couldNotStart": "Could not start: {error}",
+  "@couldNotStart": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "pythonScripts": "Python scripts",
+  "copiedExample": "Copied the example to {file} in your scripts.",
+  "@copiedExample": {
+    "placeholders": {
+      "file": {
+        "type": "String"
+      }
+    }
+  },
+  "couldNotCopyExample": "Could not copy the example: {error}",
+  "@couldNotCopyExample": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "rename": "Rename",
+  "deleteScriptBody": "It moves to the .trash folder inside the scripts folder, where you can get it back.",
+  "error": "Error",
+  "examples": "Examples",
+  "connectedOutside": "Connected from outside dash",
+  "editing": "editing",
+  "saved": "saved",
+  "checkAction": "Check",
+  "checking": "Checking…",
+  "openInEditor": "Open in editor",
+  "newScript": "New script",
+  "importPyZip": "Import a .py or .zip",
+  "noScriptsPlus": "No scripts yet. Start from an example, or press +.",
+  "scriptsEmpty": "Scripts drive your devices from Python. Create one, import one, or start from an example.",
+  "edit": "Edit",
+  "share": "Share",
+  "noScriptsNew": "No scripts yet. Start from an example, or press New.",
+  "more": "More",
+  "showInFinder": "Show in Finder",
+  "showInFolder": "Show in folder",
+  "myScript": "My script",
+  "create": "Create",
+  "save": "Save",
+  "device": "Device",
+  "needs": "Needs",
+  "runsOn": "Runs on",
+  "scriptsRunOnComputer": "Scripts run on a computer",
+  "scriptsRunOnComputerBody": "This device sends them to a script host: a computer on the same network running koebelt-dash-scripts, which can use any Python package (OpenCV, PyTorch…).",
+  "addScriptHost": "Add a script host",
+  "notRunning": "Not running",
+  "endedError": "Ended with an error",
+  "ended": "Ended",
+  "waitingConnect": "Waiting for the script to connect (connect() in the script)…",
+  "youHaveSticks": "You have the sticks",
+  "youHaveSticksBody": "You moved the sticks, so the script’s are ignored.",
+  "scriptLostSticks": "The script lost the sticks",
+  "isNotConnected": "{name} is not connected",
+  "@isNotConnected": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "connectItOrChoose": "Connect it, or choose another device above.",
+  "doesNotFit": "{name} does not fit this script",
+  "@doesNotFit": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "chooseOrChangeRequires": "Choose another device above, or change the # requires: line.",
+  "scriptNeedsDevice": "A script drives a device: connect one first (Devices, or the device menu at the top).",
+  "doesNotFitShort": "does not fit",
+  "selectedInDash": "Selected in dash",
+  "noneConnected": "none connected",
+  "thisComputer": "This computer",
+  "lookingForPython": "Looking for Python…",
+  "noneFound": "None found",
+  "noPackage": "no package",
+  "python3Needed": "Python 3 is needed",
+  "python3NeededBody": "Install it from python.org, then come back here.",
+  "newerLibrary": "A newer version of the library scripts use is out, for this version of koebelt dash.",
+  "update": "Update",
+  "pythonNoAnswer": "This Python does not answer",
+  "packageNotInPython": "koebelt-dash-scripts is not in this Python",
+  "pythonNoAnswerBody": "dash could not run {python}. Choose another, or create a scripts environment.",
+  "@pythonNoAnswerBody": {
+    "placeholders": {
+      "python": {
+        "type": "String"
+      }
+    }
+  },
+  "packageNotInPythonBody": "Install it here (pip install koebelt-dash-scripts), or let dash create a scripts environment in the scripts folder.",
+  "installHere": "Install here",
+  "scriptsEnvironment": "Scripts environment",
+  "checkAgain": "Check again",
+  "settingUpPython": "Setting up Python",
+  "oneTimeSetup": "One-time setup",
+  "oneTimeSetupBody": "Scripts need the koebelt-dash-scripts package. dash can create a Python environment for them in the scripts folder (.venv) and install it there; your own packages (OpenCV, PyTorch…) go there too.",
+  "setUpPython": "Set up Python",
+  "packagesMissing": "{count, plural, =1{A package is missing} other{Packages are missing}}",
+  "@packagesMissing": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "packagesMissingBody": "This script imports {modules}, not in this Python: it would stop there. Install {packages}?",
+  "@packagesMissingBody": {
+    "placeholders": {
+      "modules": {
+        "type": "String"
+      },
+      "packages": {
+        "type": "String"
+      }
+    }
+  },
+  "installing": "Installing…",
+  "install": "Install",
+  "notNow": "Not now",
+  "dismiss": "Dismiss",
+  "stopScript": "Stop script",
+  "restart": "Restart",
+  "triggers": "Triggers",
+  "triggersEmpty": "Buttons, keys, controller buttons, conditions and timers that send events to the script. Declare them with @dev.trigger(…), or add them here.",
+  "limits": "Limits",
+  "maxSpeed": "Max speed",
+  "geofence": "Geofence",
+  "off": "off",
+  "metresFromHome": "{metres} m from home",
+  "@metresFromHome": {
+    "placeholders": {
+      "metres": {
+        "type": "int"
+      }
+    }
+  },
+  "ceiling": "Ceiling",
+  "armingTakeoff": "Arming, take-off",
+  "allowed": "allowed",
+  "notAllowed": "not allowed",
+  "paramWrites": "Parameter writes",
+  "fire": "Fire",
+  "notBound": "Not bound yet",
+  "console": "Console",
+  "loopHz": "loop {hz} Hz",
+  "@loopHz": {
+    "placeholders": {
+      "hz": {
+        "type": "String"
+      }
+    }
+  },
+  "consoleEmpty": "print() output and errors show here.",
+  "fromOutside": "from outside dash",
+  "valid": "Valid",
+  "padTaken": "{button} is {action} in the controller mapping: that action wins.",
+  "@padTaken": {
+    "placeholders": {
+      "button": {
+        "type": "String"
+      },
+      "action": {
+        "type": "String"
+      }
+    }
+  },
+  "forDuration": "for",
+  "conditionHelp": "Fields: {fields}, mode, armed, and the device’s own channels (motor_temp.max…). Combine with and, or, not; add “for 3s” to wait.",
+  "@conditionHelp": {
+    "placeholders": {
+      "fields": {
+        "type": "String"
+      }
+    }
+  },
+  "whenTrue": "WHEN TRUE",
+  "trueAndFalse": "TRUE AND FALSE",
+  "alsoOnControl": "Also on Control, next to the sticks",
+  "key": "Key",
+  "pressKey": "Press a key…",
+  "pressAnotherKey": "{key} · press another to change",
+  "@pressAnotherKey": {
+    "placeholders": {
+      "key": {
+        "type": "String"
+      }
+    }
+  },
+  "clickThenKey": "Click, then press a key",
+  "noButtonYet": "No button yet",
+  "pressButton": "Press a button…",
+  "learn": "Learn",
+  "onlyThisMode": "Only this mode (HOLD…), or empty for any",
+  "onlyMessagesContaining": "Only messages containing…",
+  "every": "EVERY",
+  "onceAfter": "ONCE AFTER",
+  "secondsWord": "seconds",
+  "addTrigger": "Add trigger",
+  "editTrigger": "Edit trigger",
+  "event": "Event",
+  "eventPlaceholder": "The name the script receives",
+  "firedBy": "Fired by",
+  "triggerHelp": "The script receives “{event}” in the handler of that name, or in @dev.on_trigger. Conditions, events and timers run in dash.",
+  "@triggerHelp": {
+    "placeholders": {
+      "event": {
+        "type": "String"
+      }
+    }
+  },
+  "done": "Done",
+  "limitsHelp": "Set here, not in the script: the script cannot change them.",
+  "maximumSpeed": "Maximum speed",
+  "maximumSpeedDesc": "The script’s sticks are scaled to this, and its speed limit capped.",
+  "geofenceDesc": "Beyond this distance from home, the script loses the sticks and the device holds.",
+  "ceilingDesc": "Above this height, the same for drones.",
+  "allowArming": "Allow arming and take-off",
+  "allowArmingDesc": "Otherwise the script can only move a device you armed.",
+  "allowParams": "Allow parameter writes",
+  "allowParamsDesc": "For tuning scripts. They can change how the device behaves.",
+  "pairing": "Pairing…",
+  "pair": "Pair",
+  "scriptHostIntro": "A script host is a computer on the same network that runs scripts for this computer: a laptop, a Raspberry Pi, a Jetson… On it:",
+  "scriptHostIntroPhone": "A script host is a computer on the same network that runs scripts for this phone or tablet: a laptop, a Raspberry Pi, a Jetson… On it:",
+  "onTheNetwork": "On the network",
+  "lookingForHosts": "Looking for script hosts",
+  "noHostsFound": "None found. Type its address below (shown by `ipconfig getifaddr en0`, `hostname -I`…).",
+  "lookAgain": "Look again",
+  "address": "Address",
+  "pairingCode": "Pairing code",
+  "pairingCodePlaceholder": "ABC-123, printed by the host",
+  "updatingPct": "Updating {pct}%",
+  "@updatingPct": {
+    "placeholders": {
+      "pct": {
+        "type": "int"
+      }
+    }
+  },
+  "installingState": "Installing",
+  "appUpdating": "koebelt dash is updating",
+  "appAvailable": "koebelt dash {version} is available",
+  "@appAvailable": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "appUpToDate": "koebelt dash is up to date",
+  "skipVersion": "Skip this version",
+  "later": "Later",
+  "downloadingPct": "Downloading {pct}%",
+  "@downloadingPct": {
+    "placeholders": {
+      "pct": {
+        "type": "int"
+      }
+    }
+  },
+  "installAnyway": "Install anyway",
+  "updateAnyway": "Update anyway",
+  "installVersion": "Install {version}",
+  "@installVersion": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "updateNow": "Update now",
+  "youHaveOlder": "You have {version}; this is an older version. Settings and recordings made with a newer version may not all open in it, and it will not remind you about newer ones until the next release.",
+  "@youHaveOlder": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "youHave": "You have {version}.",
+  "@youHave": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "notFromApp": "Not from the app",
+  "checkingCompat": "Checking compatibility with your devices…",
+  "compatUnknown": "Compatibility unknown",
+  "compatUnknownBody": "Could not read which koebelt/link versions this release supports.",
+  "notCompatibleWith": "{count, plural, =1{Not compatible with one of your devices} other{Not compatible with {count} of your devices}}",
+  "@notCompatibleWith": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "notCompatibleBody": "{count, plural, =1{Update the koebelt/link library on it first, or keep your version and choose another in Settings > Updates.} other{Update the koebelt/link library on them first, or keep your version and choose another in Settings > Updates.}}",
+  "@notCompatibleBody": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "disarmFirst": "Disarm first",
+  "disarmFirstBody": "A connected device is armed. Updating closes the app, which drops the link; disarm it, then update.",
+  "devicesWillDisconnect": "Devices will disconnect",
+  "devicesWillDisconnectBody": "{count, plural, =1{Installing closes the app, so the connected device loses the link and its failsafe takes over until you reconnect.} other{Installing closes the app, so the {count} connected devices lose the link and their failsafe takes over until you reconnect.}}",
+  "@devicesWillDisconnectBody": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "notInstalled": "Not installed",
+  "inThisVersion": "In this version",
+  "whatsNew": "What’s new",
+  "fullNotes": "Full release notes",
+  "chooseAnotherVersion": "Choose another version",
+  "chooseVersion": "Choose a version",
+  "close": "Close",
+  "chooseVersionBody": "Install any published version, newer or older. Each one says whether it works with the koebelt/link versions your devices reported when they last connected.",
+  "askingGithub": "Asking GitHub…",
+  "noReleases": "No releases found.",
+  "installed": "Installed",
+  "latest": "Latest",
+  "checkingShort": "Checking…",
+  "worksWithDevices": "Works with your devices",
+  "noDevicesToCheck": "No devices to check yet",
+  "notFor": "Not for {names}",
+  "@notFor": {
+    "placeholders": {
+      "names": {
+        "type": "String"
+      }
+    }
+  },
+  "details": "Details",
+  "updateHowAndroid": "The update downloads here and Android asks you to confirm the install.",
+  "updateHow": "The update downloads, is checked against the release, and koebelt dash restarts on the new version.",
+  "versionN": "Version {version}",
+  "@versionN": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "noSelfUpdate": "This build does not update itself: the App Store and TestFlight update theirs, and the downloads from GitHub check for new versions on their own.",
+  "releases": "Releases",
+  "upToDate": "Up to date.",
+  "versionAvailable": "{version} is available.",
+  "@versionAvailable": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadingWhat": "Downloading {what}… {pct}%",
+  "@downloadingWhat": {
+    "placeholders": {
+      "what": {
+        "type": "String"
+      },
+      "pct": {
+        "type": "int"
+      }
+    }
+  },
+  "installingWhat": "Installing {what}…",
+  "@installingWhat": {
+    "placeholders": {
+      "what": {
+        "type": "String"
+      }
+    }
+  },
+  "somethingWrong": "Something went wrong.",
+  "notChecked": "Not checked yet.",
+  "updateTo": "Update to {version}",
+  "@updateTo": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "checkNow": "Check now",
+  "chooseVersionDesc": "Install any published version, older ones too, with whether it works with your devices’ koebelt/link libraries.",
+  "versions": "Versions",
+  "betas": "Betas",
+  "betasDesc": "Also offer beta versions and release candidates: the next features before they are released, with more chances of a bug.",
+  "autoCheck": "Check for updates automatically",
+  "autoCheckDesc": "At launch and once a day, koebelt dash asks GitHub for the latest release. Nothing else is sent.",
+  "padYawSteer": "Yaw · steer",
+  "padRoll": "Roll",
+  "padPitchDrive": "Pitch · drive",
+  "padUnavailable": "Controllers are not available on this platform.",
+  "padNone": "No controller connected. Pair a Bluetooth controller in the system settings, or plug one in over USB. RC transmitters work in USB joystick mode.",
+  "padConnected": "Connected: {names}.",
+  "@padConnected": {
+    "placeholders": {
+      "names": {
+        "type": "String"
+      }
+    }
+  },
+  "padUse": "Use a game controller",
+  "padUseDesc": "Sticks drive drones and ground robots, and jog robot arms, once they are armed; buttons work on any device. On-screen controls keep working while the controller is idle.",
+  "padSticks": "Sticks",
+  "padMoveNow": "Move or press the control now",
+  "padButtons": "Buttons",
+  "padDeadzone": "Dead zone",
+  "padDeadzoneDesc": "Stick movement ignored around the centre: {pct} %.",
+  "@padDeadzoneDesc": {
+    "placeholders": {
+      "pct": {
+        "type": "int"
+      }
+    }
+  },
+  "padExpo": "Expo",
+  "padExpoDesc": "Softer response near the centre for fine control: {pct} %.",
+  "@padExpoDesc": {
+    "placeholders": {
+      "pct": {
+        "type": "int"
+      }
+    }
+  },
+  "padResetMapping": "Reset mapping",
+  "padResetMappingDesc": "Standard layout: left stick throttle and yaw, right stick pitch and roll, B / Circle for STOP.",
+  "waiting": "Waiting…",
+  "invertDirection": "Invert direction",
+  "inverted": "Inverted",
+  "normal": "Normal",
+  "clearName": "Clear {name}",
+  "@clearName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "padDrives": "{pad} drives {device}",
+  "@padDrives": {
+    "placeholders": {
+      "pad": {
+        "type": "String"
+      },
+      "device": {
+        "type": "String"
+      }
+    }
+  },
+  "padArmToDrive": "Arm to drive with {pad}; its buttons already work",
+  "@padArmToDrive": {
+    "placeholders": {
+      "pad": {
+        "type": "String"
+      }
+    }
+  },
+  "padButtonsWork": "Buttons work; sticks drive drones and ground robots",
+  "pad": "Pad",
+  "copy": "Copy",
+  "aiLet": "Let assistants use koebelt dash",
+  "aiLetDesc": "Claude, Codex, OpenCode, Cursor and other MCP clients can read the docs, write scripts, use the app and, with your approval, act on devices. dash itself sends nothing to any AI service; the assistant you connect talks to its own provider.",
+  "aiConnectClient": "Connect a client",
+  "aiPaste": "Paste this into the assistant’s setup.",
+  "aiRemotePhone": "Assistants run on a computer: they reach this phone over the network, with its token.",
+  "aiRemoteTablet": "Assistants run on a computer: they reach this tablet over the network, with its token.",
+  "other": "Other",
+  "aiConnectedNow": "Connected now",
+  "aiNone": "No assistant in the last ten minutes.",
+  "actions": "{count, plural, =1{1 action} other{{count} actions}}",
+  "@actions": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "activity": "Activity",
+  "aiAllowed": "Allowed without asking",
+  "aiAllowedNone": "Simulated devices and replays never ask. On real hardware, every action asks unless you allow it for the session. Arming and take-off always ask.",
+  "aiAllowedSome": "For this session: {actions}. Arming and take-off always ask.",
+  "@aiAllowedSome": {
+    "placeholders": {
+      "actions": {
+        "type": "String"
+      }
+    }
+  },
+  "aiFromNetwork": "From this network",
+  "aiFromNetworkOn": "Assistants on other computers: {url} with the token {token}… (copy it from the Other tab).",
+  "@aiFromNetworkOn": {
+    "placeholders": {
+      "url": {
+        "type": "String"
+      },
+      "token": {
+        "type": "String"
+      }
+    }
+  },
+  "aiFromNetworkOff": "Let an assistant on another computer use this dash, with a token.",
+  "aiActivity": "Assistant activity",
+  "nothingYet": "Nothing yet.",
+  "aiShort": "AI",
+  "aiAsks": "{client} asks",
+  "@aiAsks": {
+    "placeholders": {
+      "client": {
+        "type": "String"
+      }
+    }
+  },
+  "aiRealHardware": "{device} is real hardware.",
+  "@aiRealHardware": {
+    "placeholders": {
+      "device": {
+        "type": "String"
+      }
+    }
+  },
+  "aiAllowSession": "Allow this kind of action on {device} for this session",
+  "@aiAllowSession": {
+    "placeholders": {
+      "device": {
+        "type": "String"
+      }
+    }
+  },
+  "refuse": "Refuse",
+  "approve": "Approve",
+  "recordingsAndLogs": "Recordings and flight logs",
+  "fileUnreadable": "The file could not be read: {error}",
+  "@fileUnreadable": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "fromFile": "From a file",
+  "fromFileDesc": "Opens as a session: replay, the map, the charts and export all work on it.",
+  "fmtJson": "A recording exported from koebelt/dash",
+  "fmtBin": "ArduPilot log, from the SD card or Mission Planner",
+  "fmtTlog": "Ground station log: Mission Planner, QGroundControl, MAVProxy",
+  "fmtUlg": "PX4 log, from the SD card or QGroundControl",
+  "reading": "Reading {file}…",
+  "@reading": {
+    "placeholders": {
+      "file": {
+        "type": "String"
+      }
+    }
+  },
+  "stopRecordingFirst": "Stop the recording first",
+  "notImported": "Not imported",
+  "sampleRecordings": "Sample recordings",
+  "samplesIn": "The three demo sessions are in your list, marked Demo.",
+  "samplesDesc": "Three demo sessions recorded with the simulated devices: a survey flight, a pick and place, a rocket launch.",
+  "removeSamples": "Remove samples",
+  "loadSamples": "Load samples",
+  "exporting": "Exporting…",
+  "exportFormat": "Export {format}",
+  "@exportFormat": {
+    "placeholders": {
+      "format": {
+        "type": "String"
+      }
+    }
+  },
+  "frames": "{count} frames",
+  "@frames": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "csvColumns": "{count} columns · only channels this device sent",
+  "@csvColumns": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "noGpx": "No GPS in this recording, so no GPX track",
+  "encoding": "Encoding {format} · {pct}%",
+  "@encoding": {
+    "placeholders": {
+      "format": {
+        "type": "String"
+      },
+      "pct": {
+        "type": "int"
+      }
+    }
+  },
+  "exported": "Exported",
+  "exportFailed": "Export failed",
+  "decrease": "Decrease",
+  "increase": "Increase",
+  "was": "was {value}",
+  "@was": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "firmware": "firmware {version}",
+  "@firmware": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "parametersCount": "{count, plural, =1{1 parameter} other{{count} parameters}}",
+  "@parametersCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "parameters": "Parameters",
+  "unsaved": "{count} unsaved",
+  "@unsaved": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "written": "Written {when}",
+  "@written": {
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "inSync": "In sync",
+  "revert": "Revert",
+  "writing": "Writing…",
+  "writeToDevice": "Write to device",
+  "searchParameters": "Search parameters",
+  "waitingParams": "Waiting for the parameter table…",
+  "noParamsMatch": "No parameters match “{query}”",
+  "@noParamsMatch": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "revertName": "Revert {name}",
+  "@revertName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "liveResponse": "Live response",
+  "copied": "Copied",
+  "yourPairingCode": "Your pairing code · valid 10 min",
+  "namePaired": "{name} paired",
+  "@namePaired": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "startListening": "Start listening",
+  "listeningWifiBle": "Listening on Wi-Fi and BLE · power on your device",
+  "nameFound": "{name} found",
+  "@nameFound": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "sensorsCount": "{count, plural, =1{1 sensor} other{{count} sensors}}",
+  "@sensorsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "addToDevices": "Add to devices",
+  "connectNow": "Connect now",
+  "inTheApp": "In the app",
+  "completeProgram": "Complete program",
+  "apiReference": "API reference",
+  "exampleProjects": "Example projects",
+  "allGuides": "All guides",
+  "stepOfUpper": "Step {n} of {total}",
+  "@stepOfUpper": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "flowDevice": "Your device",
+  "flowDeviceDesc": "Sensors, motors and koebelt/link on the board or companion computer.",
+  "flowLinkDesc": "Wi-Fi, BLE, USB serial or a radio, with a fallback link if one drops.",
+  "flowDashDesc": "Dashboards, control, tuning and recording, on phone, tablet or desktop.",
+  "library": "library",
+  "connectHardware": "Connect your hardware",
+  "connectHardwareDesc": "Your device runs a small library that streams sensors to this app and receives control input. Pick your platform to start.",
+  "guidesConnections": "Connections",
+  "guidesConnectionsDesc": "How each link works, and what to do when a device does not show up.",
+  "guidesDevices": "Device examples",
+  "guidesDevicesDesc": "A complete, commented program for each kind of device.",
+  "guidesFeatures": "Video, map and controllers",
+  "guidesFeaturesDesc": "Show a camera, put the device on a map, drive with a gamepad.",
+  "guidesMore": "Going further",
+  "guidesMoreDesc": "Custom data, tuning, sequences and safety.",
+  "viewChase": "CHASE",
+  "viewOrbit": "ORBIT",
+  "viewTop": "TOP",
+  "viewMap": "MAP",
+  "viewCam": "CAM",
+  "noMapboxToken": "This build has no Mapbox token: enter your own below, or choose another source.",
+  "waitingGps": "Waiting for a GPS fix",
+  "grid": "Grid",
+  "waitingScript": "Waiting for the script",
+  "scriptEnded": "Script ended",
+  "noVideo": "This recording has no video.",
+  "noCamera": "No camera. Devices declare cameras with video() in the library.",
+  "cameraByIp": "This camera is reached by IP address. Connect to {name} over Wi-Fi to see it.",
+  "@cameraByIp": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "warning": "Warning",
+  "alBattery": "Battery low",
+  "alBatteryDesc": "Charge left, as the device reports it.",
+  "alBatteryAct": "Time to bring it back.",
+  "alBatteryCritical": "Battery critical",
+  "alBatteryCriticalDesc": "A second, louder limit: repeats until acknowledged.",
+  "alBatteryCriticalAct": "Land or stop now.",
+  "alVoltage": "Battery voltage",
+  "alVoltageDesc": "For packs that do not report a percentage. Set the limit for your pack, for example 3.5 V per cell.",
+  "alVoltageAct": "Time to bring it back.",
+  "alObstacle": "Obstacle close",
+  "alObstacleDesc": "The nearest thing a proximity sensor sees, while armed (sensors looking down do not count).",
+  "alObstacleAct": "Steer away, or stop.",
+  "alRssi": "Weak signal",
+  "alRssiDesc": "Received signal strength, when the link reports it.",
+  "alRssiAct": "Move closer or turn back.",
+  "alLatency": "High latency",
+  "alLatencyDesc": "Round trip of the link. Control feels late above a few hundred milliseconds.",
+  "alLatencyAct": "Control will feel late.",
+  "alAltitude": "Altitude ceiling",
+  "alAltitudeDesc": "Height above home. 120 m is the usual limit for drones in Europe and the US.",
+  "alAltitudeAct": "Descend.",
+  "alDistance": "Distance from home",
+  "alDistanceDesc": "A simple geofence: horizontal distance from where it started.",
+  "alDistanceAct": "Bring it closer.",
+  "alTemp": "Temperature",
+  "alTempDesc": "Motor, ESC or board temperature, when the device reports one.",
+  "alTempAct": "Let it cool down.",
+  "kindDrone": "Drone",
+  "kindRover": "Ground robot",
+  "kindArm": "Robot arm",
+  "kindRocket": "Rocket",
+  "kindBench": "Test bench",
+  "kindGeneric": "Device",
+  "stTakeoff": "Take off",
+  "stFlyTo": "Fly to",
+  "stLand": "Land",
+  "stRth": "Return home",
+  "stDriveTo": "Drive to",
+  "stPose": "Move to pose",
+  "stRamp": "Ramp",
+  "stWait": "Wait",
+  "stMode": "Set mode",
+  "stArm": "Arm / disarm",
+  "stCmd": "Custom command",
+  "fEast": "East",
+  "fNorth": "North",
+  "fHold": "Hold",
+  "fFrom": "From",
+  "fTo": "To",
+  "fOver": "Over",
+  "fDuration": "Duration",
+  "fMode": "Mode",
+  "fState": "State",
+  "fLimit": "Limit",
+  "fCommand": "Command",
+  "fValue": "Value",
+  "sumTakeoff": "Take off to {alt} m",
+  "@sumTakeoff": {
+    "placeholders": {
+      "alt": {
+        "type": "String"
+      }
+    }
+  },
+  "sumFlyTo": "Fly to {x}, {y} m at {z} m",
+  "@sumFlyTo": {
+    "placeholders": {
+      "x": {
+        "type": "String"
+      },
+      "y": {
+        "type": "String"
+      },
+      "z": {
+        "type": "String"
+      }
+    }
+  },
+  "sumDriveTo": "Drive to {x}, {y} m",
+  "@sumDriveTo": {
+    "placeholders": {
+      "x": {
+        "type": "String"
+      },
+      "y": {
+        "type": "String"
+      }
+    }
+  },
+  "sumRth": "Return home and land",
+  "sumPose": "Move to pose {joints}°",
+  "@sumPose": {
+    "placeholders": {
+      "joints": {
+        "type": "String"
+      }
+    }
+  },
+  "sumGripper": "Gripper {pct}% open",
+  "@sumGripper": {
+    "placeholders": {
+      "pct": {
+        "type": "String"
+      }
+    }
+  },
+  "sumThrottle": "Throttle {pct}% for {s} s",
+  "@sumThrottle": {
+    "placeholders": {
+      "pct": {
+        "type": "String"
+      },
+      "s": {
+        "type": "String"
+      }
+    }
+  },
+  "sumRamp": "Ramp {from} to {to}% over {s} s",
+  "@sumRamp": {
+    "placeholders": {
+      "from": {
+        "type": "String"
+      },
+      "to": {
+        "type": "String"
+      },
+      "s": {
+        "type": "String"
+      }
+    }
+  },
+  "sumWait": "Wait {s} s",
+  "@sumWait": {
+    "placeholders": {
+      "s": {
+        "type": "String"
+      }
+    }
+  },
+  "sumMode": "Mode {mode}",
+  "@sumMode": {
+    "placeholders": {
+      "mode": {
+        "type": "String"
+      }
+    }
+  },
+  "sumArm": "Arm",
+  "sumDisarm": "Disarm",
+  "sumSpeed": "Speed limit {pct}%",
+  "@sumSpeed": {
+    "placeholders": {
+      "pct": {
+        "type": "String"
+      }
+    }
+  },
+  "sumCmd": "Command {name} = {value}",
+  "@sumCmd": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "stoppedEstop": "Stopped: emergency stop",
+  "completedIn": "Completed in {seconds} s",
+  "@completedIn": {
+    "placeholders": {
+      "seconds": {
+        "type": "String"
+      }
+    }
+  },
+  "stepTimedOut": "Step {n} timed out: {step}",
+  "@stepTimedOut": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      },
+      "step": {
+        "type": "String"
+      }
+    }
+  },
+  "metresToGo": "{metres} m to go",
+  "@metresToGo": {
+    "placeholders": {
+      "metres": {
+        "type": "String"
+      }
+    }
+  },
+  "uploadingToDevice": "Uploading to the device",
+  "starting": "Starting",
+  "completedOnDevice": "Completed on the device",
+  "deviceRejected": "The device did not accept the sequence",
+  "linkLostCarriesOn": "Link lost · the device carries on",
+  "stoppedDisconnected": "Stopped: disconnected",
+  "stoppedTookControl": "Stopped: you took control",
+  "stoppedManual": "Stopped: manual control",
+  "stoppedByScript": "Stopped by the script",
+  "reqAnyDevice": "a device",
+  "reqKinds": "a {kinds}",
+  "@reqKinds": {
+    "placeholders": {
+      "kinds": {
+        "type": "String"
+      }
+    }
+  },
+  "reqWith": "{kinds} with {needs}",
+  "@reqWith": {
+    "placeholders": {
+      "kinds": {
+        "type": "String"
+      },
+      "needs": {
+        "type": "String"
+      }
+    }
+  },
+  "reqWrongKind": "{name} is a {kind}; this script needs {needs}.",
+  "@reqWrongKind": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "kind": {
+        "type": "String"
+      },
+      "needs": {
+        "type": "String"
+      }
+    }
+  },
+  "reqLacks": "{name} has no {lacks}; this script needs {needs}.",
+  "@reqLacks": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "lacks": {
+        "type": "String"
+      },
+      "needs": {
+        "type": "String"
+      }
+    }
+  },
+  "trgButton": "Button",
+  "trgSwitch": "Switch",
+  "trgSlider": "Slider",
+  "trgController": "Controller",
+  "trgCondition": "Condition",
+  "trgEvent": "Device event",
+  "trgTimer": "Timer",
+  "evMode": "Mode changes",
+  "evFailsafe": "Failsafe",
+  "evSeqDone": "Sequence finished",
+  "evLog": "Device message",
+  "onControl": "on Control",
+  "everyN": "Every {seconds} s",
+  "@everyN": {
+    "placeholders": {
+      "seconds": {
+        "type": "String"
+      }
+    }
+  },
+  "onceAfterN": "Once after {seconds} s",
+  "@onceAfterN": {
+    "placeholders": {
+      "seconds": {
+        "type": "String"
+      }
+    }
+  },
+  "paArm": "Arm / disarm",
+  "paManual": "Manual",
+  "paHold": "Hold",
+  "paAuto": "Back to the script",
+  "paSlower": "Speed down",
+  "paFaster": "Speed up",
+  "paFrame": "Joint / Cartesian",
+  "paWrist": "Wrist",
+  "paNext": "Next device",
+  "paStopHint": "Emergency stop, immediately",
+  "paHoldHint": "Hold for one second",
+  "paSwitchTo": "Switch to {mode}",
+  "@paSwitchTo": {
+    "placeholders": {
+      "mode": {
+        "type": "String"
+      }
+    }
+  },
+  "paAutoHint": "After taking over, give the sticks back to the script (AUTO)",
+  "paSwitchToDrones": "Switch to {mode} (drones)",
+  "@paSwitchToDrones": {
+    "placeholders": {
+      "mode": {
+        "type": "String"
+      }
+    }
+  },
+  "paHoldDronesHint": "Hold for one second (drones)",
+  "paRecordHint": "Start or stop a recording",
+  "paSlowerHint": "Lower the speed limit 10 %",
+  "paFasterHint": "Raise the speed limit 10 %",
+  "paFrameHint": "Arms: what the sticks move",
+  "paWristHint": "Arms: right stick moves J5 and J6 instead of J3 and J4",
+  "paGripperHint": "Arms: open or close",
+  "paNextHint": "Several connected: show and drive the next one",
+  "notSet": "Not set",
+  "padLeftStickX": "Left stick X",
+  "padLeftStickY": "Left stick Y",
+  "padRightStickX": "Right stick X",
+  "padRightStickY": "Right stick Y",
+  "padLeftTrigger": "Left trigger",
+  "padRightTrigger": "Right trigger",
+  "padACross": "A / Cross",
+  "padBCircle": "B / Circle",
+  "padXSquare": "X / Square",
+  "padYTriangle": "Y / Triangle",
+  "padLeftBumper": "Left bumper",
+  "padRightBumper": "Right bumper",
+  "padBackShare": "Back / Share",
+  "padStartOptions": "Start / Options",
+  "padHome": "Home",
+  "padLeftStickPress": "Left stick press",
+  "padRightStickPress": "Right stick press",
+  "padDPadUp": "D-pad up",
+  "padDPadDown": "D-pad down",
+  "padDPadLeft": "D-pad left",
+  "padDPadRight": "D-pad right",
+  "radioSik": "SiK telemetry radio",
+  "radioLoraName": "LoRa ground station",
+  "radioOther": "Other serial radio",
+  "radioSikDesc": "433 / 868 / 915 MHz pairs: 3DR, Holybro, RFD900. Transparent serial up to about 1 km, 40 km for RFD900.",
+  "radioLoraDesc": "A board with a LoRa radio on USB, flashed with the ground-station sketch. 2 to 10 km, telemetry only.",
+  "radioHc12Desc": "Cheap transparent serial module on a USB adapter. About 1 km at 9600 baud.",
+  "radioXbeeDesc": "Digi XBee in transparent mode on a USB explorer board. 2.4 GHz or 900 MHz.",
+  "radioOtherDesc": "Any transparent serial radio. Set its baud rate; the app uses conservative rates.",
+  "tplLoop": "A control loop",
+  "tplButton": "A button action",
+  "fldBattery": "Battery",
+  "fldBatteryVoltage": "Battery voltage",
+  "fldDistanceFromHome": "Distance from home",
+  "fldHeightAboveHome": "Height above home",
+  "fldSpeed": "Speed",
+  "fldHeading": "Heading",
+  "fldRoll": "Roll",
+  "fldPitch": "Pitch",
+  "fldGripper": "Gripper",
+  "fldThrust": "Thrust",
+  "fldRpm": "RPM",
+  "fldTemperature": "Temperature",
+  "fldNearestObstacle": "Nearest obstacle",
+  "fldSignal": "Signal",
+  "fldLatency": "Latency",
+  "fldGpsSatellites": "GPS satellites",
+  "ready": "Ready.",
+  "pythonManaged": "This Python is managed by the system and refuses packages: use a scripts environment instead.",
+  "failedWhy": "Failed: {why}",
+  "@failedWhy": {
+    "placeholders": {
+      "why": {
+        "type": "String"
+      }
+    }
+  },
+  "pipNoPackage": "pip finished, but koebelt-dash-scripts is still not in this Python.",
+  "packageUpToDate": "koebelt-dash-scripts {version} is up to date in this Python.",
+  "@packageUpToDate": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "packageInstalled": "koebelt-dash-scripts {version} is installed in this Python.",
+  "@packageInstalled": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "packagesInstalled": "{count, plural, =1{{names} is installed in this Python.} other{{names} are installed in this Python.}}",
+  "@packagesInstalled": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "names": {
+        "type": "String"
+      }
+    }
+  },
+  "envReady": "The scripts environment is ready, with koebelt-dash-scripts {version}.",
+  "@envReady": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "atMostDevices": "At most {count} devices at once. Disconnect one first.",
+  "@atMostDevices": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "noAnswerFrom": "No answer from {name}",
+  "@noAnswerFrom": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "noHostAt": "No script host at {address}. Is `koebelt-dash-scripts host` running there?",
+  "@noHostAt": {
+    "placeholders": {
+      "address": {
+        "type": "String"
+      }
+    }
+  },
+  "hostRefused": "The host refused.",
+  "logUnknown": "This file is not a log the app can read. It opens koebelt/dash JSON exports, ArduPilot .bin and .tlog logs, and PX4 .ulg logs.",
+  "logEmpty": "The {format} file has no telemetry the app can show (attitude, position, battery).",
+  "@logEmpty": {
+    "placeholders": {
+      "format": {
+        "type": "String"
+      }
+    }
+  },
+  "logJsonUnreadable": "This JSON file could not be read.",
+  "logJsonNotExport": "This JSON file is not a koebelt/dash recording export.",
+  "logNoHeartbeat": "This .tlog has no vehicle heartbeat, so its messages cannot be attributed to a vehicle.",
+  "viewDevices": "View devices",
+  "simulatedTip": "Simulated in the app, not real hardware",
+  "newShort": "New"
+}

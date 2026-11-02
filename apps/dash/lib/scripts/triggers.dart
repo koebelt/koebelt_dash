@@ -1,3 +1,4 @@
+import '../l10n/l10n.dart';
 import '../core/model.dart';
 import 'conditions.dart';
 import 'script_hub.dart' show ScriptLimits;
@@ -13,19 +14,31 @@ enum TriggerSource {
   event('Device event'),
   timer('Timer');
 
-  const TriggerSource(this.label);
-  final String label;
+  const TriggerSource(this.labelEn);
+  final String labelEn;
+
+  /// In the language shown.
+  String get label => switch (this) {
+    button => t.trgButton,
+    toggle => t.trgSwitch,
+    slider => t.trgSlider,
+    key => t.key,
+    pad => t.trgController,
+    condition => t.trgCondition,
+    event => t.trgEvent,
+    timer => t.trgTimer,
+  };
 }
 
-/// Device events a trigger can follow.
-const deviceEvents = {
-  'mode': 'Mode changes',
-  'armed': 'Armed',
-  'disarmed': 'Disarmed',
-  'failsafe': 'Failsafe',
-  'linklost': 'Link lost',
-  'seqdone': 'Sequence finished',
-  'log': 'Device message',
+/// Device events a trigger can follow, as shown.
+Map<String, String> get deviceEvents => {
+  'mode': t.evMode,
+  'armed': t.armed,
+  'disarmed': t.disarmed,
+  'failsafe': t.evFailsafe,
+  'linklost': t.linkLost,
+  'seqdone': t.evSeqDone,
+  'log': t.evLog,
 };
 
 /// One way an event reaches a script: an operator input, a condition, a
@@ -103,14 +116,12 @@ class TriggerBinding {
 
   /// One line describing what fires it, for lists.
   String describe(String Function(String src) padLabel) => switch (source) {
-    TriggerSource.button => 'Button${pinned ? ', on Control' : ''}',
-    TriggerSource.toggle => 'Switch${pinned ? ', on Control' : ''}',
-    TriggerSource.slider => 'Slider${pinned ? ', on Control' : ''}',
-    TriggerSource.key => 'Key ${key ?? '—'}',
-    TriggerSource.pad => 'Controller ${pad == null ? '—' : padLabel(pad!)}',
+    TriggerSource.button || TriggerSource.toggle || TriggerSource.slider => '${source.label}${pinned ? ', ${t.onControl}' : ''}',
+    TriggerSource.key => '${t.key} ${key ?? '—'}',
+    TriggerSource.pad => '${t.trgController} ${pad == null ? '—' : padLabel(pad!)}',
     TriggerSource.condition => expr ?? '—',
-    TriggerSource.event => '${deviceEvents[deviceEvent] ?? 'Device event'}${match == null || match!.isEmpty ? '' : ': $match'}',
-    TriggerSource.timer => repeat ? 'Every ${_n(seconds)} s' : 'Once after ${_n(seconds)} s',
+    TriggerSource.event => '${deviceEvents[deviceEvent] ?? t.trgEvent}${match == null || match!.isEmpty ? '' : ': $match'}',
+    TriggerSource.timer => repeat ? t.everyN(_n(seconds)) : t.onceAfterN(_n(seconds)),
   };
 }
 

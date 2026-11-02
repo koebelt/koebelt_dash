@@ -1,3 +1,5 @@
+import '../l10n/l10n.dart';
+
 import 'dart:async';
 import 'dart:math' as math;
 
@@ -30,8 +32,44 @@ enum PadAction {
   gripper('Gripper', 'Arms: open or close'),
   nextDevice('Next device', 'Several connected: show and drive the next one');
 
-  const PadAction(this.label, this.hint);
-  final String label, hint;
+  const PadAction(this.labelEn, this.hintEn);
+  final String labelEn, hintEn;
+
+  /// In the language shown.
+  String get label => switch (this) {
+    stop => 'STOP',
+    arm => t.paArm,
+    manual => t.paManual,
+    hold => t.paHold,
+    auto => t.paAuto,
+    rth => t.stRth,
+    takeoff => t.stTakeoff,
+    land => t.stLand,
+    record => t.record,
+    slower => t.paSlower,
+    faster => t.paFaster,
+    armFrame => t.paFrame,
+    armWrist => t.paWrist,
+    gripper => t.gripper,
+    nextDevice => t.paNext,
+  };
+  String get hint => switch (this) {
+    stop => t.paStopHint,
+    arm => t.paHoldHint,
+    manual => t.paSwitchTo('MANUAL'),
+    hold => t.paSwitchTo('HOLD'),
+    auto => t.paAutoHint,
+    rth => t.paSwitchToDrones('RTH'),
+    takeoff => t.paHoldDronesHint,
+    land => t.paSwitchToDrones('LAND'),
+    record => t.paRecordHint,
+    slower => t.paSlowerHint,
+    faster => t.paFasterHint,
+    armFrame => t.paFrameHint,
+    armWrist => t.paWristHint,
+    gripper => t.paGripperHint,
+    nextDevice => t.paNextHint,
+  };
 
   /// Actions that need a one-second hold so a bump cannot trigger them.
   bool get needsHold => this == arm || this == takeoff;
@@ -391,31 +429,31 @@ class GamepadInput extends ChangeNotifier {
 
 /// Short human name for a source: `n:leftStickX` → "Left stick X".
 String padSourceLabel(String? src) {
-  if (src == null) return 'Not set';
+  if (src == null) return t.notSet;
   if (src.startsWith('r:')) return src.substring(2);
   final k = src.substring(2);
-  const names = {
-    'leftStickX': 'Left stick X',
-    'leftStickY': 'Left stick Y',
-    'rightStickX': 'Right stick X',
-    'rightStickY': 'Right stick Y',
-    'leftTrigger': 'Left trigger',
-    'rightTrigger': 'Right trigger',
-    'a': 'A / Cross',
-    'b': 'B / Circle',
-    'x': 'X / Square',
-    'y': 'Y / Triangle',
-    'leftBumper': 'Left bumper',
-    'rightBumper': 'Right bumper',
-    'back': 'Back / Share',
-    'start': 'Start / Options',
-    'home': 'Home',
-    'leftStick': 'Left stick press',
-    'rightStick': 'Right stick press',
-    'dpadUp': 'D-pad up',
-    'dpadDown': 'D-pad down',
-    'dpadLeft': 'D-pad left',
-    'dpadRight': 'D-pad right',
+  final names = {
+    'leftStickX': t.padLeftStickX,
+    'leftStickY': t.padLeftStickY,
+    'rightStickX': t.padRightStickX,
+    'rightStickY': t.padRightStickY,
+    'leftTrigger': t.padLeftTrigger,
+    'rightTrigger': t.padRightTrigger,
+    'a': t.padACross,
+    'b': t.padBCircle,
+    'x': t.padXSquare,
+    'y': t.padYTriangle,
+    'leftBumper': t.padLeftBumper,
+    'rightBumper': t.padRightBumper,
+    'back': t.padBackShare,
+    'start': t.padStartOptions,
+    'home': t.padHome,
+    'leftStick': t.padLeftStickPress,
+    'rightStick': t.padRightStickPress,
+    'dpadUp': t.padDPadUp,
+    'dpadDown': t.padDPadDown,
+    'dpadLeft': t.padDPadLeft,
+    'dpadRight': t.padDPadRight,
     'touchpad': 'Touchpad',
   };
   return names[k] ?? k;

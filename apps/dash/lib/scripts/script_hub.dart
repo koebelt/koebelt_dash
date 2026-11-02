@@ -5,6 +5,7 @@ import 'dart:math' as math;
 
 import 'package:http/http.dart' as http;
 
+import '../l10n/l10n.dart';
 import '../core/dash.dart';
 import '../core/device_link.dart';
 import '../core/compat.dart' show compareVersions, fromPep440;
@@ -341,12 +342,10 @@ class ScriptHub {
         setupLog.add(l);
         d.emit();
       }, upgrade: upgrade);
-      setupLog.add('Ready.');
+      setupLog.add(t.ready);
     } catch (e) {
       final why = setupLog.where((l) => l.contains('externally-managed') || l.toLowerCase().contains('error')).firstOrNull;
-      failed = why != null && why.contains('externally-managed')
-          ? 'This Python is managed by the system and refuses packages: use a scripts environment instead.'
-          : 'Failed: ${why ?? e}';
+      failed = why != null && why.contains('externally-managed') ? t.pythonManaged : t.failedWhy('${why ?? e}');
       setupLog.add(failed);
     } finally {
       settingUp = false;
@@ -355,10 +354,7 @@ class ScriptHub {
     final v = envOf(python)?.packageVersion;
     _result(
       failed == null && v != null,
-      failed ??
-          (v == null
-              ? 'pip finished, but koebelt-dash-scripts is still not in this Python.'
-              : 'koebelt-dash-scripts ${fromPep440(v)} is ${upgrade ? 'up to date' : 'installed'} in this Python.'),
+      failed ?? (v == null ? t.pipNoPackage : (upgrade ? t.packageUpToDate(fromPep440(v)) : t.packageInstalled(fromPep440(v)))),
     );
   }
 
@@ -372,7 +368,7 @@ class ScriptHub {
     settingUp = true;
     setupLog
       ..clear()
-      ..add('Installing ${packages.join(', ')}');
+      ..add(t.installingWhat(packages.join(', ')));
     setupResult = null;
     d.emit();
     String? failed;
@@ -383,14 +379,12 @@ class ScriptHub {
       });
     } catch (e) {
       final why = setupLog.where((l) => l.contains('externally-managed') || l.contains('ERROR')).firstOrNull;
-      failed = why != null && why.contains('externally-managed')
-          ? 'This Python is managed by the system and refuses packages: use a scripts environment instead.'
-          : 'Failed: ${why?.replaceFirst('ERROR: ', '') ?? e}';
+      failed = why != null && why.contains('externally-managed') ? t.pythonManaged : t.failedWhy('${why?.replaceFirst('ERROR: ', '') ?? e}');
     } finally {
       settingUp = false;
       introspector(python).forgetInstalled();
     }
-    _result(failed == null, failed ?? '${packages.join(', ')} ${packages.length == 1 ? 'is' : 'are'} installed in this Python.');
+    _result(failed == null, failed ?? t.packagesInstalled(packages.length, joinAnd(packages)));
     return failed == null;
   }
 
@@ -437,16 +431,16 @@ class ScriptHub {
         saveConfigs();
       }
       venvPath = venv;
-      setupLog.add('Ready.');
+      setupLog.add(t.ready);
     } catch (e) {
-      failed = 'Failed: $e';
+      failed = t.failedWhy('$e');
       setupLog.add(failed);
     } finally {
       settingUp = false;
       await refreshPythons(near: scripts);
     }
     final v = envOf(venvPath)?.packageVersion;
-    _result(failed == null && v != null, failed ?? 'The scripts environment is ready, with koebelt-dash-scripts ${fromPep440(v ?? '?')}.');
+    _result(failed == null && v != null, failed ?? t.envReady(fromPep440(v ?? '?')));
   }
 
   /// The operator's setup per script (by path), kept by the store.
@@ -844,7 +838,7 @@ class ScriptHub {
           case 'resume':
             r.resume();
           default:
-            r.stop('Stopped by the script');
+            r.stop(t.stoppedByScript);
         }
         d.emit();
       case 'pset':

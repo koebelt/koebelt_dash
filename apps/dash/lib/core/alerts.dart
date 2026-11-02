@@ -1,3 +1,4 @@
+import '../l10n/l10n.dart';
 import 'model.dart';
 import 'telemetry.dart';
 
@@ -9,23 +10,41 @@ enum AlertLevel { warning, critical }
 class AlertRule {
   const AlertRule(
     this.id,
-    this.label,
-    this.desc,
+    this.labelEn,
+    this.descEn,
     this.unit, {
     required this.below,
     required this.def,
     required this.hyst,
     required this.read,
-    required this.act,
+    required this.actEn,
     this.level = AlertLevel.warning,
     this.on = true,
     this.kinds,
     this.digits = 0,
   });
-  final String id, label, unit;
+  final String id, labelEn, unit;
 
-  /// What it watches, for the settings; what to do, for the banner.
-  final String desc, act;
+  /// What it watches, for the settings; what to do, for the banner. In
+  /// English: [label], [desc] and [act] are in the language shown.
+  final String descEn, actEn;
+
+  String get label => _text(0) ?? labelEn;
+  String get desc => _text(1) ?? descEn;
+  String get act => _text(2) ?? actEn;
+
+  String? _text(int i) => switch (id) {
+    'battery' => [t.alBattery, t.alBatteryDesc, t.alBatteryAct][i],
+    'batteryCritical' => [t.alBatteryCritical, t.alBatteryCriticalDesc, t.alBatteryCriticalAct][i],
+    'voltage' => [t.alVoltage, t.alVoltageDesc, t.alVoltageAct][i],
+    'obstacle' => [t.alObstacle, t.alObstacleDesc, t.alObstacleAct][i],
+    'rssi' => [t.alRssi, t.alRssiDesc, t.alRssiAct][i],
+    'latency' => [t.alLatency, t.alLatencyDesc, t.alLatencyAct][i],
+    'altitude' => [t.alAltitude, t.alAltitudeDesc, t.alAltitudeAct][i],
+    'distance' => [t.alDistance, t.alDistanceDesc, t.alDistanceAct][i],
+    'temp' => [t.alTemp, t.alTempDesc, t.alTempAct][i],
+    _ => null,
+  };
 
   /// Fires when the value drops below the limit (battery, signal) rather
   /// than rising above it (altitude, distance).
@@ -49,10 +68,20 @@ class AlertRule {
 double? _bat(Telemetry t, double _) => t.seen.contains('bat') ? t.battery : null;
 
 final alertRules = <AlertRule>[
-  AlertRule('battery', act: 'Time to bring it back.', 'Battery low', 'Charge left, as the device reports it.', '%', below: true, def: 25, hyst: 3, read: _bat),
+  AlertRule(
+    'battery',
+    actEn: 'Time to bring it back.',
+    'Battery low',
+    'Charge left, as the device reports it.',
+    '%',
+    below: true,
+    def: 25,
+    hyst: 3,
+    read: _bat,
+  ),
   AlertRule(
     'batteryCritical',
-    act: 'Land or stop now.',
+    actEn: 'Land or stop now.',
     'Battery critical',
     'A second, louder limit: repeats until acknowledged.',
     '%',
@@ -64,7 +93,7 @@ final alertRules = <AlertRule>[
   ),
   AlertRule(
     'voltage',
-    act: 'Time to bring it back.',
+    actEn: 'Time to bring it back.',
     'Battery voltage',
     'For packs that do not report a percentage. Set the limit for your pack, for example 3.5 V per cell.',
     'V',
@@ -77,7 +106,7 @@ final alertRules = <AlertRule>[
   ),
   AlertRule(
     'obstacle',
-    act: 'Steer away, or stop.',
+    actEn: 'Steer away, or stop.',
     'Obstacle close',
     'The nearest thing a proximity sensor sees, while armed (sensors looking down do not count).',
     'm',
@@ -89,7 +118,7 @@ final alertRules = <AlertRule>[
   ),
   AlertRule(
     'rssi',
-    act: 'Move closer or turn back.',
+    actEn: 'Move closer or turn back.',
     'Weak signal',
     'Received signal strength, when the link reports it.',
     'dBm',
@@ -100,7 +129,7 @@ final alertRules = <AlertRule>[
   ),
   AlertRule(
     'latency',
-    act: 'Control will feel late.',
+    actEn: 'Control will feel late.',
     'High latency',
     'Round trip of the link. Control feels late above a few hundred milliseconds.',
     'ms',
@@ -111,7 +140,7 @@ final alertRules = <AlertRule>[
   ),
   AlertRule(
     'altitude',
-    act: 'Descend.',
+    actEn: 'Descend.',
     'Altitude ceiling',
     'Height above home. 120 m is the usual limit for drones in Europe and the US.',
     'm',
@@ -123,7 +152,7 @@ final alertRules = <AlertRule>[
   ),
   AlertRule(
     'distance',
-    act: 'Bring it closer.',
+    actEn: 'Bring it closer.',
     'Distance from home',
     'A simple geofence: horizontal distance from where it started.',
     'm',
@@ -135,7 +164,7 @@ final alertRules = <AlertRule>[
   ),
   AlertRule(
     'temp',
-    act: 'Let it cool down.',
+    actEn: 'Let it cool down.',
     'Temperature',
     'Motor, ESC or board temperature, when the device reports one.',
     '°C',

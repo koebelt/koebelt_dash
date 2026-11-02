@@ -6,6 +6,7 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
+import '../l10n/l10n.dart';
 import '../link/ble_transport.dart';
 import '../link/board_discovery.dart';
 import '../link/bytes.dart';
@@ -63,6 +64,9 @@ class Settings {
   bool recordVideo = true;
   int videoFps = 10;
 
+  /// The app's language (`fr`, `pt_BR`…); empty: the system's, when the app has it.
+  String language = '';
+
   Map<String, dynamic> toJson() => {
     'control': control,
     'invertY': invertY,
@@ -75,6 +79,7 @@ class Settings {
     'mapAttribution': mapAttribution,
     'recordVideo': recordVideo,
     'videoFps': videoFps,
+    'language': language,
   };
   void load(Map? j) {
     if (j == null) return;
@@ -90,6 +95,7 @@ class Settings {
     mapAttribution = j['mapAttribution'] ?? mapAttribution;
     recordVideo = j['recordVideo'] ?? recordVideo;
     videoFps = j['videoFps'] ?? videoFps;
+    language = j['language'] ?? language;
   }
 }
 
@@ -802,7 +808,7 @@ class Dash extends ChangeNotifier implements PadTarget {
     if (replay != null) closeReplay();
     if (links.containsKey(id)) return focusDevice(id);
     if (links.length >= maxLinks) {
-      connectError = 'At most $maxLinks devices at once. Disconnect one first.';
+      connectError = appText.atMostDevices(maxLinks);
       notifyListeners();
       return;
     }
@@ -878,7 +884,7 @@ class Dash extends ChangeNotifier implements PadTarget {
       if (recording) _recStartLink(l);
       _saveDevices();
     } catch (e) {
-      connectError = e is TimeoutException ? 'No answer from ${d.name}' : '$e'.replaceFirst('Bad state: ', '');
+      connectError = e is TimeoutException ? appText.noAnswerFrom(d.name) : '$e'.replaceFirst('Bad state: ', '');
       await s.close();
       if (d.simulated) _sims[id]?.detach();
     } finally {
@@ -940,7 +946,7 @@ class Dash extends ChangeNotifier implements PadTarget {
       if (links.isEmpty) _endRecording();
     }
     // A sequence running on the device carries on without the app.
-    if (!(l.runner?.onDevice ?? false)) l.runner?.stop('Stopped: disconnected');
+    if (!(l.runner?.onDevice ?? false)) l.runner?.stop(tr.stoppedDisconnected);
     videoHub.clearDevice(id!);
     if (deviceId == id) {
       deviceId = links.keys.isEmpty ? null : links.keys.last;
@@ -1084,7 +1090,7 @@ class Dash extends ChangeNotifier implements PadTarget {
     final l = focus;
     if (l != null) {
       final r = l.runner;
-      if (r != null && r.state == RunState.running) r.stop('Stopped: you took control');
+      if (r != null && r.state == RunState.running) r.stop(tr.stoppedTookControl);
       final dr = l.drive;
       if (dr != null && !dr.paused) {
         dr.paused = true;
@@ -1117,7 +1123,7 @@ class Dash extends ChangeNotifier implements PadTarget {
   }
 
   void goManual() {
-    if (runner?.state == RunState.running) runner!.stop('Stopped: manual control');
+    if (runner?.state == RunState.running) runner!.stop(tr.stoppedManual);
     final s = liveTel;
     if (s.mode != 'MANUAL' && s.armed && !s.estop) setMode('MANUAL');
   }

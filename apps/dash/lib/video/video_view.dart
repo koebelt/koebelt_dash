@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/l10n.dart';
 import '../core/dash.dart';
 import '../core/model.dart';
 import '../theme/tokens.dart';
@@ -68,13 +69,13 @@ class _VideoViewState extends State<VideoView> {
     if (d.replay?.session.hasVideo ?? false) return RecordedVideo(d, fit: widget.fit, compact: widget.compact);
     String? msg;
     if (d.replay != null) {
-      msg = 'This recording has no video.';
+      msg = t.noVideo;
     } else if (s == null) {
-      msg = d.hasDevice ? 'No camera. Devices declare cameras with video() in the library.' : 'Not connected';
+      msg = d.hasDevice ? t.noCamera : t.notConnected;
     } else if (f!.url == null) {
-      msg = 'This camera is reached by IP address. Connect to ${d.deviceName} over Wi-Fi to see it.';
+      msg = t.cameraByIp(d.deviceName);
     } else if (img == null || !f.live) {
-      msg = f.status == 'Idle' || f.status == 'Live' ? 'Connecting…' : f.status;
+      msg = f.status == 'Idle' || f.status == 'Live' ? '${t.connecting}…' : f.status;
     }
     final small = widget.compact;
     return ColoredBox(
@@ -97,7 +98,7 @@ class _VideoViewState extends State<VideoView> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          if (msg == 'Connecting…') ...[const MarkMotion(MarkLoop.loading, size: 48, gap: Color(0xFF050505)), const SizedBox(height: 10)],
+                          if (msg == '${t.connecting}…') ...[const MarkMotion(MarkLoop.loading, size: 48, gap: Color(0xFF050505)), const SizedBox(height: 10)],
                           Text(
                             msg!,
                             textAlign: TextAlign.center,

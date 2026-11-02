@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import '../l10n/l10n.dart';
 import 'script_runner.dart';
 
 /// Script hosts: computers running `koebelt-dash-scripts host`, where phones
@@ -74,7 +75,7 @@ Future<WebSocket> _open(String address, int port) async {
   try {
     return await WebSocket.connect('ws://$address:$port/host').timeout(const Duration(seconds: 5));
   } catch (e) {
-    throw HostError('No script host at $address:$port. Is `koebelt-dash-scripts host` running there?');
+    throw HostError(t.noHostAt('$address:$port'));
   }
 }
 
@@ -84,7 +85,7 @@ Future<ScriptHost> pairHost(String address, int port, String code, {required Str
   try {
     ws.add(jsonEncode({'t': 'pair', 'code': code.trim(), 'name': myName}));
     final m = jsonDecode(await ws.first.timeout(const Duration(seconds: 5)) as String) as Map;
-    if (m['t'] != 'paired') throw HostError('${m['why'] ?? 'The host refused.'}');
+    if (m['t'] != 'paired') throw HostError('${m['why'] ?? t.hostRefused}');
     return ScriptHost(name: '${m['name']}', address: address, port: port, token: '${m['token']}', python: '${m['python'] ?? ''}');
   } finally {
     await ws.close();

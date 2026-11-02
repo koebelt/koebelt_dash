@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../l10n/l10n.dart';
 import '../core/dash.dart';
 import '../core/model.dart';
 import '../theme/tokens.dart';
@@ -97,7 +98,23 @@ const seriesInfo = <String, (String, String)>{
 
 String seriesLabel(String k) {
   final i = seriesInfo[k];
-  if (i != null) return i.$1;
+  if (i != null) {
+    // In the language shown, where the app has the word.
+    return {
+          'Vertical speed': t.tileVerticalSpeed,
+          'Thrust': t.rdThrust,
+          'RPM': t.rdRpm,
+          'Torque': t.tileTorque,
+          'Temp': t.rdTemp,
+          'Power': t.rdPower,
+          'Altitude': t.altitude,
+          'Voltage': t.tileVoltage,
+          'Current': t.rdCurrent,
+          'Latency': t.statLatency,
+          'Speed': t.rdSpeed,
+        }[i.$1] ??
+        i.$1;
+  }
   final m = RegExp(r'^c:(.+):(\d+)$').firstMatch(k);
   return m == null ? k : '${m[1]!.replaceAll('_', ' ')} ${int.parse(m[2]!) + 1}';
 }
@@ -265,7 +282,7 @@ class _LinePainter extends FramePainter {
     }
     if (rows.isEmpty) return;
     final ago = (n - 1 - i) / LineChart.hz;
-    final head = ago < .05 ? 'NOW' : '−${ago.toStringAsFixed(1)} S';
+    final head = ago < .05 ? t.now.toUpperCase() : '−${ago.toStringAsFixed(1)} S';
     final tps = [
       for (final r in [(VC.ink200, head), ...rows])
         TextPainter(
@@ -394,7 +411,7 @@ class TrackMapPainter extends FramePainter {
       c.drawLine(Offset(0, Y(y)), Offset(w, Y(y)), gp);
     }
     c.drawCircle(Offset(X(0), Y(0)), 5, _stroke(VC.ink300));
-    drawText(c, 'HOME', Offset(X(0) + 8, Y(0) + 3), VC.ink300);
+    drawText(c, tr.rdHome.toUpperCase(), Offset(X(0) + 8, Y(0) + 3), VC.ink300);
     if (t.trail.length > 1) {
       final path = Path()..moveTo(X(t.trail[0][0]), Y(t.trail[0][1]));
       for (final q in t.trail.skip(1)) {

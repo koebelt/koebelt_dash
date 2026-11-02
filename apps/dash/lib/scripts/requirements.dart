@@ -1,3 +1,4 @@
+import '../l10n/l10n.dart';
 import '../core/device_link.dart';
 import '../core/model.dart';
 
@@ -35,7 +36,13 @@ class ScriptRequirements {
     return ScriptRequirements(kinds: kinds, needs: needs);
   }
 
-  /// "a drone or rover with gps and camera".
+  /// The same as [describe], in the language shown.
+  String describeShown() {
+    final k = kinds.isEmpty ? t.reqAnyDevice : t.reqKinds(joinOr([for (final k in kinds) k.label.toLowerCase()]));
+    return needs.isEmpty ? k : t.reqWith(k, joinAnd(needs));
+  }
+
+  /// "a drone or rover with gps and camera", in English (for the script).
   String describe() {
     String list(List<String> l, String and) => l.length <= 1 ? l.join() : '${l.sublist(0, l.length - 1).join(', ')} $and ${l.last}';
     final k = kinds.isEmpty ? 'a device' : 'a ${list([for (final k in kinds) k.name], 'or')}';
@@ -56,16 +63,16 @@ class ScriptRequirements {
 }
 
 extension WhyNot on ScriptRequirements {
-  /// Why [info] does not fit, as a sentence; null if it does.
+  /// Why [info] does not fit, as a sentence in the language shown; null if it does.
   String? whyNot(DeviceInfo info, [DeviceLink? link]) {
-    if (kinds.isNotEmpty && !kinds.contains(info.kind)) return '${info.name} is a ${info.kind.name}; this script needs ${describe()}.';
+    if (kinds.isNotEmpty && !kinds.contains(info.kind)) return t.reqWrongKind(info.name, info.kind.label.toLowerCase(), describeShown());
     final have = capabilitiesOf(info, link);
     final lacks = [
       for (final n in needs)
         if (!have.contains(n)) n,
     ];
     if (lacks.isEmpty) return null;
-    return '${info.name} has no ${lacks.length == 1 ? lacks.single : '${lacks.sublist(0, lacks.length - 1).join(', ')} or ${lacks.last}'}; this script needs ${describe()}.';
+    return t.reqLacks(info.name, joinOr(lacks), describeShown());
   }
 }
 

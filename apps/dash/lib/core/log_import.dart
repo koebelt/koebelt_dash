@@ -6,6 +6,7 @@ import 'dart:convert';
 import 'dart:math' as math;
 import 'dart:typed_data';
 
+import '../l10n/l10n.dart';
 import '../link/bytes.dart';
 import '../link/mavlink.dart';
 import '../link/mavlink_adapter.dart';
@@ -47,9 +48,9 @@ ImportedLog parseLog(String fileName, Uint8List bytes) {
   } else if (ext == 'tlog' || _looksLikeTlog(bytes)) {
     log = _tlog(bytes);
   } else {
-    throw LogImportError('This file is not a log the app can read. It opens koebelt/dash JSON exports, ArduPilot .bin and .tlog logs, and PX4 .ulg logs.');
+    throw LogImportError(t.logUnknown);
   }
-  if (log.frames.length < 2) throw LogImportError('The ${log.format} file has no telemetry the app can show (attitude, position, battery).');
+  if (log.frames.length < 2) throw LogImportError(t.logEmpty(log.format));
   return log;
 }
 
@@ -111,9 +112,9 @@ ImportedLog _json(Uint8List bytes) {
   try {
     j = jsonDecode(utf8.decode(bytes));
   } catch (_) {
-    throw LogImportError('This JSON file could not be read.');
+    throw LogImportError(t.logJsonUnreadable);
   }
-  if (j is! Map || j['frames'] is! List) throw LogImportError('This JSON file is not a koebelt/dash recording export.');
+  if (j is! Map || j['frames'] is! List) throw LogImportError(t.logJsonNotExport);
   final frames = [for (final f in j['frames'] as List) (f as Map).cast<String, dynamic>()];
   return ImportedLog(
     format: 'koebelt/dash',
@@ -176,7 +177,7 @@ ImportedLog _tlog(Uint8List b) {
     }
     i += 8 + total;
   }
-  if (mav.sys == null) throw LogImportError('This .tlog has no vehicle heartbeat, so its messages cannot be attributed to a vehicle.');
+  if (mav.sys == null) throw LogImportError(tr.logNoHeartbeat);
   return ImportedLog(
     format: 'MAVLink telemetry log',
     deviceName: mavVehicleName(mav.autopilot, mav.type),

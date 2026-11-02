@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../l10n/l10n.dart';
 import '../core/dash.dart';
 import '../mcp/mcp_server.dart';
 import '../scripts/script_hub.dart';
@@ -84,7 +85,7 @@ class _AssistantsSectionState extends State<AssistantsSection> {
         const SizedBox(width: 12),
         KIconButton(
           'copy',
-          label: 'Copy',
+          label: t.copy,
           size: KSize.sm,
           variant: KIconButtonVariant.bare,
           onPressed: () => Clipboard.setData(ClipboardData(text: s)),
@@ -124,8 +125,8 @@ class _AssistantsSectionState extends State<AssistantsSection> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _row(
-          'Let assistants use koebelt dash',
-          'Claude, Codex, OpenCode, Cursor and other MCP clients can read the docs, write scripts, use the app and, with your approval, act on devices. dash itself sends nothing to any AI service; the assistant you connect talks to its own provider.',
+          t.aiLet,
+          t.aiLetDesc,
           KSwitch(
             checked: m.enabled,
             onChanged: (v) async {
@@ -143,18 +144,13 @@ class _AssistantsSectionState extends State<AssistantsSection> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text('Connect a client', style: KText.bodyMd),
+                Text(t.aiConnectClient, style: KText.bodyMd),
                 const SizedBox(height: 6),
-                Text(
-                  local
-                      ? 'Paste this into the assistant’s setup.'
-                      : 'Assistants run on a computer: they reach this ${widget.phone ? 'phone' : 'tablet'} over the network, with its token.',
-                  style: KText.bodySm.copyWith(color: K.textMuted),
-                ),
+                Text(local ? t.aiPaste : (widget.phone ? t.aiRemotePhone : t.aiRemoteTablet), style: KText.bodySm.copyWith(color: K.textMuted)),
                 const SizedBox(height: 12),
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
-                  child: KTabs(items: snippets.keys.toList(), value: client, onChanged: (v) => setState(() => client = v)),
+                  child: KTabs(items: snippets.keys.toList(), labels: {'Other': t.other}, value: client, onChanged: (v) => setState(() => client = v)),
                 ),
                 const SizedBox(height: 12),
                 _snippet(snippets[client]!),
@@ -162,23 +158,21 @@ class _AssistantsSectionState extends State<AssistantsSection> {
             ),
           ),
           _row(
-            'Connected now',
-            c == null ? 'No assistant in the last ten minutes.' : '${c.client} · ${c.actions} action${c.actions == 1 ? '' : 's'}',
+            t.aiConnectedNow,
+            c == null ? t.aiNone : '${c.client} · ${t.actions(c.actions)}',
             Wrap(
               spacing: 8,
               children: [
-                KButton('Activity', size: KSize.sm, variant: KButtonVariant.secondary, onPressed: () => showActivity(context, d)),
-                if (c != null) KButton('Disconnect', size: KSize.sm, variant: KButtonVariant.ghost, onPressed: m.disconnectAll),
+                KButton(t.activity, size: KSize.sm, variant: KButtonVariant.secondary, onPressed: () => showActivity(context, d)),
+                if (c != null) KButton(t.disconnect, size: KSize.sm, variant: KButtonVariant.ghost, onPressed: m.disconnectAll),
               ],
             ),
           ),
           _row(
-            'Allowed without asking',
-            m.allowed.isEmpty
-                ? 'Simulated devices and replays never ask. On real hardware, every action asks unless you allow it for the session. Arming and take-off always ask.'
-                : 'For this session: ${m.allowed.map((a) => a.split(':').first).toSet().join(', ')}. Arming and take-off always ask.',
+            t.aiAllowed,
+            m.allowed.isEmpty ? t.aiAllowedNone : t.aiAllowedSome(m.allowed.map((a) => a.split(':').first).toSet().join(', ')),
             KButton(
-              'Reset',
+              t.reset,
               size: KSize.sm,
               variant: KButtonVariant.secondary,
               onPressed: m.allowed.isEmpty
@@ -191,10 +185,8 @@ class _AssistantsSectionState extends State<AssistantsSection> {
           ),
           if (local)
             _row(
-              'From this network',
-              m.lan
-                  ? 'Assistants on other computers: $netUrl with the token ${m.lanToken.substring(0, 8)}… (copy it from the Other tab).'
-                  : 'Let an assistant on another computer use this dash, with a token.',
+              t.aiFromNetwork,
+              m.lan ? t.aiFromNetworkOn(netUrl, m.lanToken.substring(0, 8)) : t.aiFromNetworkOff,
               KSwitch(
                 checked: m.lan,
                 onChanged: (v) async {
@@ -239,11 +231,11 @@ Future<void> showActivity(BuildContext context, Dash d) => showKDialog<void>(
       String two(int n) => n.toString().padLeft(2, '0');
       final items = d.mcp.activity.reversed.take(100).toList();
       return KDialogPanel(
-        title: 'Assistant activity',
+        title: t.aiActivity,
         width: 640,
         onClose: () => Navigator.pop(ctx),
         children: [
-          if (items.isEmpty) Text('Nothing yet.', style: KText.bodySm.copyWith(color: K.textMuted)),
+          if (items.isEmpty) Text(t.nothingYet, style: KText.bodySm.copyWith(color: K.textMuted)),
           for (final e in items)
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -296,7 +288,7 @@ class AssistantChip extends StatelessWidget {
           children: [
             const PulseDot(color: K.accent, animate: false),
             const SizedBox(width: 8),
-            Text(compact ? 'AI' : '${c.client} · ${c.actions} action${c.actions == 1 ? '' : 's'}'.toUpperCase(), style: KText.label(color: K.textAccent)),
+            Text(compact ? t.aiShort : '${c.client} · ${t.actions(c.actions)}'.toUpperCase(), style: KText.label(color: K.textAccent)),
           ],
         ),
       ),
@@ -343,7 +335,7 @@ class _ApprovalCardState extends State<ApprovalCard> {
         children: [
           Row(
             children: [
-              MonoLabel('${a.client} asks', color: K.textAccent),
+              MonoLabel(t.aiAsks(a.client), color: K.textAccent),
               const Spacer(),
               Text('0:${left.inSeconds.clamp(0, 59).toString().padLeft(2, '0')}', style: KText.mono(12, color: K.textMuted)),
             ],
@@ -351,7 +343,7 @@ class _ApprovalCardState extends State<ApprovalCard> {
           const SizedBox(height: 10),
           Text(a.title, style: KText.headingXs),
           const SizedBox(height: 8),
-          Text('${a.device} is real hardware.${a.detail.isEmpty ? '' : ' ${a.detail}'}', style: KText.bodySm.copyWith(color: K.textSecondary)),
+          Text('${t.aiRealHardware(a.device)}${a.detail.isEmpty ? '' : ' ${a.detail}'}', style: KText.bodySm.copyWith(color: K.textSecondary)),
           if (!a.always) ...[
             const SizedBox(height: 14),
             Row(
@@ -359,7 +351,7 @@ class _ApprovalCardState extends State<ApprovalCard> {
                 KSwitch(checked: session, onChanged: (v) => setState(() => session = v)),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Text('Allow this kind of action on ${a.device} for this session', style: KText.bodySm.copyWith(color: K.textSecondary)),
+                  child: Text(t.aiAllowSession(a.device), style: KText.bodySm.copyWith(color: K.textSecondary)),
                 ),
               ],
             ),
@@ -368,11 +360,11 @@ class _ApprovalCardState extends State<ApprovalCard> {
           Row(
             children: [
               Expanded(
-                child: KButton('Refuse', variant: KButtonVariant.secondary, fullWidth: true, onPressed: () => widget.d.mcp.answer(a, false)),
+                child: KButton(t.refuse, variant: KButtonVariant.secondary, fullWidth: true, onPressed: () => widget.d.mcp.answer(a, false)),
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: KButton('Approve', fullWidth: true, onPressed: () => widget.d.mcp.answer(a, true, forSession: session)),
+                child: KButton(t.approve, fullWidth: true, onPressed: () => widget.d.mcp.answer(a, true, forSession: session)),
               ),
             ],
           ),

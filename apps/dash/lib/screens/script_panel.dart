@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../l10n/l10n.dart';
 import '../core/dash.dart';
 import '../core/gamepad.dart';
 import '../core/compat.dart' show fromPep440;
@@ -59,9 +60,9 @@ class ScriptRunPanel extends StatelessWidget {
       children: [
         _status(context, run, conn),
         const SizedBox(height: 16),
-        _kv('Device', _deviceChoice(cfg)),
-        if (!requires.isEmpty) _kv('Needs', Text(requires.describe(), style: KText.mono(12, color: K.textSecondary))),
-        _kv('Runs on', _hostChoice(context, cfg)),
+        _kv(t.device, _deviceChoice(cfg)),
+        if (!requires.isEmpty) _kv(t.needs, Text(requires.describeShown(), style: KText.mono(12, color: K.textSecondary))),
+        _kv(t.runsOn, _hostChoice(context, cfg)),
         if (local) _kv('Python', _pythonChoice(context, cfg)),
         const SizedBox(height: 14),
         _runButtons(context, cfg, run, running),
@@ -72,17 +73,15 @@ class ScriptRunPanel extends StatelessWidget {
           const SizedBox(height: 12),
           KNotice(
             tone: Tone.info,
-            title: 'Scripts run on a computer',
+            title: t.scriptsRunOnComputer,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Text(
-                  'This device sends them to a script host: a computer on the same network running koebelt-dash-scripts, which can use any Python package (OpenCV, PyTorch…).',
-                ),
+                Text(t.scriptsRunOnComputerBody),
                 const SizedBox(height: 10),
                 Align(
                   alignment: Alignment.centerLeft,
-                  child: KButton('Add a script host', size: KSize.sm, onPressed: () => showAddHostDialog(context, d)),
+                  child: KButton(t.addScriptHost, size: KSize.sm, onPressed: () => showAddHostDialog(context, d)),
                 ),
               ],
             ),
@@ -114,7 +113,7 @@ class ScriptRunPanel extends StatelessWidget {
     String two(int n) => n.toString().padLeft(2, '0');
     final Widget head;
     if (run == null) {
-      head = Text('NOT RUNNING', style: KText.labelMd(color: K.textMuted));
+      head = Text(t.notRunning.toUpperCase(), style: KText.labelMd(color: K.textMuted));
     } else if (run.state == ScriptState.running) {
       final s = DateTime.now().difference(run.startedAt).inSeconds;
       head = Row(
@@ -123,7 +122,7 @@ class ScriptRunPanel extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              'RUNNING ${two(s ~/ 60)}:${two(s % 60)}${run is RemoteRun ? ' · ${run.where}' : ''}',
+              '${t.running.toUpperCase()} ${two(s ~/ 60)}:${two(s % 60)}${run is RemoteRun ? ' · ${run.where}' : ''}',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: KText.labelMd(color: K.positive),
@@ -134,7 +133,7 @@ class ScriptRunPanel extends StatelessWidget {
       );
     } else {
       final failed = run.state == ScriptState.failed;
-      head = Text(failed ? 'ENDED WITH AN ERROR' : 'ENDED', style: KText.labelMd(color: failed ? K.negative : K.textMuted));
+      head = Text((failed ? t.endedError : t.ended).toUpperCase(), style: KText.labelMd(color: failed ? K.negative : K.textMuted));
     }
     final link = conn?.drive?.link;
     return Column(
@@ -143,17 +142,17 @@ class ScriptRunPanel extends StatelessWidget {
         head,
         if (run != null && run.state == ScriptState.running && conn == null) ...[
           const SizedBox(height: 8),
-          Text('Waiting for the script to connect (connect() in the script)…', style: KText.bodySm.copyWith(color: K.textMuted)),
+          Text(t.waitingConnect, style: KText.bodySm.copyWith(color: K.textMuted)),
         ],
         if (conn?.drive?.paused == true && link != null) ...[
           const SizedBox(height: 12),
           KNotice(
             tone: Tone.warning,
-            title: 'You have the sticks',
+            title: t.youHaveSticks,
             child: Row(
               children: [
-                const Expanded(child: Text('You moved the sticks, so the script’s are ignored.')),
-                KButton('Resume', size: KSize.sm, onPressed: () => hub.resume(link)),
+                Expanded(child: Text(t.youHaveSticksBody)),
+                KButton(t.resume, size: KSize.sm, onPressed: () => hub.resume(link)),
               ],
             ),
           ),
@@ -162,11 +161,11 @@ class ScriptRunPanel extends StatelessWidget {
           const SizedBox(height: 12),
           KNotice(
             tone: Tone.negative,
-            title: 'The script lost the sticks',
+            title: t.scriptLostSticks,
             child: Row(
               children: [
                 Expanded(child: Text(conn!.blocked!)),
-                KButton('Resume', size: KSize.sm, onPressed: () => hub.unblock(conn)),
+                KButton(t.resume, size: KSize.sm, onPressed: () => hub.unblock(conn)),
               ],
             ),
           ),
@@ -182,39 +181,31 @@ class ScriptRunPanel extends StatelessWidget {
     if (cfg.device != null) {
       final l = d.links.values.where((x) => x.info.name == cfg.device).firstOrNull;
       if (l == null) {
-        return (name: cfg.device, title: '${cfg.device} is not connected', why: 'Connect it, or choose another device above.');
+        return (name: cfg.device, title: t.isNotConnected(cfg.device!), why: t.connectItOrChoose);
       }
       final why = requires.whyNot(l.info, l);
-      return (
-        name: l.info.name,
-        title: why == null ? null : '${l.info.name} does not fit this script',
-        why: why == null ? null : '$why Choose another device above, or change the # requires: line.',
-      );
+      return (name: l.info.name, title: why == null ? null : t.doesNotFit(l.info.name), why: why == null ? null : '$why ${t.chooseOrChangeRequires}');
     }
     final l = d.focus;
     if (l == null) {
-      return (name: null, title: 'No device connected', why: 'A script drives a device: connect one first (Devices, or the device menu at the top).');
+      return (name: null, title: t.noDeviceTitle, why: t.scriptNeedsDevice);
     }
     final why = requires.whyNot(l.info, l);
-    return (
-      name: l.info.name,
-      title: why == null ? null : '${l.info.name} does not fit this script',
-      why: why == null ? null : '$why Choose another device above, or change the # requires: line.',
-    );
+    return (name: l.info.name, title: why == null ? null : t.doesNotFit(l.info.name), why: why == null ? null : '$why ${t.chooseOrChangeRequires}');
   }
 
   Widget _deviceChoice(ScriptConfig cfg) {
     final links = d.links.values.toList();
     final names = [for (final l in links) l.info.name];
     final value = cfg.device;
-    String fit(dynamic l) => requires.isEmpty || l == null || requires.missing(l.info, l).isEmpty ? '' : ' · does not fit';
-    return _Dropdown<String?>(
+    String fit(dynamic l) => requires.isEmpty || l == null || requires.missing(l.info, l).isEmpty ? '' : ' · ${t.doesNotFitShort}';
+    return KDropdown<String?>(
       value: value,
       items: {
-        null: 'Selected in dash${d.focus == null ? ' (none connected)' : ' (${d.focus!.info.name}${fit(d.focus)})'}',
+        null: '${t.selectedInDash}${d.focus == null ? ' (${t.noneConnected})' : ' (${d.focus!.info.name}${fit(d.focus)})'}',
         for (final l in links) l.info.name: '${l.info.name}${fit(l)}',
         // Chosen for this script but not connected now: still shown, as such.
-        if (cfg.device != null && !names.contains(cfg.device)) cfg.device: '${cfg.device} · not connected',
+        if (cfg.device != null && !names.contains(cfg.device)) cfg.device: '${cfg.device} · ${t.notConnected.toLowerCase()}',
       },
       onChanged: (v) {
         cfg.device = v;
@@ -227,9 +218,9 @@ class ScriptRunPanel extends StatelessWidget {
   Widget _hostChoice(BuildContext context, ScriptConfig cfg) {
     const add = '+';
     final current = hub.hostFor(cfg);
-    return _Dropdown<String?>(
+    return KDropdown<String?>(
       value: current?.key,
-      items: {if (ScriptHub.canRunHere) null: 'This computer', for (final h in hub.hosts) h.key: h.name, add: 'Add a script host…'},
+      items: {if (ScriptHub.canRunHere) null: t.thisComputer, for (final h in hub.hosts) h.key: h.name, add: '${t.addScriptHost}…'},
       onChanged: (v) async {
         if (v == add) {
           final h = await showAddHostDialog(context, d);
@@ -245,15 +236,15 @@ class ScriptRunPanel extends StatelessWidget {
 
   Widget _pythonChoice(BuildContext context, ScriptConfig cfg) {
     final ps = hub.pythons;
-    if (ps == null || hub.findingPythons) return Text('Looking for Python…', style: KText.mono(12, color: K.textMuted));
-    if (ps.isEmpty) return Text('None found', style: KText.mono(12, color: K.negative));
+    if (ps == null || hub.findingPythons) return Text(t.lookingForPython, style: KText.mono(12, color: K.textMuted));
+    if (ps.isEmpty) return Text(t.noneFound, style: KText.mono(12, color: K.negative));
     final current = hub.pythonFor(cfg);
     final home = Platform.environment['HOME'] ?? '';
     String short(String p) => home.isNotEmpty && p.startsWith(home) ? '~${p.substring(home.length)}' : p;
-    return _Dropdown<String?>(
+    return KDropdown<String?>(
       value: ps.any((p) => p.path == current) ? current : null,
       items: {
-        for (final p in ps) p.path: '${p.version} · ${short(p.path)}${p.hasPackage ? ' · lib ${fromPep440(p.packageVersion ?? '')}' : ' · no package'}',
+        for (final p in ps) p.path: '${p.version} · ${short(p.path)}${p.hasPackage ? ' · lib ${fromPep440(p.packageVersion ?? '')}' : ' · ${t.noPackage}'}',
         if (current != null && !ps.any((p) => p.path == current)) null: short(current),
       },
       onChanged: (v) {
@@ -274,10 +265,10 @@ class ScriptRunPanel extends StatelessWidget {
         const SizedBox(height: 12),
         KNotice(
           tone: Tone.warning,
-          title: 'Python 3 is needed',
+          title: t.python3Needed,
           child: Row(
             children: [
-              const Expanded(child: Text('Install it from python.org, then come back here.')),
+              Expanded(child: Text(t.python3NeededBody)),
               KButton(
                 'python.org',
                 size: KSize.sm,
@@ -299,12 +290,12 @@ class ScriptRunPanel extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text('A newer version of the library scripts use is out, for this version of koebelt dash.'),
+              Text(t.newerLibrary),
               if (hub.setupLog.isNotEmpty) ...[const SizedBox(height: 8), Text(hub.setupLog.last, style: KText.mono(11, color: K.textMuted))],
               const SizedBox(height: 10),
               Align(
                 alignment: Alignment.centerLeft,
-                child: KButton('Update', size: KSize.sm, onPressed: () => hub.installInto(chosen!, upgrade: true)),
+                child: KButton(t.update, size: KSize.sm, onPressed: () => hub.installInto(chosen!, upgrade: true)),
               ),
             ],
           ),
@@ -317,29 +308,25 @@ class ScriptRunPanel extends StatelessWidget {
         const SizedBox(height: 12),
         KNotice(
           tone: Tone.warning,
-          title: env == null ? 'This Python does not answer' : 'koebelt-dash-scripts is not in this Python',
+          title: env == null ? t.pythonNoAnswer : t.packageNotInPython,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                env == null
-                    ? 'dash could not run $chosen. Choose another, or create a scripts environment.'
-                    : 'Install it here (pip install koebelt-dash-scripts), or let dash create a scripts environment in the scripts folder.',
-              ),
+              Text(env == null ? t.pythonNoAnswerBody(chosen) : t.packageNotInPythonBody),
               if (hub.setupLog.isNotEmpty) ...[const SizedBox(height: 8), Text(hub.setupLog.last, style: KText.mono(11, color: K.textMuted))],
               const SizedBox(height: 10),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  if (env != null) KButton('Install here', size: KSize.sm, onPressed: () => hub.installInto(chosen)),
+                  if (env != null) KButton(t.installHere, size: KSize.sm, onPressed: () => hub.installInto(chosen)),
                   KButton(
-                    'Scripts environment',
+                    t.scriptsEnvironment,
                     size: KSize.sm,
                     variant: KButtonVariant.secondary,
                     onPressed: () => hub.setupPython(scriptsDir, cfg: cfg),
                   ),
-                  KButton('Check again', size: KSize.sm, variant: KButtonVariant.ghost, onPressed: () => hub.recheckPython(chosen)),
+                  KButton(t.checkAgain, size: KSize.sm, variant: KButtonVariant.ghost, onPressed: () => hub.recheckPython(chosen)),
                 ],
               ),
             ],
@@ -351,19 +338,17 @@ class ScriptRunPanel extends StatelessWidget {
       const SizedBox(height: 12),
       KNotice(
         tone: Tone.info,
-        title: hub.settingUp ? 'Setting up Python' : 'One-time setup',
+        title: hub.settingUp ? t.settingUpPython : t.oneTimeSetup,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              hub.settingUp ? (hub.setupLog.lastOrNull ?? '…') : 'Scripts need the koebelt-dash-scripts package. dash can create a Python environment for them in the scripts folder (.venv) and install it there; your own packages (OpenCV, PyTorch…) go there too.',
-            ),
+            Text(hub.settingUp ? (hub.setupLog.lastOrNull ?? '…') : t.oneTimeSetupBody),
             if (!hub.settingUp) ...[
               const SizedBox(height: 10),
               Align(
                 alignment: Alignment.centerLeft,
                 child: KButton(
-                  'Set up Python',
+                  t.setUpPython,
                   size: KSize.sm,
                   onPressed: () => hub.setupPython(scriptsDir, cfg: cfg),
                 ),
@@ -379,14 +364,13 @@ class ScriptRunPanel extends StatelessWidget {
   Widget _missingNotice(ScriptConfig cfg) {
     final python = hub.pythonFor(cfg)!;
     final packages = {for (final m in missing) pipNameFor(m)}.toList();
-    String list(List<String> l) => l.length == 1 ? l.single : '${l.sublist(0, l.length - 1).join(', ')} and ${l.last}';
     return KNotice(
       tone: Tone.warning,
-      title: missing.length == 1 ? 'A package is missing' : 'Packages are missing',
+      title: t.packagesMissing(missing.length),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('This script imports ${list(missing)}, not in this Python: it would stop there. Install ${list(packages)}?'),
+          Text(t.packagesMissingBody(joinAnd(missing), joinAnd(packages))),
           const SizedBox(height: 8),
           Text(
             hub.settingUp ? (hub.setupLog.lastOrNull ?? '…') : 'pip install ${packages.join(' ')}',
@@ -399,10 +383,10 @@ class ScriptRunPanel extends StatelessWidget {
             spacing: 8,
             runSpacing: 8,
             children: [
-              KButton(hub.settingUp ? 'Installing…' : 'Install', size: KSize.sm, onPressed: hub.settingUp ? null : () => hub.installPackages(python, packages)),
+              KButton(hub.settingUp ? t.installing : t.install, size: KSize.sm, onPressed: hub.settingUp ? null : () => hub.installPackages(python, packages)),
               if (!hub.settingUp)
                 KButton(
-                  'Not now',
+                  t.notNow,
                   size: KSize.sm,
                   variant: KButtonVariant.ghost,
                   onPressed: () {
@@ -424,7 +408,7 @@ class ScriptRunPanel extends StatelessWidget {
     child: Row(
       children: [
         Expanded(child: Text(r.text)),
-        if (!r.ok) KIconButton('x', label: 'Dismiss', size: KSize.sm, variant: KIconButtonVariant.bare, onPressed: hub.dismissResult),
+        if (!r.ok) KIconButton('x', label: t.dismiss, size: KSize.sm, variant: KIconButtonVariant.bare, onPressed: hub.dismissResult),
       ],
     ),
   );
@@ -432,21 +416,21 @@ class ScriptRunPanel extends StatelessWidget {
   Widget _runButtons(BuildContext context, ScriptConfig cfg, ScriptRun? run, bool running) {
     // Here: a Python dash checked has koebelt-dash-scripts.
     final where = hub.hostFor(cfg) != null || (ScriptHub.canRunHere && hub.port != null && (hub.envOf(hub.pythonFor(cfg))?.hasPackage ?? false));
-    final t = _target(cfg);
-    final canRun = where && t.why == null;
+    final tgt = _target(cfg);
+    final canRun = where && tgt.why == null;
     final button = Row(
       children: [
         Expanded(
           child: running
               ? KButton(
-                  'Stop script',
+                  t.stopScript,
                   variant: KButtonVariant.secondary,
                   fullWidth: true,
                   iconLeft: const KIcon('square', size: 16),
                   onPressed: () => run!.stop(),
                 )
               : KButton(
-                  'Run',
+                  t.run,
                   fullWidth: true,
                   iconLeft: const KIcon('play', size: 14, color: K.textOnAccent),
                   onPressed: canRun ? onRun : null,
@@ -456,7 +440,7 @@ class ScriptRunPanel extends StatelessWidget {
           const SizedBox(width: 8),
           KIconButton(
             'replay',
-            label: 'Restart',
+            label: t.restart,
             onPressed: () async {
               await run!.stop();
               onRun();
@@ -465,19 +449,19 @@ class ScriptRunPanel extends StatelessWidget {
         ],
       ],
     );
-    if (t.why == null || running) return button;
+    if (tgt.why == null || running) return button;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         button,
         const SizedBox(height: 12),
-        KNotice(tone: Tone.warning, title: t.title, child: Text(t.why!)),
+        KNotice(tone: Tone.warning, title: tgt.title, child: Text(tgt.why!)),
       ],
     );
   }
 
   Widget _settings(ScriptConn c) => _Section(
-    'Settings',
+    t.navSettings,
     children: [
       for (final e in c.settings.entries)
         if (e.value['value'] is bool)
@@ -527,14 +511,10 @@ class ScriptRunPanel extends StatelessWidget {
     }
 
     return _Section(
-      'Triggers',
-      right: KButton('Add', size: KSize.sm, variant: KButtonVariant.ghost, iconLeft: const KIcon('plus', size: 14), onPressed: () => edit()),
+      t.triggers,
+      right: KButton(t.add, size: KSize.sm, variant: KButtonVariant.ghost, iconLeft: const KIcon('plus', size: 14), onPressed: () => edit()),
       children: [
-        if (events.isEmpty)
-          Text(
-            'Buttons, keys, controller buttons, conditions and timers that send events to the script. Declare them with @dev.trigger(…), or add them here.',
-            style: KText.bodySm.copyWith(color: K.textMuted),
-          ),
+        if (events.isEmpty) Text(t.triggersEmpty, style: KText.bodySm.copyWith(color: K.textMuted)),
         for (final ev in events) _TriggerRow(d: d, cfg: cfg, conn: conn, event: ev, decl: conn?.triggers[ev], onEdit: edit),
       ],
     );
@@ -554,9 +534,9 @@ class ScriptRunPanel extends StatelessWidget {
       ),
     );
     return _Section(
-      'Limits',
+      t.limits,
       right: KButton(
-        'Edit',
+        t.edit,
         size: KSize.sm,
         variant: KButtonVariant.ghost,
         onPressed: () => showLimitsDialog(
@@ -570,11 +550,11 @@ class ScriptRunPanel extends StatelessWidget {
         ),
       ),
       children: [
-        row('Max speed', '${(l.maxSpeed * 100).round()} %'),
-        row('Geofence', l.fence == 0 ? 'off' : '${l.fence.round()} m from home', muted: l.fence == 0),
-        if (kind == null || kind == DeviceKind.drone) row('Ceiling', l.ceiling == 0 ? 'off' : '${l.ceiling.round()} m', muted: l.ceiling == 0),
-        row('Arming, take-off', l.allowArm ? 'allowed' : 'not allowed', muted: !l.allowArm),
-        row('Parameter writes', l.allowParams ? 'allowed' : 'not allowed', muted: !l.allowParams),
+        row(t.maxSpeed, '${(l.maxSpeed * 100).round()} %'),
+        row(t.geofence, l.fence == 0 ? t.off : t.metresFromHome(l.fence.round()), muted: l.fence == 0),
+        if (kind == null || kind == DeviceKind.drone) row(t.ceiling, l.ceiling == 0 ? t.off : '${l.ceiling.round()} m', muted: l.ceiling == 0),
+        row(t.armingTakeoff, l.allowArm ? t.allowed : t.notAllowed, muted: !l.allowArm),
+        row(t.paramWrites, l.allowParams ? t.allowed : t.notAllowed, muted: !l.allowParams),
       ],
     );
   }
@@ -650,7 +630,7 @@ class _TriggerRow extends StatelessWidget {
     if (kind == TriggerSource.toggle) {
       control = KSwitch(checked: cfg.values[event] == true, onChanged: c == null ? null : (v) => hub.setToggle(c, event, v));
     } else if (kind == TriggerSource.button) {
-      control = KButton('Fire', size: KSize.sm, variant: KButtonVariant.secondary, onPressed: c == null ? null : () => hub.press(c, event));
+      control = KButton(t.fire, size: KSize.sm, variant: KButtonVariant.secondary, onPressed: c == null ? null : () => hub.press(c, event));
     }
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 10),
@@ -681,7 +661,7 @@ class _TriggerRow extends StatelessWidget {
             runSpacing: 6,
             children: [
               for (final b in bindings) _chip(b, c),
-              if (bindings.isEmpty) Text('Not bound yet', style: KText.mono(11, color: K.textMuted)),
+              if (bindings.isEmpty) Text(t.notBound, style: KText.mono(11, color: K.textMuted)),
             ],
           ),
         ],
@@ -709,7 +689,7 @@ class _TriggerRow extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Tooltip(
-              message: w?.error ?? (w?.now == null ? '' : 'Now ${w!.now}'),
+              message: w?.error ?? (w?.now == null ? '' : '${t.now} ${w!.now}'),
               child: Text(
                 b.source == TriggerSource.condition ? b.describe(padSourceLabel) : b.describe(padSourceLabel).toUpperCase(),
                 style: KText.mono(11, color: color),
@@ -729,40 +709,6 @@ class _TriggerRow extends StatelessWidget {
       ),
     );
   }
-}
-
-class _Dropdown<T> extends StatelessWidget {
-  const _Dropdown({required this.value, required this.items, required this.onChanged});
-  final T value;
-  final Map<T, String> items;
-  final ValueChanged<T> onChanged;
-  @override
-  Widget build(BuildContext context) => Container(
-    height: 34,
-    padding: const EdgeInsets.symmetric(horizontal: 10),
-    decoration: BoxDecoration(
-      color: K.surfaceSunken,
-      border: Border.all(color: K.borderHairline),
-      borderRadius: BorderRadius.circular(K.radiusControl),
-    ),
-    child: DropdownButtonHideUnderline(
-      child: DropdownButton<T>(
-        value: items.containsKey(value) ? value : items.keys.firstOrNull,
-        isExpanded: true,
-        dropdownColor: K.surfaceRaised,
-        icon: const KIcon('chevron-down', size: 14, color: K.textMuted),
-        style: KText.mono(12),
-        items: [
-          for (final e in items.entries)
-            DropdownMenuItem<T>(
-              value: e.key,
-              child: Text(e.value, overflow: TextOverflow.ellipsis, style: KText.mono(12)),
-            ),
-        ],
-        onChanged: (v) => onChanged(v as T),
-      ),
-    ),
-  );
 }
 
 /// The script's output: its own lines, and dash's about it.
@@ -807,8 +753,8 @@ class _ScriptConsoleState extends State<ScriptConsole> {
             padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
             child: Row(
               children: [
-                const Expanded(child: MonoLabel('Console')),
-                if (widget.hz != null) Text('loop ${widget.hz!.toStringAsFixed(1)} Hz', style: KText.mono(11, color: K.textMuted)),
+                Expanded(child: MonoLabel(t.console)),
+                if (widget.hz != null) Text(t.loopHz(widget.hz!.toStringAsFixed(1)), style: KText.mono(11, color: K.textMuted)),
               ],
             ),
           ),
@@ -816,7 +762,7 @@ class _ScriptConsoleState extends State<ScriptConsole> {
             child: lines.isEmpty
                 ? Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Text('print() output and errors show here.', style: KText.mono(12, color: K.textFaint)),
+                    child: Text(t.consoleEmpty, style: KText.mono(12, color: K.textFaint)),
                   )
                 : SelectionArea(
                     child: ListView.builder(
@@ -873,7 +819,7 @@ class _ScriptConsoleState extends State<ScriptConsole> {
 }
 
 /// Title for the console of a script that is not dash's (started in a terminal).
-String outsideLabel(ScriptConn c) => '${ScriptLibrary.titleOf(c.name.replaceAll(RegExp(r'\.py$'), ''))} · from outside dash';
+String outsideLabel(ScriptConn c) => '${ScriptLibrary.titleOf(c.name.replaceAll(RegExp(r'\.py$'), ''))} · ${t.fromOutside}';
 
 /// On Control: the scripts working with the focused device, their state, and
 /// the triggers pinned there. Nothing when no script is.
@@ -934,7 +880,7 @@ class ScriptControls extends StatelessWidget {
             PulseDot(color: color, animate: dr != null && !dr.paused),
             const SizedBox(width: 8),
             Text(text.toUpperCase(), style: KText.label(color: color)),
-            if (resume != null) ...[const SizedBox(width: 8), KButton('Resume', size: KSize.sm, variant: KButtonVariant.ghost, onPressed: resume)],
+            if (resume != null) ...[const SizedBox(width: 8), KButton(t.resume, size: KSize.sm, variant: KButtonVariant.ghost, onPressed: resume)],
           ],
         ),
       ),

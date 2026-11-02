@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/l10n.dart';
 import '../core/dash.dart';
 import '../core/gamepad.dart';
 import '../core/model.dart';
@@ -38,25 +39,24 @@ class _ControllerSectionState extends State<ControllerSection> {
 
   void _learn(String slot) => setState(() => m.learning == slot ? m.cancelLearning() : m.startLearning(slot));
 
-  static const _axisLabels = [('Yaw · steer', 'lx'), ('Throttle', 'ly'), ('Roll', 'rx'), ('Pitch · drive', 'ry')];
+  static List<(String, String)> get _axisLabels => [(t.padYawSteer, 'lx'), (t.stickThrottle, 'ly'), (t.padRoll, 'rx'), (t.padPitchDrive, 'ry')];
 
   @override
   Widget build(BuildContext context) {
     final d = widget.d, g = d.gamepads, phone = widget.phone;
     final pads = g.pads.values.toList();
     final status = !g.available
-        ? 'Controllers are not available on this platform.'
+        ? t.padUnavailable
         : pads.isEmpty
-        ? 'No controller connected. Pair a Bluetooth controller in the system settings, or plug one in over USB. RC transmitters work in USB joystick mode.'
-        : 'Connected: ${pads.join(', ')}.';
+        ? t.padNone
+        : t.padConnected(pads.join(', '));
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Padding(padding: EdgeInsets.only(bottom: 4), child: MonoLabel('Game controller')),
+        Padding(padding: const EdgeInsets.only(bottom: 4), child: MonoLabel(t.secController)),
         _row(
-          title: 'Use a game controller',
-          desc:
-              '$status Sticks drive drones and ground robots, and jog robot arms, once they are armed; buttons work on any device. On-screen controls keep working while the controller is idle.',
+          title: t.padUse,
+          desc: '$status ${t.padUseDesc}',
           child: KSwitch(
             checked: cfg.enabled,
             onChanged: (v) {
@@ -71,8 +71,8 @@ class _ControllerSectionState extends State<ControllerSection> {
             padding: const EdgeInsets.only(top: 20, bottom: 8),
             child: Row(
               children: [
-                const Expanded(child: MonoLabel('Sticks')),
-                if (m.learning != null) const MonoLabel('Move or press the control now', color: K.textAccent),
+                Expanded(child: MonoLabel(t.padSticks)),
+                if (m.learning != null) MonoLabel(t.padMoveNow, color: K.textAccent),
               ],
             ),
           ),
@@ -83,14 +83,14 @@ class _ControllerSectionState extends State<ControllerSection> {
               return Column(children: [for (var i = 0; i < 4; i++) _axisRow(i, out[i], phone)]);
             },
           ),
-          const Padding(padding: EdgeInsets.only(top: 20, bottom: 8), child: MonoLabel('Buttons')),
+          Padding(padding: const EdgeInsets.only(top: 20, bottom: 8), child: MonoLabel(t.padButtons)),
           ListenableBuilder(
             listenable: d.frame,
             builder: (context, _) => Column(children: [for (final a in PadAction.values) _buttonRow(a, phone)]),
           ),
           _row(
-            title: 'Dead zone',
-            desc: 'Stick movement ignored around the centre: ${(cfg.deadzone * 100).round()} %.',
+            title: t.padDeadzone,
+            desc: t.padDeadzoneDesc((cfg.deadzone * 100).round()),
             child: SizedBox(
               width: 200,
               child: KSlider(
@@ -106,8 +106,8 @@ class _ControllerSectionState extends State<ControllerSection> {
             ),
           ),
           _row(
-            title: 'Expo',
-            desc: 'Softer response near the centre for fine control: ${(cfg.expo * 100).round()} %.',
+            title: t.padExpo,
+            desc: t.padExpoDesc((cfg.expo * 100).round()),
             child: SizedBox(
               width: 200,
               child: KSlider(
@@ -123,10 +123,10 @@ class _ControllerSectionState extends State<ControllerSection> {
             ),
           ),
           _row(
-            title: 'Reset mapping',
-            desc: 'Standard layout: left stick throttle and yaw, right stick pitch and roll, B / Circle for STOP.',
+            title: t.padResetMapping,
+            desc: t.padResetMappingDesc,
             child: KButton(
-              'Reset',
+              t.reset,
               size: KSize.sm,
               variant: KButtonVariant.ghost,
               onPressed: () {
@@ -195,29 +195,41 @@ class _ControllerSectionState extends State<ControllerSection> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                MonoLabel(learning ? 'Waiting…' : padSourceLabel(b.src), color: learning ? K.textAccent : K.textSecondary, maxLines: 1),
+                MonoLabel(learning ? t.waiting : padSourceLabel(b.src), color: learning ? K.textAccent : K.textSecondary, maxLines: 1),
                 const SizedBox(height: 6),
                 _Bar(v),
               ],
             ),
           ),
           const SizedBox(width: 12),
-          Tooltip(
-            message: 'Invert direction',
-            child: Pressable(
-              onTap: () {
-                b.invert = !b.invert;
-                widget.d.savePad();
-              },
-              builder: (_, _, _) => KTag(b.invert ? 'Inverted' : 'Normal', tone: b.invert ? TagTone.accent : TagTone.neutral, height: 26),
+          // Shrinks on a small phone with long words (other languages, large text).
+          Flexible(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerRight,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Tooltip(
+                    message: t.invertDirection,
+                    child: Pressable(
+                      onTap: () {
+                        b.invert = !b.invert;
+                        widget.d.savePad();
+                      },
+                      builder: (_, _, _) => KTag(b.invert ? t.inverted : t.normal, tone: b.invert ? TagTone.accent : TagTone.neutral, height: 26),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  KButton(
+                    learning ? t.cancel : t.learn,
+                    size: KSize.sm,
+                    variant: learning ? KButtonVariant.primary : KButtonVariant.ghost,
+                    onPressed: () => _learn(slot),
+                  ),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(width: 8),
-          KButton(
-            learning ? 'Cancel' : 'Learn',
-            size: KSize.sm,
-            variant: learning ? KButtonVariant.primary : KButtonVariant.ghost,
-            onPressed: () => _learn(slot),
           ),
         ],
       ),
@@ -243,7 +255,7 @@ class _ControllerSectionState extends State<ControllerSection> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                MonoLabel(learning ? 'Waiting…' : padSourceLabel(src), color: learning ? K.textAccent : (down ? K.textAccent : K.textSecondary), maxLines: 1),
+                MonoLabel(learning ? t.waiting : padSourceLabel(src), color: learning ? K.textAccent : (down ? K.textAccent : K.textSecondary), maxLines: 1),
                 if (!phone) ...[const SizedBox(height: 2), MonoLabel(a.hint, size: 9, maxLines: 1)],
                 if (hold > 0) ...[const SizedBox(height: 4), _Bar(hold, from0: true)],
               ],
@@ -252,7 +264,7 @@ class _ControllerSectionState extends State<ControllerSection> {
           if (src != null && !learning)
             KIconButton(
               'x',
-              label: 'Clear ${a.label}',
+              label: t.clearName(a.label),
               size: KSize.sm,
               variant: KIconButtonVariant.bare,
               onPressed: () {
@@ -262,7 +274,7 @@ class _ControllerSectionState extends State<ControllerSection> {
             ),
           const SizedBox(width: 8),
           KButton(
-            learning ? 'Cancel' : 'Learn',
+            learning ? t.cancel : t.learn,
             size: KSize.sm,
             variant: learning ? KButtonVariant.primary : KButtonVariant.ghost,
             onPressed: () => _learn(slot),
@@ -327,11 +339,11 @@ class PadChip extends StatelessWidget {
     final driving = d.padCanDrive;
     return Tooltip(
       message: driving
-          ? '$name drives ${d.deviceName}'
+          ? t.padDrives(name, d.deviceName)
           : d.kind == DeviceKind.drone || d.kind == DeviceKind.rover
-          ? 'Arm to drive with $name; its buttons already work'
-          : 'Buttons work; sticks drive drones and ground robots',
-      child: KTag('Pad · $name', tone: driving ? TagTone.accent : TagTone.neutral),
+          ? t.padArmToDrive(name)
+          : t.padButtonsWork,
+      child: KTag('${t.pad} · $name', tone: driving ? TagTone.accent : TagTone.neutral),
     );
   }
 }

@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import '../l10n/l10n.dart';
 import '../core/device_link.dart';
 import '../core/model.dart';
 import 'conditions.dart';
@@ -7,26 +8,26 @@ import 'conditions.dart';
 /// The fields conditions can read on a device, with a label and unit for the
 /// picker. Custom channels the device declares come on top.
 List<({String field, String label, String unit})> conditionFields(DeviceKind kind, {List<ProxSensor> prox = const []}) => [
-  (field: 'battery.pct', label: 'Battery', unit: '%'),
-  (field: 'battery.v', label: 'Battery voltage', unit: 'V'),
+  (field: 'battery.pct', label: t.fldBattery, unit: '%'),
+  (field: 'battery.v', label: t.fldBatteryVoltage, unit: 'V'),
   if (kind == DeviceKind.drone || kind == DeviceKind.rover || kind == DeviceKind.rocket || kind == DeviceKind.generic) ...[
-    (field: 'home.distance', label: 'Distance from home', unit: 'm'),
-    (field: 'alt', label: 'Height above home', unit: 'm'),
-    (field: 'speed', label: 'Speed', unit: 'm/s'),
-    (field: 'heading', label: 'Heading', unit: '°'),
+    (field: 'home.distance', label: t.fldDistanceFromHome, unit: 'm'),
+    (field: 'alt', label: t.fldHeightAboveHome, unit: 'm'),
+    (field: 'speed', label: t.fldSpeed, unit: 'm/s'),
+    (field: 'heading', label: t.fldHeading, unit: '°'),
   ],
-  if (kind == DeviceKind.drone) ...[(field: 'roll', label: 'Roll', unit: '°'), (field: 'pitch', label: 'Pitch', unit: '°')],
-  if (kind == DeviceKind.arm) (field: 'gripper', label: 'Gripper', unit: '%'),
+  if (kind == DeviceKind.drone) ...[(field: 'roll', label: t.fldRoll, unit: '°'), (field: 'pitch', label: t.fldPitch, unit: '°')],
+  if (kind == DeviceKind.arm) (field: 'gripper', label: t.fldGripper, unit: '%'),
   if (kind == DeviceKind.bench) ...[
-    (field: 'thrust', label: 'Thrust', unit: 'N'),
-    (field: 'rpm', label: 'RPM', unit: ''),
-    (field: 'temp', label: 'Temperature', unit: '°C'),
+    (field: 'thrust', label: t.fldThrust, unit: 'N'),
+    (field: 'rpm', label: t.fldRpm, unit: ''),
+    (field: 'temp', label: t.fldTemperature, unit: '°C'),
   ],
-  if (prox.any((p) => !p.down)) (field: 'prox.nearest', label: 'Nearest obstacle', unit: 'm'),
-  for (final p in prox) (field: 'prox.${p.id}', label: 'Proximity · ${p.id.replaceAll('_', ' ')}', unit: 'm'),
-  (field: 'link.rssi', label: 'Signal', unit: 'dBm'),
-  (field: 'link.latency', label: 'Latency', unit: 'ms'),
-  (field: 'gps.sats', label: 'GPS satellites', unit: ''),
+  if (prox.any((p) => !p.down)) (field: 'prox.nearest', label: t.fldNearestObstacle, unit: 'm'),
+  for (final p in prox) (field: 'prox.${p.id}', label: '${t.tileProximity} · ${p.id.replaceAll('_', ' ')}', unit: 'm'),
+  (field: 'link.rssi', label: t.fldSignal, unit: 'dBm'),
+  (field: 'link.latency', label: t.fldLatency, unit: 'ms'),
+  (field: 'gps.sats', label: t.fldGpsSatellites, unit: ''),
 ];
 
 /// Looks fields up in a device's live telemetry.

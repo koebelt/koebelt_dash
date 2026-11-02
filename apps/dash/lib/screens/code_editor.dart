@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../l10n/l10n.dart';
 import '../scripts/check.dart' show ScriptProblem;
 import '../scripts/completion.dart';
 import '../theme/tokens.dart';
@@ -663,7 +664,7 @@ class _HoverCard extends StatelessWidget {
           if (i.doc.isNotEmpty) ..._docBlocks(i.doc),
           if (described.isNotEmpty) ...[
             if (i.doc.isNotEmpty) const SizedBox(height: 10),
-            _heading('Parameters'),
+            _heading(t.parameters),
             for (final p in described) _entry(p.$1, '', p.$2),
           ],
         ],
@@ -762,7 +763,7 @@ class _HoverCard extends StatelessWidget {
     final m = RegExp(r'^(\w*(?:Error|Exception|Warning))\s*:\s*([\s\S]*)$').firstMatch(e);
     final tint = warning ? K.warning : K.negative;
     return [
-      _badgeRow('!', m?[1] ?? (warning ? 'Warning' : 'Error'), errorLine == null ? '' : 'line $errorLine', tint),
+      _badgeRow('!', m?[1] ?? (warning ? t.warning : t.error), errorLine == null ? '' : t.lineN(errorLine!), tint),
       const SizedBox(height: 8),
       for (final line in (m?[2] ?? e).split('\n'))
         Padding(

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../l10n/l10n.dart';
 import '../core/dash.dart';
 import '../core/model.dart';
 import '../link/discovery.dart';
@@ -22,13 +23,13 @@ class DevicesScreen extends StatelessWidget {
     showKDialog(
       context,
       builder: (ctx) => KDialogPanel(
-        title: 'Remove ${dev.name}?',
+        title: t.removeTitle(dev.name),
         width: 440,
         onClose: () => Navigator.pop(ctx),
         footer: [
-          KButton('Cancel', variant: KButtonVariant.ghost, onPressed: () => Navigator.pop(ctx)),
+          KButton(t.cancel, variant: KButtonVariant.ghost, onPressed: () => Navigator.pop(ctx)),
           KButton(
-            'Remove device',
+            t.removeDevice,
             variant: KButtonVariant.inverse,
             onPressed: () {
               d.removeDevice(dev);
@@ -36,12 +37,7 @@ class DevicesScreen extends StatelessWidget {
             },
           ),
         ],
-        children: [
-          Text(
-            'The pairing key, HUD layouts and parameter drafts for ${dev.name} are deleted from this app.${d.links.containsKey(dev.id) ? ' It will be disconnected first.' : ''}',
-          ),
-          const Text('Recordings are kept. To use the device again, pair it with a new code.'),
-        ],
+        children: [Text('${t.removeBody(dev.name)}${d.links.containsKey(dev.id) ? ' ${t.removeDisconnectFirst}' : ''}'), Text(t.removeKept)],
       ),
     );
   }
@@ -59,10 +55,10 @@ class DevicesScreen extends StatelessWidget {
           children: [
             PageHead(
               phone: phone,
-              eyebrow: '${d.hasDevice ? '' : 'Not connected · '}$online of ${d.devices.length} online',
-              title: 'Devices',
+              eyebrow: '${d.hasDevice ? '' : '${t.notConnected} · '}${t.onlineOf(online, d.devices.length)}',
+              title: t.navDevices,
               right: KButton(
-                'Pair device',
+                t.pairDevice,
                 variant: KButtonVariant.secondary,
                 iconLeft: const KIcon('plus', size: 16),
                 onPressed: () => showPairDialog(context, d, go),
@@ -70,7 +66,7 @@ class DevicesScreen extends StatelessWidget {
             ),
             SizedBox(height: phone ? 20 : 32),
             if (d.connectError != null) ...[
-              KNotice(tone: Tone.negative, title: 'Could not connect', child: Text(d.connectError!)),
+              KNotice(tone: Tone.negative, title: t.connectFailed, child: Text(d.connectError!)),
               SizedBox(height: phone ? 20 : 32),
             ],
             hairline,
@@ -84,12 +80,12 @@ class DevicesScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('No paired devices', style: KText.bodyMd),
+                    Text(t.noPairedDevicesShort, style: KText.bodyMd),
                     const SizedBox(height: 12),
-                    Text('Pair a device, or follow the quickstart to add the library to your project.', style: KText.bodySm.copyWith(color: K.textMuted)),
+                    Text(t.devicesEmptyHint, style: KText.bodySm.copyWith(color: K.textMuted)),
                     const SizedBox(height: 12),
                     KButton(
-                      'Quickstart',
+                      t.quickstart,
                       size: KSize.sm,
                       variant: KButtonVariant.ghost,
                       iconRight: const KIcon('arrow-right', size: 14),
@@ -99,10 +95,7 @@ class DevicesScreen extends StatelessWidget {
                 ),
               ),
             SizedBox(height: phone ? 20 : 32),
-            const MonoLabel(
-              'Several devices can be connected at once. The one shown gets the sticks; the others hold on centred sticks, and STOP stops them all.',
-              height: 1.7,
-            ),
+            MonoLabel(t.devicesSeveral, height: 1.7),
           ],
         ),
       ),
@@ -121,7 +114,7 @@ class DevicesScreen extends StatelessWidget {
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
             Text(dev.name, style: KText.headingXs),
-            if (act) const KTag('Active', tone: TagTone.accent) else if (linked != null) const KTag('Connected', tone: TagTone.info),
+            if (act) KTag(t.fleetActive, tone: TagTone.accent) else if (linked != null) KTag(t.connected, tone: TagTone.info),
             if (dev.simulated) const SimTag() else KTag(dev.transport.label, height: 22),
             if (dev.proto != 'koebelt') KTag(_PairDialogState._protoLabel(dev.proto), tone: TagTone.info, height: 22),
           ],
@@ -134,10 +127,10 @@ class DevicesScreen extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.end,
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (phone) ...[KBadge(off ? 'Off' : '$bat%', tone: off ? Tone.negative : Tone.positive), const SizedBox(width: 8)],
+        if (phone) ...[KBadge(off ? t.fleetOff : '$bat%', tone: off ? Tone.negative : Tone.positive), const SizedBox(width: 8)],
         if (linked != null) ...[
           KButton(
-            'Disconnect',
+            t.disconnect,
             size: KSize.sm,
             variant: KButtonVariant.ghost,
             onPressed: () => d.disconnect(id: dev.id),
@@ -145,15 +138,15 @@ class DevicesScreen extends StatelessWidget {
           if (!phone) ...[
             const SizedBox(width: 8),
             act
-                ? KButton('Open', size: KSize.sm, variant: KButtonVariant.secondary, onPressed: () => go('live'))
-                : KButton('Show', size: KSize.sm, variant: KButtonVariant.secondary, onPressed: () => d.focusDevice(dev.id)),
+                ? KButton(t.open, size: KSize.sm, variant: KButtonVariant.secondary, onPressed: () => go('live'))
+                : KButton(t.show, size: KSize.sm, variant: KButtonVariant.secondary, onPressed: () => d.focusDevice(dev.id)),
           ],
         ] else if (d.connecting == dev.id)
-          const Row(mainAxisSize: MainAxisSize.min, children: [MarkMotion(MarkLoop.loading, size: 28), SizedBox(width: 10), MonoLabel('Connecting')])
+          Row(mainAxisSize: MainAxisSize.min, children: [const MarkMotion(MarkLoop.loading, size: 28), const SizedBox(width: 10), MonoLabel(t.connecting)])
         else
-          KButton('Connect', size: KSize.sm, variant: KButtonVariant.secondary, onPressed: off || d.connecting != null ? null : () => d.connect(dev.id)),
+          KButton(t.connect, size: KSize.sm, variant: KButtonVariant.secondary, onPressed: off || d.connecting != null ? null : () => d.connect(dev.id)),
         const SizedBox(width: 8),
-        KIconButton('trash', label: 'Remove ${dev.name}', size: KSize.sm, variant: KIconButtonVariant.bare, onPressed: () => _remove(context, dev)),
+        KIconButton('trash', label: t.removeName(dev.name), size: KSize.sm, variant: KIconButtonVariant.bare, onPressed: () => _remove(context, dev)),
       ],
     );
     return Container(
@@ -182,9 +175,9 @@ class DevicesScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      KBadge(off ? 'Offline' : 'Online', tone: off ? Tone.negative : Tone.positive),
+                      KBadge(off ? t.offline : t.online, tone: off ? Tone.negative : Tone.positive),
                       const SizedBox(height: 6),
-                      MonoLabel('BAT $bat%', color: bat < 20 ? K.negative : K.textSecondary),
+                      MonoLabel('${t.batShort} $bat%', color: bat < 20 ? K.negative : K.textSecondary),
                     ],
                   ),
                 ),
@@ -215,7 +208,7 @@ class _PairDialog extends StatefulWidget {
 class _PairDialogState extends State<_PairDialog> {
   bool manual = false;
   String? error;
-  final _name = TextEditingController(text: 'My robot'), _host = TextEditingController();
+  final _name = TextEditingController(text: t.myRobot), _host = TextEditingController();
   DeviceKind _kind = DeviceKind.rover;
   String _proto = 'koebelt';
   late String tab = widget.simulated
@@ -282,9 +275,7 @@ class _PairDialogState extends State<_PairDialog> {
     setState(() {
       _listening = false;
       _heard = f;
-      _radioNote = f == null
-          ? 'Nothing heard on ${p.split('/').last} at $_baudValue baud. Check that the device is on, both radios use the same channel and air rate, and the baud rate matches. You can still add the link and connect later.'
-          : null;
+      _radioNote = f == null ? t.radioNothingHeard(p.split('/').last, _baudValue) : null;
     });
   }
 
@@ -329,13 +320,18 @@ class _PairDialogState extends State<_PairDialog> {
       builder: (context, _) {
         final found = widget.d.found.values.toList();
         return KDialogPanel(
-          title: 'Pair a device',
+          title: t.pairTitle,
           width: 480,
           onClose: () => Navigator.pop(context),
           children: [
             Align(
               alignment: Alignment.centerLeft,
-              child: KTabs(items: const ['Nearby', 'Radio', 'Simulated'], value: tab, onChanged: (v) => setState(() => tab = v)),
+              child: KTabs(
+                items: const ['Nearby', 'Radio', 'Simulated'],
+                labels: {'Nearby': t.pairNearby, 'Radio': t.pairRadio, 'Simulated': t.pairSimulated},
+                value: tab,
+                onChanged: (v) => setState(() => tab = v),
+              ),
             ),
             if (tab == 'Simulated')
               ..._simulated(context)
@@ -355,14 +351,12 @@ class _PairDialogState extends State<_PairDialog> {
   List<Widget> _simulated(BuildContext context) {
     final d = widget.d;
     return [
-      const Text(
-        'Simulated devices run inside this app and speak the same protocol as real hardware. Add only the ones you need; each one is listed with a SIM tag.',
-      ),
+      Text(t.pairSimulatedIntro),
       Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           hairline,
-          for (final t in simTemplates())
+          for (final tpl in simTemplates())
             Container(
               padding: const EdgeInsets.symmetric(vertical: 14),
               decoration: const BoxDecoration(
@@ -376,27 +370,29 @@ class _PairDialogState extends State<_PairDialog> {
                       children: [
                         Row(
                           children: [
-                            Text(t.kind.label, style: KText.bodyMd),
+                            Flexible(
+                              child: Text(tpl.kind.label, style: KText.bodyMd, maxLines: 1, overflow: TextOverflow.ellipsis),
+                            ),
                             const SizedBox(width: 8),
                             const SimTag(height: 20),
                           ],
                         ),
                         const SizedBox(height: 6),
-                        MonoLabel(t.model, maxLines: 1),
+                        MonoLabel(tpl.model, maxLines: 1),
                         const SizedBox(height: 4),
-                        MonoLabel(t.sensors.join(' · '), size: 9, maxLines: 2, height: 1.4),
+                        MonoLabel(tpl.sensors.join(' · '), size: 9, maxLines: 2, height: 1.4),
                       ],
                     ),
                   ),
                   const SizedBox(width: 12),
-                  if (_added.contains(t.id)) ...[const MonoLabel('Added', color: K.textAccent), const SizedBox(width: 8)],
+                  if (_added.contains(tpl.id)) ...[MonoLabel(t.added, color: K.textAccent), const SizedBox(width: 8)],
                   KButton(
-                    _added.contains(t.id) ? 'Add another' : 'Add',
+                    _added.contains(tpl.id) ? t.addAnother : t.add,
                     size: KSize.sm,
-                    variant: _added.contains(t.id) ? KButtonVariant.ghost : KButtonVariant.primary,
+                    variant: _added.contains(tpl.id) ? KButtonVariant.ghost : KButtonVariant.primary,
                     onPressed: () {
-                      d.addSimulated(t);
-                      setState(() => _added.add(t.id));
+                      d.addSimulated(tpl);
+                      setState(() => _added.add(tpl.id));
                     },
                   ),
                 ],
@@ -425,25 +421,14 @@ class _PairDialogState extends State<_PairDialog> {
 
   List<Widget> _radio(BuildContext context, List<Found> recognised) {
     final m = _module;
-    final rates = m.telemetryOnly ? 'Telemetry ${m.tlmHz} Hz · no control' : 'Telemetry ${m.tlmHz} Hz · control ${m.ctlHz} Hz';
-    Widget section(String t) => MonoLabel(t, color: K.textSecondary);
+    final rates = m.telemetryOnly ? t.radioRatesTlm(m.tlmHz) : t.radioRates(m.tlmHz, m.ctlHz);
+    Widget section(String label) => MonoLabel(label, color: K.textSecondary);
     if (!serialSupported) {
-      return [
-        const Text('A radio link is a radio modem plugged into this computer or phone over USB, talking to a matching radio on the device.'),
-        const KNotice(
-          tone: Tone.warning,
-          title: 'No USB serial on this platform',
-          child: Text(
-            'iOS apps cannot open USB serial adapters. Use the app on Android, macOS, Windows or Linux for radio links, or connect over Wi-Fi or Bluetooth.',
-          ),
-        ),
-      ];
+      return [Text(t.radioIntro), KNotice(tone: Tone.warning, title: t.radioNoSerial, child: Text(t.radioNoSerialBody))];
     }
     return [
-      const Text(
-        'A radio link is a radio modem plugged into this computer or phone over USB, talking to a matching radio on the device. To the app it is a serial port; the radio type sets the speed and how much it can carry.',
-      ),
-      section('Radio'),
+      Text('${t.radioIntro} ${t.radioIntroMore}'),
+      section(t.pairRadio),
       Wrap(
         spacing: 6,
         runSpacing: 6,
@@ -457,21 +442,15 @@ class _PairDialogState extends State<_PairDialog> {
       ),
       Text(m.desc, style: KText.bodySm.copyWith(color: K.textMuted)),
       MonoLabel(rates, color: m.telemetryOnly ? K.warning : K.textMuted),
-      if (m.bridge)
-        const KNotice(
-          tone: Tone.info,
-          child: Text(
-            'LoRa modules are not USB devices on their own. Flash the ground-station sketch from the LoRa guide onto a second board with the radio, and plug that board in.',
-          ),
-        ),
+      if (m.bridge) KNotice(tone: Tone.info, child: Text(t.radioLora)),
       Row(
         children: [
-          Expanded(child: section('USB port')),
-          KButton('Refresh', size: KSize.sm, variant: KButtonVariant.ghost, onPressed: () => setState(_refreshPorts)),
+          Expanded(child: section(t.usbPort)),
+          KButton(t.refresh, size: KSize.sm, variant: KButtonVariant.ghost, onPressed: () => setState(_refreshPorts)),
         ],
       ),
       if (_ports.isEmpty)
-        const MonoLabel('No serial ports found. Plug in the radio\'s USB adapter.')
+        MonoLabel(t.noSerialPorts)
       else
         Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -506,7 +485,7 @@ class _PairDialogState extends State<_PairDialog> {
                             ],
                           ),
                         ),
-                        if (known != null || hit) KTag(known?.name ?? 'Radio', tone: TagTone.info, height: 22),
+                        if (known != null || hit) KTag(known?.name ?? t.pairRadio, tone: TagTone.info, height: 22),
                       ],
                     ),
                   );
@@ -514,18 +493,18 @@ class _PairDialogState extends State<_PairDialog> {
               ),
           ],
         ),
-      section('Baud rate'),
+      section(t.baudRate),
       KInput(controller: _baud, placeholder: '${m.baud}', height: 40, style: KText.bodySm),
       if (_heard != null)
         KNotice(
           tone: Tone.positive,
-          title: 'Heard ${_heard!.name}',
+          title: t.heard(_heard!.name),
           child: Text(
             '${DeviceKind.parse(_heard!.kind).label}${_heard!.model.isEmpty ? '' : ' · ${_heard!.model}'}. ${!_heard!.native
-                ? 'It speaks MAVLink: no pairing needed.'
+                ? t.heardMavlink
                 : _heard!.pair != null
-                ? 'It is in pairing mode and will get a key.'
-                : 'It is not in pairing mode; it is added without a key.'}',
+                ? t.heardPairing
+                : t.heardNoPairing}',
           ),
         ),
       if (_radioNote != null) KNotice(tone: Tone.warning, child: Text(_radioNote!)),
@@ -535,20 +514,20 @@ class _PairDialogState extends State<_PairDialog> {
         runSpacing: 8,
         children: [
           if (_listening)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 8),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  MarkMotion(MarkLoop.searching, size: 36, gap: K.surfaceRaised),
-                  SizedBox(width: 10),
-                  MonoLabel('Listening'),
+                  const MarkMotion(MarkLoop.searching, size: 36, gap: K.surfaceRaised),
+                  const SizedBox(width: 10),
+                  MonoLabel(t.listening),
                 ],
               ),
             )
           else
-            KButton('Listen for device', size: KSize.sm, variant: KButtonVariant.secondary, onPressed: _port == null ? null : _listen),
-          KButton(_heard?.pair != null ? 'Pair ${_heard!.name}' : 'Add radio link', size: KSize.sm, onPressed: _port == null || _listening ? null : _addRadio),
+            KButton(t.listenForDevice, size: KSize.sm, variant: KButtonVariant.secondary, onPressed: _port == null ? null : _listen),
+          KButton(_heard?.pair != null ? t.pairName(_heard!.name) : t.addRadioLink, size: KSize.sm, onPressed: _port == null || _listening ? null : _addRadio),
         ],
       ),
     ];
@@ -556,9 +535,7 @@ class _PairDialogState extends State<_PairDialog> {
 
   List<Widget> _nearby(BuildContext context, List<Found> found) {
     return [
-      const Text(
-        'Plug in or power on the board. Flight controllers and drones appear on their own; boards running the koebelt/link library also show up here while in pairing mode.',
-      ),
+      Text(t.pairNearbyIntro),
       Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -607,9 +584,7 @@ class _PairDialogState extends State<_PairDialog> {
               children: [
                 const MarkMotion(MarkLoop.searching, size: 36, gap: K.surfaceRaised),
                 const SizedBox(width: 12),
-                Expanded(
-                  child: MonoLabel(found.isEmpty ? 'Scanning Wi-Fi, Bluetooth and USB boards…' : 'Still scanning for more devices…', maxLines: 2, height: 1.4),
-                ),
+                Expanded(child: MonoLabel(found.isEmpty ? t.scanning : t.stillScanning, maxLines: 2, height: 1.4)),
               ],
             ),
           ),
@@ -617,7 +592,7 @@ class _PairDialogState extends State<_PairDialog> {
       ),
       if (error != null) KNotice(tone: Tone.negative, child: Text(error!)),
       if (manual) ...[
-        const MonoLabel('Add by IP address'),
+        MonoLabel(t.addByIp),
         Wrap(
           spacing: 6,
           runSpacing: 6,
@@ -633,10 +608,9 @@ class _PairDialogState extends State<_PairDialog> {
               ),
           ],
         ),
-        KInput(controller: _name, placeholder: 'Name', height: 40, style: KText.bodySm),
-        KInput(controller: _host, placeholder: _proto == 'mavlink' ? '192.168.4.1 or 192.168.4.1:14555' : '192.168.1.42', height: 40, style: KText.bodySm),
-        if (_proto == 'mavlink')
-          const MonoLabel('The app listens on UDP 14550, like any ground station; the port is the vehicle\'s, if you know it.', maxLines: 3, height: 1.5),
+        KInput(controller: _name, placeholder: t.name, height: 40, style: KText.bodySm),
+        KInput(controller: _host, placeholder: _proto == 'mavlink' ? '192.168.4.1 · 192.168.4.1:14555' : '192.168.1.42', height: 40, style: KText.bodySm),
+        if (_proto == 'mavlink') MonoLabel(t.mavlinkPortNote, maxLines: 3, height: 1.5),
         Wrap(
           spacing: 6,
           runSpacing: 6,
@@ -651,7 +625,7 @@ class _PairDialogState extends State<_PairDialog> {
         Align(
           alignment: Alignment.centerLeft,
           child: KButton(
-            'Add device',
+            t.addDevice,
             size: KSize.sm,
             onPressed: () {
               if (_host.text.trim().isEmpty) return;
@@ -665,16 +639,14 @@ class _PairDialogState extends State<_PairDialog> {
       Text.rich(
         TextSpan(
           children: [
-            const TextSpan(
-              text: 'Device not showing up? Boards with ArduPilot, PX4, Betaflight or INAV connect as they are; anything else needs the koebelt/link library. ',
-            ),
+            TextSpan(text: '${t.notShowingUp} '),
             WidgetSpan(
-              child: _Link('Open the quickstart', () {
+              child: _Link(t.openQuickstart, () {
                 Navigator.pop(context);
                 widget.go('guides');
               }),
             ),
-            if (!manual) ...[const TextSpan(text: ' or '), WidgetSpan(child: _Link('add it by IP address', () => setState(() => manual = true)))],
+            if (!manual) ...[TextSpan(text: ' ${t.orLower} '), WidgetSpan(child: _Link(t.addItByIp, () => setState(() => manual = true)))],
           ],
         ),
       ),

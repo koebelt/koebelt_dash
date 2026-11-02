@@ -6,6 +6,7 @@ import '../core/sequence.dart' show RunState;
 import '../scripts/script_hub.dart' show ScriptHub;
 import '../scripts/script_runner.dart' show ScriptState;
 import '../theme/tokens.dart';
+import '../l10n/l10n.dart';
 import '../ui/components.dart';
 import '../ui/icons.dart';
 import 'guides.dart';
@@ -47,14 +48,12 @@ class _AutomateHomeState extends State<AutomateHome> {
     final dev = d.focus;
     final seqs = dev == null ? const <String>[] : [for (final q in d.sequencesFor(dev.id)) q.name];
     final scripts = _scripts;
-    String count(int n, String one, String many) => '$n ${n == 1 ? one : many}';
-
     final sequences = _Door(
       icon: 'list-checks',
-      title: 'Sequences',
-      blurb: 'Steps in order, no code: take off, fly to, wait, land; drive to; move to a pose.',
-      points: const ['No code: build it in the app', 'Runs on the device when it can store it', 'Keeps going if the link drops'],
-      footer: dev == null ? 'Connect a device to build its sequences' : '${count(seqs.length, 'sequence', 'sequences')} for ${dev.info.name}',
+      title: t.navSequences,
+      blurb: t.automateSeqBlurb,
+      points: [t.automateSeqPoint1, t.automateSeqPoint2, t.automateSeqPoint3],
+      footer: dev == null ? t.automateSeqConnect : t.automateSeqCount(seqs.length, dev.info.name),
       names: seqs,
       onOpen: () => widget.go('program'),
       running: _sequencesRunning(d),
@@ -63,14 +62,10 @@ class _AutomateHomeState extends State<AutomateHome> {
     );
     final scriptsDoor = _Door(
       icon: 'code',
-      title: 'Scripts',
-      blurb: 'Python that reads the telemetry and the camera, decides, and drives the device.',
-      points: [
-        'Logic, sensors, the camera',
-        'Any package: OpenCV, PyTorch, YOLO',
-        ScriptHub.canRunHere ? 'Triggers: buttons, keys, conditions, timers' : 'Runs on a script host: a computer on your network',
-      ],
-      footer: scripts == null ? '…' : count(scripts.length, 'script', 'scripts'),
+      title: t.navScripts,
+      blurb: t.automateScriptBlurb,
+      points: [t.automateScriptPoint1, t.automateScriptPoint2, ScriptHub.canRunHere ? t.automateScriptPoint3 : t.automateScriptPoint3Host],
+      footer: scripts == null ? '…' : t.scriptsCount(scripts.length),
       names: scripts ?? const [],
       onOpen: () => widget.go('scripts'),
       running: _scriptsRunning(d),
@@ -85,7 +80,7 @@ class _AutomateHomeState extends State<AutomateHome> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              PageHead(phone: phone, eyebrow: 'Two ways to automate', title: 'Automate'),
+              PageHead(phone: phone, eyebrow: t.automateEyebrow, title: t.navAutomate),
               SizedBox(height: phone ? 20 : 28),
               if (wide)
                 IntrinsicHeight(
@@ -116,7 +111,7 @@ class _AutomateHomeState extends State<AutomateHome> {
   static String? _sequencesRunning(Dash d) {
     final names = [
       for (final l in d.links.values)
-        if (l.runner case final r? when r.state == RunState.running || r.state == RunState.paused) '${r.seq.name} on ${l.info.name}',
+        if (l.runner case final r? when r.state == RunState.running || r.state == RunState.paused) t.runningOn(r.seq.name, l.info.name),
     ];
     return names.isEmpty ? null : names.join(', ');
   }
@@ -148,12 +143,12 @@ class _AutomateHomeState extends State<AutomateHome> {
         Text.rich(
           TextSpan(
             children: [
-              const TextSpan(text: 'Together: a script can start a sequence, '),
+              TextSpan(text: t.automateTogether1),
               TextSpan(
                 text: 'dev.run_sequence("…")',
                 style: KText.mono(12.5, color: K.textPrimary, w: FontWeight.w400),
               ),
-              const TextSpan(text: ', and decide when.'),
+              TextSpan(text: t.automateTogether2),
             ],
           ),
           style: KText.bodySm.copyWith(color: K.textSecondary),
@@ -166,7 +161,7 @@ class _AutomateHomeState extends State<AutomateHome> {
           builder: (_, h, _) => Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('Sequence or script?', style: KText.bodySm.copyWith(color: h ? K.accentHover : K.textAccent)),
+              Text(t.sequenceOrScript, style: KText.bodySm.copyWith(color: h ? K.accentHover : K.textAccent)),
               const SizedBox(width: 4),
               KIcon('arrow-right', size: 14, color: h ? K.accentHover : K.textAccent),
             ],
@@ -228,7 +223,12 @@ class _Door extends StatelessWidget {
                 decoration: BoxDecoration(color: K.limeA16, borderRadius: BorderRadius.circular(K.radiusControl)),
                 child: KIcon(icon, size: compact ? 16 : 20, color: K.accent),
               ),
-              if (compact) ...[const SizedBox(width: 12), Text(title, style: KText.headingXs)],
+              if (compact) ...[
+                const SizedBox(width: 12),
+                Flexible(
+                  child: Text(title, style: KText.headingXs, maxLines: 1, overflow: TextOverflow.ellipsis),
+                ),
+              ],
               const Spacer(),
               if (running != null) ...[
                 const PulseDot(color: K.accent),
@@ -236,7 +236,7 @@ class _Door extends StatelessWidget {
                 ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 220),
                   child: Text(
-                    'RUNNING · $running',
+                    '${t.running.toUpperCase()} · $running',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: KText.label(size: 11, color: K.textAccent),
@@ -244,7 +244,7 @@ class _Door extends StatelessWidget {
                 ),
                 const SizedBox(width: 14),
               ],
-              Text('OPEN', style: KText.label(size: 11, color: h ? K.textAccent : K.textMuted)),
+              Text(t.open.toUpperCase(), style: KText.label(size: 11, color: h ? K.textAccent : K.textMuted)),
               const SizedBox(width: 6),
               KIcon('arrow-right', size: 16, color: h ? K.accent : K.textMuted),
             ],
@@ -315,7 +315,7 @@ class AutomateBar extends StatelessWidget {
               children: [
                 KIcon('arrow-left', size: 16, color: h ? K.textPrimary : K.textMuted),
                 const SizedBox(width: 6),
-                Text('AUTOMATE', style: KText.label(size: 11, color: h ? K.textPrimary : K.textMuted)),
+                Text(t.navAutomate.toUpperCase(), style: KText.label(size: 11, color: h ? K.textPrimary : K.textMuted)),
               ],
             ),
           ),
@@ -324,6 +324,7 @@ class AutomateBar extends StatelessWidget {
         Flexible(
           child: KTabs(
             items: const ['Sequences', 'Scripts'],
+            labels: {'Sequences': t.navSequences, 'Scripts': t.navScripts},
             value: screen == 'scripts' ? 'Scripts' : 'Sequences',
             onChanged: (v) => go(v == 'Scripts' ? 'scripts' : 'program'),
             live: live,

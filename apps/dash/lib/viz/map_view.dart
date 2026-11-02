@@ -13,6 +13,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:latlong2/latlong.dart' hide Path;
 import 'package:path_provider/path_provider.dart';
 
+import '../l10n/l10n.dart';
 import '../core/dash.dart';
 import '../core/model.dart';
 import '../core/sequence.dart';
@@ -91,7 +92,7 @@ TileSource? tileSourceFor(Settings st) {
 String? tilesProblem(Settings st) {
   if (st.mapTiles == 'none') return null;
   if (st.mapTiles == 'custom') return st.mapUrl.contains('{z}') ? null : 'The tile URL needs {z}, {x} and {y}.';
-  return mapboxTokenFor(st).isEmpty ? 'This build has no Mapbox token: enter your own below, or choose another source.' : null;
+  return mapboxTokenFor(st).isEmpty ? t.noMapboxToken : null;
 }
 
 MapCachingProvider _cache = const DisabledMapCachingProvider();
@@ -277,7 +278,7 @@ class _MapViewState extends State<MapView> {
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Text(
-              d.hasDevice || d.replay != null ? 'Waiting for a GPS fix' : 'Not connected',
+              d.hasDevice || d.replay != null ? tr.waitingGps : tr.notConnected,
               textAlign: TextAlign.center,
               style: KText.bodySm.copyWith(color: K.textMuted),
             ),
@@ -426,7 +427,7 @@ class _MapViewState extends State<MapView> {
             bottom: 8,
             child: IgnorePointer(
               child: MonoLabel(
-                '${here.latitude.toStringAsFixed(6)}  ${here.longitude.toStringAsFixed(6)}  ·  HOME ${metresBetween(home.latitude, home.longitude, here.latitude, here.longitude).round()} M',
+                '${here.latitude.toStringAsFixed(6)}  ${here.longitude.toStringAsFixed(6)}  ·  ${tr.rdHome.toUpperCase()} ${metresBetween(home.latitude, home.longitude, here.latitude, here.longitude).round()} M',
                 size: 9,
                 color: K.textSecondary,
               ),
@@ -476,7 +477,7 @@ class _HomeMark extends StatelessWidget {
         ),
       ),
       const SizedBox(width: 4),
-      const MonoLabel('HOME', size: 9, color: K.ink050),
+      MonoLabel(t.rdHome.toUpperCase(), size: 9, color: K.ink050),
     ],
   );
 }
@@ -559,7 +560,10 @@ class _GridPainter extends CustomPainter {
     }
     if (!label) return;
     final tp = TextPainter(
-      text: TextSpan(text: 'GRID ${step >= 1000 ? '${(step / 1000).toStringAsFixed(0)} KM' : '${step.round()} M'}', style: KText.label(size: 9)),
+      text: TextSpan(
+        text: '${t.grid.toUpperCase()} ${step >= 1000 ? '${(step / 1000).toStringAsFixed(0)} KM' : '${step.round()} M'}',
+        style: KText.label(size: 9),
+      ),
       textDirection: TextDirection.ltr,
     )..layout();
     tp.paint(c, Offset(10, s.height - 34));

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../core/alerts.dart';
 import '../core/dash.dart';
+import '../l10n/l10n.dart';
 import '../link/protocol.dart';
 import '../scripts/hosts.dart' show hostPort;
 import '../scripts/library.dart' show ScriptLibrary;
@@ -14,6 +15,10 @@ import 'assistant_ui.dart';
 import 'controller_settings.dart';
 import 'script_dialogs.dart' show showAddHostDialog;
 import 'update_ui.dart';
+
+/// A segmented control that shrinks to the width on a small phone (long
+/// words in other languages, large text) rather than overflowing.
+Widget fitSeg(Widget seg) => FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerLeft, child: seg);
 
 class SetRow extends StatelessWidget {
   const SetRow({super.key, required this.title, this.desc, required this.child, required this.phone});
@@ -77,10 +82,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
   /// (near the end, it cannot reach the top).
   bool _jumping = false;
 
-  /// The aside's names for the sections (the headings are longer, or in a widget).
-  static const _names = {'AI assistants (MCP)': 'AI assistants'};
-
   GlobalKey _key(String label) => _keys.putIfAbsent(label, GlobalKey.new);
+
+  /// A section's name as shown: in the language shown, or shorter in the aside.
+  String _title(String label, {bool aside = false}) =>
+      {
+        'Language': t.settingsLanguage,
+        'Control': t.secControl,
+        'Game controller': t.secController,
+        'Link and safety': t.secLink,
+        'Recording': t.secRecording,
+        'Alerts': t.secAlerts,
+        'Map': t.secMap,
+        'Pairing': t.secPairing,
+        'AI assistants (MCP)': aside ? t.secAiShort : t.secAi,
+        'Scripts': t.navScripts,
+        'Updates': t.secUpdates,
+      }[label] ??
+      label;
 
   @override
   void initState() {
@@ -128,7 +147,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     ),
     child: ListView(
       children: [
-        const Padding(padding: EdgeInsets.fromLTRB(12, 0, 0, 12), child: MonoLabel('Settings')),
+        Padding(padding: const EdgeInsets.fromLTRB(12, 0, 0, 12), child: MonoLabel(t.navSettings)),
         for (final label in _keys.keys)
           Pressable(
             onTap: () => _jump(label),
@@ -147,7 +166,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       : Colors.transparent,
                   border: Border(left: BorderSide(color: on ? K.accent : Colors.transparent, width: 2)),
                 ),
-                child: Text(_names[label] ?? label, style: KText.bodySm.copyWith(color: on ? K.textPrimary : K.textSecondary)),
+                child: Text(_title(label, aside: true), style: KText.bodySm.copyWith(color: on ? K.textPrimary : K.textSecondary)),
               );
             },
           ),
@@ -165,12 +184,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Padding(padding: const EdgeInsets.only(bottom: 4), child: MonoLabel(label)),
+          Padding(padding: const EdgeInsets.only(bottom: 4), child: MonoLabel(_title(label))),
           ...rows,
         ],
       ),
     );
     // The keys in page order: the controller's section is a widget of its own.
+    _key('Language');
     _key('Control');
     _key('Game controller');
     final page = SingleChildScrollView(
@@ -182,29 +202,48 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            PageHead(phone: phone, eyebrow: 'koebelt/dash · $appVersion', title: 'Settings'),
+            PageHead(phone: phone, eyebrow: 'koebelt/dash · $appVersion', title: t.navSettings),
+            SizedBox(height: phone ? 20 : 32),
+            section('Language', [
+              SetRow(
+                phone: phone,
+                title: t.settingsLanguage,
+                desc: t.settingsLanguageDesc,
+                child: SizedBox(
+                  width: phone ? double.infinity : 260,
+                  child: KDropdown<String>(
+                    value: st.language,
+                    items: {'': t.settingsLanguageSystem(languageNames[resolveLocale('').toString()] ?? languageNames['en']!), ...languageNames},
+                    onChanged: (v) => d.updateSettings((s) => s.language = v),
+                  ),
+                ),
+              ),
+            ]),
             SizedBox(height: phone ? 20 : 32),
             section('Control', [
               SetRow(
                 phone: phone,
-                title: 'Input method',
-                desc: 'Sticks: two virtual joysticks. Sliders: spring-loaded throttle and yaw with one stick. Tilt: steer by tilting the phone or tablet.',
-                child: Seg(
-                  items: const ['STICKS', 'SLIDERS', 'TILT'],
-                  value: cm[st.control],
-                  onChanged: (v) => d.updateSettings((s) => s.control = cm.entries.firstWhere((e) => e.value == v).key),
+                title: t.setInput,
+                desc: t.setInputDesc,
+                child: fitSeg(
+                  Seg(
+                    items: const ['STICKS', 'SLIDERS', 'TILT'],
+                    labels: {'STICKS': t.csSticks, 'SLIDERS': t.csSliders, 'TILT': t.csTilt},
+                    value: cm[st.control],
+                    onChanged: (v) => d.updateSettings((s) => s.control = cm.entries.firstWhere((e) => e.value == v).key),
+                  ),
                 ),
               ),
               SetRow(
                 phone: phone,
-                title: 'Invert pitch',
-                desc: 'Push forward to pitch up.',
+                title: t.setInvert,
+                desc: t.setInvertDesc,
                 child: KSwitch(checked: st.invertY, onChanged: (v) => d.updateSettings((s) => s.invertY = v)),
               ),
               SetRow(
                 phone: phone,
-                title: 'Haptic feedback',
-                desc: 'Vibrate at stick centre and on warnings.',
+                title: t.setHaptics,
+                desc: t.setHapticsDesc,
                 child: KSwitch(checked: st.haptics, onChanged: (v) => d.updateSettings((s) => s.haptics = v)),
               ),
             ]),
@@ -217,22 +256,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
             section('Link and safety', [
               SetRow(
                 phone: phone,
-                title: 'On link loss',
-                desc: 'What a drone does after 1.8 s without a control packet. Ground robots and arms hold, test benches stop the motor, rockets continue their flight sequence.',
-                child: Seg(items: const ['HOLD', 'RTH', 'LAND'], value: st.failsafe, onChanged: (v) => d.updateSettings((s) => s.failsafe = v)),
+                title: t.setLinkLoss,
+                desc: t.setLinkLossDesc,
+                child: fitSeg(Seg(items: const ['HOLD', 'RTH', 'LAND'], value: st.failsafe, onChanged: (v) => d.updateSettings((s) => s.failsafe = v))),
               ),
               SetRow(
                 phone: phone,
-                title: 'Telemetry rate',
-                desc: 'Higher rates use more bandwidth and battery.',
-                child: Seg(items: const ['10', '30', '60'], value: '${st.rateHz}', onChanged: (v) => d.updateSettings((s) => s.rateHz = int.parse(v))),
+                title: t.setRate,
+                desc: t.setRateDesc,
+                child: fitSeg(Seg(items: const ['10', '30', '60'], value: '${st.rateHz}', onChanged: (v) => d.updateSettings((s) => s.rateHz = int.parse(v)))),
               ),
               SetRow(
                 phone: phone,
-                title: 'Test failsafe',
-                desc: 'Drops the control link for six seconds so you can check the configured behaviour.',
+                title: t.setTestFailsafe,
+                desc: t.setTestFailsafeDesc,
                 child: KButton(
-                  'Run test',
+                  t.runTest,
                   size: KSize.sm,
                   variant: KButtonVariant.secondary,
                   onPressed: d.linkLost || !d.hasDevice
@@ -248,19 +287,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
             section('Recording', [
               SetRow(
                 phone: phone,
-                title: 'Record video',
-                desc: 'Keep the device\'s camera with each recording. The camera stays connected while recording, even when no screen shows it.',
+                title: t.setRecordVideo,
+                desc: t.setRecordVideoDesc,
                 child: KSwitch(checked: st.recordVideo, onChanged: (v) => d.updateSettings((s) => s.recordVideo = v)),
               ),
               if (st.recordVideo)
                 SetRow(
                   phone: phone,
-                  title: 'Video frame rate',
-                  desc: 'Most frames a second kept. An ESP32-CAM at 640×480 takes about 10 MB a minute at 10 fps.',
-                  child: Seg(
-                    items: const ['5', '10', '15', '30'],
-                    value: '${st.videoFps}',
-                    onChanged: (v) => d.updateSettings((s) => s.videoFps = int.parse(v)),
+                  title: t.setVideoFps,
+                  desc: t.setVideoFpsDesc,
+                  child: fitSeg(
+                    Seg(items: const ['5', '10', '15', '30'], value: '${st.videoFps}', onChanged: (v) => d.updateSettings((s) => s.videoFps = int.parse(v))),
                   ),
                 ),
             ]),
@@ -268,19 +305,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
             section('Alerts', [
               SetRow(
                 phone: phone,
-                title: 'Alert sound',
-                desc: 'Plays on alerts and when the link is lost. Phones vibrate instead when haptics are on.',
+                title: t.setAlertSound,
+                desc: t.setAlertSoundDesc,
                 child: KSwitch(checked: d.alertPrefs.sound, onChanged: (v) => d.updateAlerts((p) => p.sound = v)),
               ),
               for (final r in alertRules)
                 SetRow(
                   phone: phone,
                   title: r.label,
-                  desc: [r.desc, if (r.kinds != null) '${r.kinds!.map((k) => k.label).join(', ')} only.'].join(' '),
+                  desc: [r.desc, if (r.kinds != null) t.kindsOnly(r.kinds!.map((k) => k.label).join(', '))].join(' '),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      MonoLabel(r.below ? 'Below' : 'Above'),
+                      MonoLabel(r.below ? t.below : t.above),
                       const SizedBox(width: 10),
                       SizedBox(width: 84, child: _LimitField(d, r)),
                       const SizedBox(width: 8),
@@ -295,8 +332,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             section('Map', [
               SetRow(
                 phone: phone,
-                title: 'Map tiles',
-                desc: 'Background for the map view: Mapbox Dark, Outdoors (terrain) or Satellite, your own tiles, or none (a metre grid). Tiles you have looked at stay on this device for a while.',
+                title: t.setMapTiles,
+                desc: t.setMapTilesDesc,
                 // Five choices: on a small phone they shrink to the width.
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
@@ -304,6 +341,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   child: Seg(
                     small: phone,
                     items: const ['DARK', 'OUTDOORS', 'SATELLITE', 'CUSTOM', 'NONE'],
+                    labels: {'DARK': t.mapDark, 'OUTDOORS': t.mapOutdoors, 'SATELLITE': t.mapSatellite, 'CUSTOM': t.mapCustom, 'NONE': t.mapNone},
                     value: st.mapTiles.toUpperCase(),
                     onChanged: (v) => d.updateSettings((s) => s.mapTiles = v.toLowerCase()),
                   ),
@@ -317,8 +355,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               if (st.mapTiles != 'custom' && st.mapTiles != 'none')
                 SetRow(
                   phone: phone,
-                  title: 'Your Mapbox token',
-                  desc: 'Optional: a public token (pk.…) from your own Mapbox account, to use your quota instead of the app\'s.',
+                  title: t.setMapboxToken,
+                  desc: t.setMapboxTokenDesc,
                   child: SizedBox(
                     width: phone ? double.infinity : 320,
                     child: _TextSetting(d, get: (s) => s.mapboxToken, set: (s, v) => s.mapboxToken = v.trim(), placeholder: 'pk.…'),
@@ -327,8 +365,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               if (st.mapTiles == 'custom')
                 SetRow(
                   phone: phone,
-                  title: 'Tile URL',
-                  desc: 'A template with {z}, {x} and {y}, for example a satellite layer from your map provider with its key. Respect the provider\'s terms.',
+                  title: t.setTileUrl,
+                  desc: t.setTileUrlDesc('{z}', '{x}', '{y}'),
                   child: SizedBox(
                     width: phone ? double.infinity : 320,
                     child: _TextSetting(d, get: (s) => s.mapUrl, set: (s, v) => s.mapUrl = v, placeholder: 'https://…/{z}/{x}/{y}.png'),
@@ -337,11 +375,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
               if (st.mapTiles == 'custom')
                 SetRow(
                   phone: phone,
-                  title: 'Attribution',
-                  desc: 'The credit your provider requires, shown on the map.',
+                  title: t.setAttribution,
+                  desc: t.setAttributionDesc,
                   child: SizedBox(
                     width: phone ? double.infinity : 320,
-                    child: _TextSetting(d, get: (s) => s.mapAttribution, set: (s, v) => s.mapAttribution = v, placeholder: '© Provider'),
+                    child: _TextSetting(d, get: (s) => s.mapAttribution, set: (s, v) => s.mapAttribution = v, placeholder: '© ${t.provider}'),
                   ),
                 ),
             ]),
@@ -349,10 +387,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
             section('Pairing', [
               SetRow(
                 phone: phone,
-                title: 'Integration guides',
-                desc: 'Add the koebelt/link library to Arduino, Python, ROS 2 or Rust projects.',
+                title: t.setGuides,
+                desc: t.setGuidesDesc,
                 child: KButton(
-                  'Open',
+                  t.open,
                   size: KSize.sm,
                   variant: KButtonVariant.ghost,
                   iconRight: const KIcon('arrow-right', size: 14),
@@ -361,10 +399,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               SetRow(
                 phone: phone,
-                title: 'Paired devices',
+                title: t.pairedDevices,
                 desc: d.devices.map((x) => x.name).join(', '),
                 child: KButton(
-                  'Manage',
+                  t.manage,
                   size: KSize.sm,
                   variant: KButtonVariant.ghost,
                   iconRight: const KIcon('arrow-right', size: 14),
@@ -380,23 +418,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 SetRow(
                   phone: phone,
                   title: h.name,
-                  desc: 'Script host at ${h.address}${h.port == hostPort ? '' : ':${h.port}'}${h.python.isEmpty ? '' : ' · Python ${h.python}'}',
-                  child: KButton('Forget', size: KSize.sm, variant: KButtonVariant.ghost, onPressed: () => d.scripts.forgetHost(h)),
+                  desc: '${t.scriptHostAt('${h.address}${h.port == hostPort ? '' : ':${h.port}'}')}${h.python.isEmpty ? '' : ' · Python ${h.python}'}',
+                  child: KButton(t.forget, size: KSize.sm, variant: KButtonVariant.ghost, onPressed: () => d.scripts.forgetHost(h)),
                 ),
               SetRow(
                 phone: phone,
-                title: 'Script hosts',
-                desc:
-                    'Computers on the network that run scripts for this ${phone ? 'phone' : 'device'}, with any Python package. On the computer: pip install koebelt-dash-scripts, then koebelt-dash-scripts host.',
-                child: KButton('Add', size: KSize.sm, variant: KButtonVariant.secondary, onPressed: () => showAddHostDialog(context, d)),
+                title: t.setScriptHosts,
+                desc: phone ? t.setScriptHostsDescPhone : t.setScriptHostsDesc,
+                child: KButton(t.add, size: KSize.sm, variant: KButtonVariant.secondary, onPressed: () => showAddHostDialog(context, d)),
               ),
               if (ScriptHub.canRunHere)
                 SetRow(
                   phone: phone,
-                  title: 'Be a script host',
+                  title: t.setBeHost,
                   desc: d.scripts.hostService == null
-                      ? 'Run scripts for phones and tablets on this network, with the scripts\' Python.'
-                      : 'Pairing code: ${d.scripts.hostCode ?? '…'}. Phones pair in Scripts > Runs on > Add a script host.${d.scripts.hostLog.isEmpty ? '' : '\n${d.scripts.hostLog.last}'}',
+                      ? t.setBeHostDesc
+                      : '${t.setBeHostCode(d.scripts.hostCode ?? '…')}${d.scripts.hostLog.isEmpty ? '' : '\n${d.scripts.hostLog.last}'}',
                   child: KSwitch(
                     checked: d.scripts.hostService != null,
                     onChanged: (v) async {

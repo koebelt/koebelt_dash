@@ -6,6 +6,7 @@ import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 
+import '../l10n/l10n.dart';
 import '../core/dash.dart';
 import '../core/gamepad.dart';
 import '../core/model.dart';
@@ -155,7 +156,13 @@ class _JoystickState extends State<Joystick> {
               ),
             ),
           ),
-          if (widget.label != null) ...[const SizedBox(height: 8), MonoLabel(widget.label!)],
+          if (widget.label != null) ...[
+            const SizedBox(height: 8),
+            SizedBox(
+              width: widget.size,
+              child: MonoLabel(widget.label!, align: TextAlign.center, maxLines: 2, height: 1.3),
+            ),
+          ],
         ],
       ),
     );
@@ -393,7 +400,11 @@ class _TiltPadState extends State<TiltPad> {
             ),
           ),
           const SizedBox(height: 8),
-          MonoLabel(sensor ? widget.label : 'Tilt · drag to simulate'),
+          // As wide as the pad: a long label wraps instead of widening it.
+          SizedBox(
+            width: widget.size,
+            child: MonoLabel(sensor ? widget.label : t.tiltDrag, align: TextAlign.center, maxLines: 2, height: 1.3),
+          ),
         ],
       ),
     );
@@ -464,8 +475,8 @@ class MobileControl extends StatelessWidget {
               g();
             },
             disabled: dis,
-            label: drone ? 'Throttle' : 'Drive',
-            ends: drone ? const ['UP', 'DN'] : const ['FWD', 'REV'],
+            label: drone ? t.stickThrottle : t.stickDrive,
+            ends: drone ? [t.axUp, t.axDn] : [t.axFwd, t.axRev],
           ),
           if (drone) ...[
             const SizedBox(width: 12),
@@ -477,14 +488,14 @@ class MobileControl extends StatelessWidget {
                 g();
               },
               disabled: dis,
-              label: 'Yaw',
-              ends: const ['L', 'R'],
+              label: t.stickYaw,
+              ends: [t.axL, t.axR],
             ),
           ],
         ],
       );
       R = drone
-          ? Joystick(size: js, onMove: setR, disabled: dis, label: 'Pitch · roll', axes: const ['FWD', 'BACK', 'L', 'R'], onCentre: centre)
+          ? Joystick(size: js, onMove: setR, disabled: dis, label: t.stickPitchRoll, axes: [t.axFwd, t.axBack, t.axL, t.axR], onCentre: centre)
           : SpringSlider(
               len: js,
               vertical: false,
@@ -493,8 +504,8 @@ class MobileControl extends StatelessWidget {
                 g();
               },
               disabled: dis,
-              label: 'Steer',
-              ends: const ['L', 'R'],
+              label: t.stickSteer,
+              ends: [t.axL, t.axR],
             );
     } else if (cs == 'tilt') {
       L = drone
@@ -505,14 +516,14 @@ class MobileControl extends StatelessWidget {
                 g();
               },
               disabled: dis,
-              label: 'Throttle',
-              ends: const ['UP', 'DN'],
+              label: t.stickThrottle,
+              ends: [t.axUp, t.axDn],
             )
           : const SizedBox();
       R = TiltPad(
         size: js,
         disabled: dis,
-        label: drone ? 'Tilt · pitch and roll' : 'Tilt · steer and drive',
+        label: drone ? t.tiltPitchRoll : t.tiltSteerDrive,
         onMove: (x, y) {
           if (drone) {
             I[2] = x;
@@ -531,8 +542,8 @@ class MobileControl extends StatelessWidget {
         mirror: pad ? Offset(I[0], drone ? I[1] : 0) : null,
         onMove: setL,
         disabled: dis,
-        label: drone ? 'Throttle · yaw' : 'Steer',
-        axes: drone ? const ['UP', 'DN', 'YAW', 'YAW'] : const ['', '', 'L', 'R'],
+        label: drone ? t.stickThrottleYaw : t.stickSteer,
+        axes: drone ? [t.axUp, t.axDn, t.axYaw, t.axYaw] : ['', '', t.axL, t.axR],
         onCentre: centre,
       );
       R = Joystick(
@@ -540,8 +551,8 @@ class MobileControl extends StatelessWidget {
         mirror: pad ? Offset(drone ? I[2] : 0, I[3] * inv) : null,
         onMove: setR,
         disabled: dis,
-        label: drone ? 'Pitch · roll' : 'Drive',
-        axes: drone ? const ['FWD', 'BACK', 'L', 'R'] : const ['FWD', 'REV', '', ''],
+        label: drone ? t.stickPitchRoll : t.stickDrive,
+        axes: drone ? [t.axFwd, t.axBack, t.axL, t.axR] : [t.axFwd, t.axRev, '', ''],
         onCentre: centre,
       );
     }
@@ -549,6 +560,7 @@ class MobileControl extends StatelessWidget {
     final csSeg = Seg(
       small: true,
       items: const ['STICKS', 'SLIDERS', 'TILT'],
+      labels: {'STICKS': t.csSticks, 'SLIDERS': t.csSliders, 'TILT': t.csTilt},
       value: csMap[cs],
       onChanged: (v) => d.updateSettings((st) => st.control = csMap.entries.firstWhere((e) => e.value == v).key),
     );
@@ -567,15 +579,15 @@ class MobileControl extends StatelessWidget {
           },
         ),
       PadChip(d),
-      KButton('Set home', size: KSize.sm, variant: KButtonVariant.secondary, onPressed: d.linkLost ? null : () => confirmSetHome(context, d)),
+      KButton(t.setHome, size: KSize.sm, variant: KButtonVariant.secondary, onPressed: d.linkLost ? null : () => confirmSetHome(context, d)),
       ScriptControls(d),
     ];
     final top = Wrap(spacing: 8, runSpacing: 8, crossAxisAlignment: WrapCrossAlignment.center, children: topItems);
     final readouts = [
-      drone ? Readout('Alt', s.pos[2].toStringAsFixed(1), 'm') : Readout('Odom', s.range.toStringAsFixed(0), 'm'),
-      Readout('Speed', s.speed.toStringAsFixed(1), 'm/s'),
-      Readout('Hdg', s.heading.round().toString().padLeft(3, '0'), '°'),
-      Readout('Home', s.range.toStringAsFixed(0), 'm'),
+      drone ? Readout(t.rdAlt, s.pos[2].toStringAsFixed(1), 'm') : Readout(t.rdOdom, s.range.toStringAsFixed(0), 'm'),
+      Readout(t.rdSpeed, s.speed.toStringAsFixed(1), 'm/s'),
+      Readout(t.rdHdg, s.heading.round().toString().padLeft(3, '0'), '°'),
+      Readout(t.rdHome, s.range.toStringAsFixed(0), 'm'),
     ];
     final stats = Wrap(spacing: 24, runSpacing: 12, children: readouts);
     if (short) {
@@ -616,12 +628,17 @@ class MobileControl extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        ModePicker(d, small: true),
+                        // Shrinks only when long words leave it too little room.
+                        FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerLeft, child: ModePicker(d, small: true)),
                         const SizedBox(height: 8),
                         row([
-                          if (drone) Seg(items: const ['TAKEOFF', 'LAND', 'RTH'], value: s.mode, onChanged: d.operatorMode, small: true),
+                          if (drone)
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Seg(items: const ['TAKEOFF', 'LAND', 'RTH'], value: s.mode, onChanged: d.operatorMode, small: true),
+                            ),
                           KButton(
-                            'Set home',
+                            t.setHome,
                             size: KSize.sm,
                             variant: KButtonVariant.secondary,
                             onPressed: d.linkLost ? null : () => confirmSetHome(context, d),
@@ -644,7 +661,7 @@ class MobileControl extends StatelessWidget {
                           decoration: BoxDecoration(color: K.inkA60, borderRadius: BorderRadius.circular(K.radiusControl)),
                           child: SpeedSlider(d),
                         ),
-                        csSeg,
+                        FittedBox(fit: BoxFit.scaleDown, child: csSeg),
                       ], end: true),
                     ],
                   ),
@@ -663,10 +680,10 @@ class MobileControl extends StatelessWidget {
                 child: Wrap(
                   spacing: 20,
                   children: [
-                    drone ? Readout('Alt', s.pos[2].toStringAsFixed(1), 'm') : Readout('Odom', s.range.toStringAsFixed(0), 'm'),
-                    Readout('Speed', s.speed.toStringAsFixed(1), 'm/s'),
-                    Readout('Hdg', s.heading.round().toString().padLeft(3, '0'), '°'),
-                    Readout('Home', s.range.toStringAsFixed(0), 'm'),
+                    drone ? Readout(t.rdAlt, s.pos[2].toStringAsFixed(1), 'm') : Readout(t.rdOdom, s.range.toStringAsFixed(0), 'm'),
+                    Readout(t.rdSpeed, s.speed.toStringAsFixed(1), 'm/s'),
+                    Readout(t.rdHdg, s.heading.round().toString().padLeft(3, '0'), '°'),
+                    Readout(t.rdHome, s.range.toStringAsFixed(0), 'm'),
                   ],
                 ),
               ),
@@ -758,16 +775,33 @@ class MobileControl extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(child: top),
-                const SizedBox(width: 16),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    csSeg,
-                    const SizedBox(width: 16),
-                    SizedBox(width: 200, child: SpeedSlider(d)),
-                  ],
-                ),
+                // A tablet upright: the stick layout and the speed join the
+                // buttons, wrapping with them, rather than squeezing them.
+                if (w < 900)
+                  Expanded(
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      crossAxisAlignment: WrapCrossAlignment.end,
+                      children: [
+                        ...topItems,
+                        csSeg,
+                        SizedBox(width: 200, child: SpeedSlider(d)),
+                      ],
+                    ),
+                  )
+                else ...[
+                  Expanded(child: top),
+                  const SizedBox(width: 16),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      csSeg,
+                      const SizedBox(width: 16),
+                      SizedBox(width: 200, child: SpeedSlider(d)),
+                    ],
+                  ),
+                ],
               ],
             ),
           ),
@@ -895,8 +929,8 @@ class _ArmControlState extends State<ArmControl> {
                 runSpacing: 8,
                 children: [
                   RecordButton(d, small: false),
-                  KButton('Home pose', variant: KButtonVariant.secondary, onPressed: live ? () => d.cmd('home') : null),
-                  KButton('Set as home', variant: KButtonVariant.ghost, onPressed: d.linkLost ? null : () => confirmSetHome(context, d)),
+                  KButton(t.homePose, variant: KButtonVariant.secondary, onPressed: live ? () => d.cmd('home') : null),
+                  KButton(t.setAsHome, variant: KButtonVariant.ghost, onPressed: d.linkLost ? null : () => confirmSetHome(context, d)),
                 ],
               ),
             ],
@@ -904,7 +938,7 @@ class _ArmControlState extends State<ArmControl> {
           const SizedBox(height: 20),
           Align(
             alignment: Alignment.centerLeft,
-            child: KTabs(items: const ['Joint', 'Cartesian'], value: tab, onChanged: d.setArmFrame),
+            child: KTabs(items: const ['Joint', 'Cartesian'], labels: {'Joint': t.armJoint, 'Cartesian': t.armCartesian}, value: tab, onChanged: d.setArmFrame),
           ),
           const SizedBox(height: 20),
           if (tab == 'Joint')
@@ -998,13 +1032,13 @@ class _ArmControlState extends State<ArmControl> {
                   ],
                 ),
               ),
-            const Padding(padding: EdgeInsets.only(top: 4), child: MonoLabel('Tool frame · base-relative', height: 1.5)),
+            Padding(padding: const EdgeInsets.only(top: 4), child: MonoLabel(t.toolFrame, height: 1.5)),
           ],
           if (pad)
             Padding(
               padding: const EdgeInsets.only(top: 8),
               child: MonoLabel(
-                'Controller · ${btn(PadAction.armFrame)}: joint / cartesian · ${btn(PadAction.armWrist)}: ${d.armWrist ? 'J3 J4' : 'wrist'} · ${btn(PadAction.gripper)}: gripper',
+                t.armPadHelp(btn(PadAction.armFrame), btn(PadAction.armWrist), d.armWrist ? 'J3 J4' : t.armWrist, btn(PadAction.gripper)),
                 height: 1.5,
                 maxLines: 3,
               ),
@@ -1014,9 +1048,9 @@ class _ArmControlState extends State<ArmControl> {
           const SizedBox(height: 20),
           Row(
             children: [
-              const MonoLabel('Gripper'),
+              MonoLabel(t.gripper),
               const Spacer(),
-              MonoLabel('${(s.gripper * 100).round()}% open', color: K.textPrimary),
+              MonoLabel(t.gripperOpenPct((s.gripper * 100).round()), color: K.textPrimary),
             ],
           ),
           const SizedBox(height: 10),
@@ -1024,7 +1058,7 @@ class _ArmControlState extends State<ArmControl> {
             children: [
               Expanded(
                 child: KButton(
-                  'Open',
+                  t.gripperOpen,
                   fullWidth: true,
                   variant: KButtonVariant.secondary,
                   onPressed: live
@@ -1038,7 +1072,7 @@ class _ArmControlState extends State<ArmControl> {
               const SizedBox(width: 8),
               Expanded(
                 child: KButton(
-                  'Close',
+                  t.gripperClose,
                   fullWidth: true,
                   variant: KButtonVariant.secondary,
                   onPressed: live
@@ -1064,11 +1098,11 @@ class _ArmControlState extends State<ArmControl> {
             bottom: 16,
             child: Row(
               children: [
-                Readout('Tool X', tip[0].toStringAsFixed(3), 'm'),
+                Readout(t.rdToolX, tip[0].toStringAsFixed(3), 'm'),
                 const SizedBox(width: 24),
-                Readout('Tool Y', tip[1].toStringAsFixed(3), 'm'),
+                Readout(t.rdToolY, tip[1].toStringAsFixed(3), 'm'),
                 const SizedBox(width: 24),
-                Readout('Tool Z', tip[2].toStringAsFixed(3), 'm'),
+                Readout(t.rdToolZ, tip[2].toStringAsFixed(3), 'm'),
               ],
             ),
           ),
@@ -1159,9 +1193,9 @@ class RocketControl extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const MonoLabel('Flight phase'),
+                    MonoLabel(t.flightPhase),
                     const SizedBox(height: 8),
-                    Text(phaseLabel[ph] ?? ph, style: KText.display(size: 40, color: ph == 'COUNT' || ph == 'BOOST' ? K.textAccent : K.textPrimary)),
+                    Text(phaseLabel(ph), style: KText.display(size: 40, color: ph == 'COUNT' || ph == 'BOOST' ? K.textAccent : K.textPrimary)),
                   ],
                 ),
               ),
@@ -1171,30 +1205,30 @@ class RocketControl extends StatelessWidget {
           const SizedBox(height: 20),
           Row(
             children: [
-              Expanded(child: Readout('Alt', s.pos[2].toStringAsFixed(0), 'm')),
-              Expanded(child: Readout('Vz', f1(s.vel[2], 0), 'm/s')),
-              Expanded(child: Readout('Max', s.maxAlt.toStringAsFixed(0), 'm')),
-              Expanded(child: Readout('Range', s.range.toStringAsFixed(0), 'm')),
+              Expanded(child: Readout(t.rdAlt, s.pos[2].toStringAsFixed(0), 'm')),
+              Expanded(child: Readout(t.rdVz, f1(s.vel[2], 0), 'm/s')),
+              Expanded(child: Readout(t.rdMax, s.maxAlt.toStringAsFixed(0), 'm')),
+              Expanded(child: Readout(t.rdRange, s.range.toStringAsFixed(0), 'm')),
             ],
           ),
           if (ph == 'PAD' || ph == 'COUNT') ...[
             const SizedBox(height: 20),
-            const MonoLabel('Pre-flight'),
+            MonoLabel(t.preflight),
             const SizedBox(height: 8),
-            _CheckRow('Pyro continuity · drogue, main', pyOk, pyOk ? 'OK' : 'Check'),
-            _CheckRow('GPS lock', s.sats >= 6, s.hasGps ? '${s.sats} sats' : 'No fix'),
-            _CheckRow('Link', !d.linkLost && s.rssi > -80, d.linkLost ? 'Lost' : '${s.rssi.round()} dBm'),
-            _CheckRow('Flight computer', s.armed, s.armed ? 'Armed' : 'Safe'),
+            _CheckRow(t.checkPyro, pyOk, pyOk ? t.ok : t.check),
+            _CheckRow(t.checkGps, s.sats >= 6, s.hasGps ? t.sats(s.sats) : t.noFix),
+            _CheckRow(t.statLink, !d.linkLost && s.rssi > -80, d.linkLost ? t.statLost : '${s.rssi.round()} dBm'),
+            _CheckRow(t.checkFlightComputer, s.armed, s.armed ? t.armed : t.safe),
           ],
           const SizedBox(height: 20),
           if (ph == 'PAD' && !s.armed) ...[
-            KButton('Arm flight computer', size: KSize.lg, variant: KButtonVariant.secondary, fullWidth: true, onPressed: live ? () => d.setArmed(true) : null),
+            KButton(t.armFlightComputer, size: KSize.lg, variant: KButtonVariant.secondary, fullWidth: true, onPressed: live ? () => d.setArmed(true) : null),
             const SizedBox(height: 10),
-            const MonoLabel('Arm only when the pad is clear', height: 1.6),
+            MonoLabel(t.armPadClear, height: 1.6),
           ],
           if (ph == 'PAD' && s.armed)
             KButton(
-              'Start countdown · ${P('COUNTDOWN', 10).toStringAsFixed(0)} s',
+              t.startCountdown(P('COUNTDOWN', 10).toStringAsFixed(0)),
               size: KSize.lg,
               fullWidth: true,
               onPressed: live && pyOk ? () => d.cmd('countdown', {'s': P('COUNTDOWN', 10)}) : null,
@@ -1207,7 +1241,7 @@ class RocketControl extends StatelessWidget {
                 alignment: Alignment.center,
                 decoration: BoxDecoration(color: K.negative, borderRadius: BorderRadius.circular(K.radiusControl)),
                 child: Text(
-                  'ABORT LAUNCH',
+                  t.abortLaunch.toUpperCase(),
                   style: KText.mono(13, w: FontWeight.w700, color: K.ink900, tracking: K.trLabel),
                 ),
               ),
@@ -1217,7 +1251,7 @@ class RocketControl extends StatelessWidget {
               children: [
                 Expanded(
                   child: KButton(
-                    'Deploy drogue',
+                    t.deployDrogue,
                     variant: KButtonVariant.secondary,
                     fullWidth: true,
                     onPressed: ph == 'COAST' && py[0] == 'OK' ? () => d.cmd('deploy', {'ch': 0}) : null,
@@ -1226,7 +1260,7 @@ class RocketControl extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: KButton(
-                    'Deploy main',
+                    t.deployMain,
                     variant: KButtonVariant.secondary,
                     fullWidth: true,
                     onPressed: ph != 'BOOST' && py[1] == 'OK' ? () => d.cmd('deploy', {'ch': 1}) : null,
@@ -1234,18 +1268,11 @@ class RocketControl extends StatelessWidget {
                 ),
               ],
             ),
-          if (flying || ph == 'MAIN') ...[
-            const SizedBox(height: 10),
-            MonoLabel('Auto deploy · drogue at apogee · main at ${P('MAIN_ALT', 150).toStringAsFixed(0)} m', height: 1.6),
-          ],
+          if (flying || ph == 'MAIN') ...[const SizedBox(height: 10), MonoLabel(t.autoDeploy(P('MAIN_ALT', 150).toStringAsFixed(0)), height: 1.6)],
           if (ph == 'LANDED') ...[
-            KNotice(
-              tone: Tone.positive,
-              title: 'Landed',
-              child: Text('Apogee ${s.maxAlt.toStringAsFixed(0)} m · landed ${s.range.toStringAsFixed(0)} m from the pad.'),
-            ),
+            KNotice(tone: Tone.positive, title: phaseLabel('LANDED'), child: Text(t.landedBody(s.maxAlt.toStringAsFixed(0), s.range.toStringAsFixed(0)))),
             const SizedBox(height: 10),
-            KButton('Reset to pad', variant: KButtonVariant.secondary, onPressed: () => d.cmd('reset')),
+            KButton(t.resetToPad, variant: KButtonVariant.secondary, onPressed: () => d.cmd('reset')),
           ],
           const SizedBox(height: 10),
           Align(alignment: Alignment.centerLeft, child: RecordButton(d, small: false)),
@@ -1263,7 +1290,7 @@ class RocketControl extends StatelessWidget {
             width: phone ? w - 24 : 320,
             height: phone ? 90 : 120,
             child: HudPanel(
-              title: 'Altitude · 10 s',
+              title: '${t.altitude} · 10 s',
               child: LineChart(d, keys: const ['alt'], colors: const [VC.lime]),
             ),
           ),
@@ -1341,12 +1368,12 @@ class _BenchControlState extends State<BenchControl> {
       height: hgt,
     );
     final readouts = [
-      Readout('Thrust', s.thrust.toStringAsFixed(2), 'N'),
-      Readout('RPM', '${s.rpm.round()}', ''),
-      Readout('Current', s.current.toStringAsFixed(1), 'A'),
-      Readout('Power', pw.toStringAsFixed(0), 'W'),
-      Readout('Temp', s.temp.toStringAsFixed(1), '°C', tone: s.temp > 70 ? K.warning : null),
-      Readout('Efficiency', eff.toStringAsFixed(1), 'g/W'),
+      Readout(t.rdThrust, s.thrust.toStringAsFixed(2), 'N'),
+      Readout(t.rdRpm, '${s.rpm.round()}', ''),
+      Readout(t.rdCurrent, s.current.toStringAsFixed(1), 'A'),
+      Readout(t.rdPower, pw.toStringAsFixed(0), 'W'),
+      Readout(t.rdTemp, s.temp.toStringAsFixed(1), '°C', tone: s.temp > 70 ? K.warning : null),
+      Readout(t.rdEfficiency, eff.toStringAsFixed(1), 'g/W'),
     ];
     final left = Padding(
       padding: EdgeInsets.all(wide ? 24 : 16),
@@ -1365,18 +1392,18 @@ class _BenchControlState extends State<BenchControl> {
             ),
           ),
           const SizedBox(height: 12),
-          chartBox('Thrust · 10 s', 'thr', VC.lime, phone ? 180 : 240),
+          chartBox('${t.rdThrust} · 10 s', 'thr', VC.lime, phone ? 180 : 240),
           const SizedBox(height: 12),
           if (phone) ...[
-            chartBox('RPM', 'rpm', VC.white, 150),
+            chartBox(t.rdRpm, 'rpm', VC.white, 150),
             const SizedBox(height: 12),
-            chartBox('Current', 'cur', VC.info, 150),
+            chartBox(t.rdCurrent, 'cur', VC.info, 150),
           ] else
             Row(
               children: [
-                Expanded(child: chartBox('RPM', 'rpm', VC.white, 150)),
+                Expanded(child: chartBox(t.rdRpm, 'rpm', VC.white, 150)),
                 const SizedBox(width: 12),
-                Expanded(child: chartBox('Current', 'cur', VC.info, 150)),
+                Expanded(child: chartBox(t.rdCurrent, 'cur', VC.info, 150)),
               ],
             ),
         ],
@@ -1391,16 +1418,16 @@ class _BenchControlState extends State<BenchControl> {
           if (s.mode == 'CUTOFF') ...[
             KNotice(
               tone: Tone.warning,
-              title: 'Cutoff · ${s.cutoff ?? 'limit'}',
+              title: '${t.cutoff} · ${s.cutoff ?? t.cutoffLimit}',
               child: Wrap(
                 children: [
-                  const Text('Throttle was set to 0. Check the motor before running again. '),
+                  Text('${t.cutoffBody} '),
                   GestureDetector(
                     onTap: () => d.cmd('clear'),
                     child: MouseRegion(
                       cursor: SystemMouseCursors.click,
                       child: Text(
-                        'Clear',
+                        t.clear,
                         style: KText.bodySm.copyWith(color: K.textPrimary, decoration: TextDecoration.underline, decorationColor: K.whiteA20),
                       ),
                     ),
@@ -1410,14 +1437,11 @@ class _BenchControlState extends State<BenchControl> {
             ),
             const SizedBox(height: 20),
           ],
-          if (!s.armed) ...[
-            const KNotice(tone: Tone.info, title: 'Disarmed', child: Text('Arm the bench to spin the motor. Keep clear of the propeller.')),
-            const SizedBox(height: 20),
-          ],
+          if (!s.armed) ...[KNotice(tone: Tone.info, title: t.disarmed, child: Text(t.benchDisarmed)), const SizedBox(height: 20)],
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              const MonoLabel('Throttle'),
+              MonoLabel(t.stickThrottle),
               const Spacer(),
               Text('$pct%', style: KText.display(size: 40, color: pct > 0 ? K.textAccent : K.textPrimary)),
             ],
@@ -1448,18 +1472,24 @@ class _BenchControlState extends State<BenchControl> {
           const SizedBox(height: 20),
           hairline,
           const SizedBox(height: 20),
-          const MonoLabel('Test sequence'),
+          MonoLabel(t.testSequence),
           const SizedBox(height: 12),
           Wrap(
             spacing: 8,
             runSpacing: 8,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              Seg(small: true, items: const ['RAMP', 'STEPS'], value: curKind, onChanged: (v) => seq == null ? setState(() => kind = v) : null),
+              Seg(
+                small: true,
+                items: const ['RAMP', 'STEPS'],
+                labels: {'RAMP': t.benchRamp, 'STEPS': t.benchSteps},
+                value: curKind,
+                onChanged: (v) => seq == null ? setState(() => kind = v) : null,
+              ),
               seq != null
-                  ? KButton('Stop · ${mmss(s.seqT)}', size: KSize.sm, variant: KButtonVariant.secondary, onPressed: () => d.cmd('seq', {'kind': null}))
+                  ? KButton('${t.stop} · ${mmss(s.seqT)}', size: KSize.sm, variant: KButtonVariant.secondary, onPressed: () => d.cmd('seq', {'kind': null}))
                   : KButton(
-                      'Run and record',
+                      t.runAndRecord,
                       size: KSize.sm,
                       onPressed: live
                           ? () {
@@ -1472,7 +1502,7 @@ class _BenchControlState extends State<BenchControl> {
           ),
           const SizedBox(height: 12),
           Text(
-            '${curKind == 'RAMP' ? 'Ramp 0 to 100 % over ${P('RAMP_TIME', 10).toStringAsFixed(0)} s, hold 2 s, stop.' : 'Steps of ${P('STEP_SIZE', 25).toStringAsFixed(0)} %, ${_n(P('STEP_HOLD', 3))} s each, up to 100 %.'} Limits: ${P('MAX_CURRENT', 45).toStringAsFixed(0)} A, ${P('MAX_TEMP', 90).toStringAsFixed(0)} °C.',
+            '${curKind == 'RAMP' ? t.benchRampDesc(P('RAMP_TIME', 10).toStringAsFixed(0)) : t.benchStepsDesc(P('STEP_SIZE', 25).toStringAsFixed(0), _n(P('STEP_HOLD', 3)))} ${t.benchLimits(P('MAX_CURRENT', 45).toStringAsFixed(0), P('MAX_TEMP', 90).toStringAsFixed(0))}',
             style: KText.bodySm.copyWith(color: K.textMuted),
           ),
           if (wide) ...[
@@ -1553,22 +1583,8 @@ class TelemetryOnly extends StatelessWidget {
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 520),
         child: d.device?.proto == 'msp'
-            ? KNotice(
-                tone: Tone.info,
-                title: 'Monitoring and tuning',
-                child: Text(
-                  '${d.deviceName} runs ${d.device?.model.split(' · ').first ?? 'Betaflight or INAV'} and is connected over MSP, the configuration link. '
-                  'The app shows its telemetry, tunes its PID gains on the Tune screen, and STOP disarms it. Fly it with your RC transmitter.',
-                ),
-              )
-            : KNotice(
-                tone: Tone.warning,
-                title: 'Telemetry-only link',
-                child: Text(
-                  '${d.deviceName} is connected through ${d.radio?.name ?? 'a radio'}, which carries telemetry only. Sticks, modes and commands do not reach the device this way; STOP does, within about a second. '
-                  'Control it over its main link (Wi-Fi, Bluetooth or a SiK radio) and rely on its failsafe when that link is out of range.',
-                ),
-              ),
+            ? KNotice(tone: Tone.info, title: t.mspTitle, child: Text(t.mspBody(d.deviceName, d.device?.model.split(' · ').first ?? 'Betaflight / INAV')))
+            : KNotice(tone: Tone.warning, title: t.radioOnlyTitle, child: Text(t.radioOnlyBody(d.deviceName, d.radio?.name ?? t.aRadio))),
       ),
     ),
   );

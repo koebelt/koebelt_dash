@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../l10n/l10n.dart';
 import '../core/dash.dart';
 import '../core/model.dart';
 import '../theme/tokens.dart';
@@ -54,28 +55,32 @@ class TileDef {
 const _D = DeviceKind.drone, _R = DeviceKind.rover, _A = DeviceKind.arm, _K = DeviceKind.rocket, _B = DeviceKind.bench, _G = DeviceKind.generic;
 const j6 = [VC.white, VC.info, VC.warn, VC.pos, VC.neg, VC.ink100];
 
-final List<TileDef> tiles = [
+/// The built-in tiles, in the language shown (built once per language).
+List<TileDef> get tiles => _tiles[t.localeName] ??= _builtIn();
+final _tiles = <String, List<TileDef>>{};
+
+List<TileDef> _builtIn() => [
   TileDef(
     id: 'readout',
-    title: 'Readouts',
+    title: t.tileReadouts,
     types: {_D, _R, _A, _K, _B, _G},
     hudOnly: true,
     val: (_) => '',
     body: (d) => ReadoutBody(d),
     keys: ['alt', 'spd'],
-    labels: ['Alt', 'Speed'],
+    labels: [t.rdAlt, t.rdSpeed],
     unit: '',
-    src: 'Fused state',
+    src: t.tileSrcFused,
   ),
   TileDef(
     id: 'attitude',
     needs: ['att'],
-    title: 'Attitude',
+    title: t.tileAttitude,
     types: {_D, _R, _A, _K, _B, _G},
     val: (d) => 'R ${deg(d.tel.roll)}  P ${deg(d.tel.pitch)}',
     body: (d) => LiveCanvas(AttitudePainter(d)),
     keys: ['gx', 'gy', 'gz'],
-    labels: ['Roll rate', 'Pitch rate', 'Yaw rate'],
+    labels: [t.tileRollRate, t.tilePitchRate, t.tileYawRate],
     unit: 'rad/s',
     src: 'IMU · BMI088',
     sym: true,
@@ -83,9 +88,9 @@ final List<TileDef> tiles = [
   TileDef(
     id: 'accel',
     needs: ['imu'],
-    title: 'Accelerometer',
+    title: t.tileAccelerometer,
     types: {_D, _R, _A, _K, _B, _G},
-    tt: {_B: 'Vibration', _K: 'Accelerometer · 200 G'},
+    tt: {_B: t.tileVibration, _K: t.tileAcc200},
     val: (d) => '${f1(hypot3(d.tel.acc[0], d.tel.acc[1], d.tel.acc[2]) / 9.81, 2)} g',
     body: (d) => LineChart(d, keys: const ['ax', 'ay', 'az'], sym: true),
     keys: ['ax', 'ay', 'az'],
@@ -97,7 +102,7 @@ final List<TileDef> tiles = [
   TileDef(
     id: 'gyro',
     needs: ['imu'],
-    title: 'Gyroscope',
+    title: t.tileGyroscope,
     types: {_D, _R, _A, _K, _B, _G},
     val: (d) => '${f1(d.tel.gyro[2], 2)} rad/s',
     body: (d) => LineChart(d, keys: const ['gx', 'gy', 'gz'], sym: true),
@@ -115,101 +120,101 @@ final List<TileDef> tiles = [
     val: (d) => '${d.tel.lat.toStringAsFixed(5)} ${d.tel.lon.toStringAsFixed(5)}',
     body: (d) => MapView(d, interactive: false, controls: false),
     keys: ['spd'],
-    labels: ['Ground speed'],
+    labels: [t.tileGroundSpeed],
     unit: 'm/s',
     src: 'GNSS',
   ),
   TileDef(
     id: 'alt',
     needs: ['pos'],
-    title: 'Altitude',
+    title: t.altitude,
     types: {_D, _K, _G},
     val: (d) => '${d.tel.pos[2].toStringAsFixed(1)} m',
     body: (d) => LineChart(d, keys: const ['alt'], colors: const [VC.lime]),
     keys: ['alt'],
-    labels: ['AGL'],
+    labels: [t.tileAgl],
     unit: 'm',
-    src: 'Baro + rangefinder',
+    src: t.tileSrcBaroRange,
   ),
   TileDef(
     id: 'radar',
     needs: ['tracks'],
-    title: 'Radar',
+    title: t.tileRadar,
     types: {_D, _R, _A, _K, _B, _G},
-    tt: {_A: 'Safety scanner'},
-    val: (d) => '${d.tel.targets.length} tracks',
+    tt: {_A: t.tileSafetyScanner},
+    val: (d) => t.tracks(d.tel.targets.length),
     body: (d) => LiveCanvas(RadarPainter(d)),
     keys: ['spd'],
-    labels: ['Own speed'],
+    labels: [t.tileOwnSpeed],
     unit: 'm/s',
-    src: 'Radar / safety scanner',
+    src: t.tileSrcRadar,
   ),
   TileDef(
     id: 'lidar',
     needs: ['pc'],
-    title: 'Lidar',
+    title: t.tileLidar,
     types: {_D, _R, _A, _K, _B, _G},
-    val: (d) => '${d.tel.cloud.length} pts',
+    val: (d) => t.points(d.tel.cloud.length),
     body: (d) => Scene3D(d, view: 'top', interactive: false, label: false, layers: const {'cloud': true, 'grid': true}),
     keys: ['spd'],
-    labels: ['Own speed'],
+    labels: [t.tileOwnSpeed],
     unit: 'm/s',
-    src: 'Scanning lidar',
+    src: t.tileSrcLidar,
   ),
   TileDef(
     id: 'joints',
     needs: ['joints'],
-    title: 'Joints',
+    title: t.tileJoints,
     types: {_D, _R, _A, _K, _B, _G},
-    val: (_) => '6 axes',
+    val: (_) => t.axes(6),
     body: (d) => LiveCanvas(JointBarsPainter(d)),
     keys: ['j0', 'j1', 'j2', 'j3', 'j4', 'j5'],
     labels: ['J1', 'J2', 'J3', 'J4', 'J5', 'J6'],
     colors: j6,
     unit: 'rad',
-    src: 'Joint encoders',
+    src: t.tileSrcJoints,
     sym: true,
   ),
   TileDef(
     id: 'ft',
     needs: ['ft'],
-    title: 'Force / torque',
+    title: t.tileForceTorque,
     types: {_D, _R, _A, _K, _B, _G},
     val: (d) => '${f1(d.tel.ft[2], 1)} N',
     body: (d) => LineChart(d, keys: const ['fx', 'fy', 'fz'], sym: true),
     keys: ['fx', 'fy', 'fz'],
     labels: ['Fx', 'Fy', 'Fz'],
     unit: 'N',
-    src: 'Wrist F/T sensor',
+    src: t.tileSrcWrist,
     sym: true,
   ),
   TileDef(
     id: 'power',
     needs: ['bat'],
-    title: 'Power',
+    title: t.rdPower,
     types: {_D, _R, _A, _K, _B, _G},
     val: (d) => d.kind == _A || d.kind == _B ? '${d.tel.current.toStringAsFixed(1)} A' : '${d.tel.battery.round()}%',
     body: (d) => LineChart(d, keys: const ['volt'], colors: const [VC.lime]),
     keys: ['volt', 'cur'],
-    labels: ['Voltage', 'Current'],
+    labels: [t.tileVoltage, t.rdCurrent],
     unit: 'V · A',
-    src: 'Power module',
+    src: t.tileSrcPower,
   ),
   TileDef(
     id: 'link',
     needs: ['rssi'],
-    title: 'Link',
+    title: t.statLink,
     types: {_D, _R, _A, _K, _B, _G},
     val: (d) => '${d.tel.rssi.round()} dBm',
     body: (d) => LineChart(d, keys: const ['rssi'], colors: const [VC.info]),
     keys: ['rssi', 'lat'],
-    labels: ['RSSI', 'Latency'],
+    labels: ['RSSI', t.statLatency],
     unit: 'dBm · ms',
-    src: 'Radio link',
+    src: t.tileSrcRadio,
   ),
   TileDef(
     id: 'video',
-    title: 'Camera',
+    title: t.tileCamera,
     types: {_D, _R, _A, _K, _B, _G},
     when: (d) => d.video.isNotEmpty,
     val: (d) => d.video.isEmpty ? '' : (d.video.first.label.isEmpty ? d.video.first.id : d.video.first.label),
@@ -217,66 +222,66 @@ final List<TileDef> tiles = [
     keys: [],
     labels: [],
     unit: '',
-    src: 'Device camera · MJPEG',
+    src: t.tileSrcCamera,
   ),
   TileDef(
     id: 'fleet',
-    title: 'Fleet',
+    title: t.fleet,
     types: {_D, _R, _A, _K, _B, _G},
     when: (d) => d.links.length > 1,
-    val: (d) => '${d.links.length} connected',
+    val: (d) => t.connectedCount(d.links.length),
     body: (d) => FleetTile(d),
     keys: [],
     labels: [],
     unit: '',
-    src: 'Every connected device',
+    src: t.tileSrcFleet,
   ),
   // rocket
   TileDef(
     id: 'phase',
-    title: 'Flight phase',
+    title: t.flightPhase,
     types: {_K},
-    val: (d) => phaseLabel[d.tel.mode] ?? d.tel.mode,
+    val: (d) => phaseLabel(d.tel.mode),
     body: (d) => FlightPhases(d),
     keys: ['alt', 'vz'],
-    labels: ['Altitude', 'Vertical speed'],
+    labels: [t.altitude, t.tileVerticalSpeed],
     unit: 'm · m/s',
-    src: 'Flight computer state machine',
+    src: t.tileSrcPhase,
   ),
   TileDef(
     id: 'vspeed',
     needs: ['vel'],
-    title: 'Vertical speed',
+    title: t.tileVerticalSpeed,
     types: {_K},
     val: (d) => '${f1(d.tel.vel[2], 1)} m/s',
     body: (d) => LineChart(d, keys: const ['vz'], colors: const [VC.lime], sym: true),
     keys: ['vz'],
     labels: ['Vz'],
     unit: 'm/s',
-    src: 'Baro + IMU fusion',
+    src: t.tileSrcBaroImu,
     sym: true,
   ),
   TileDef(
     id: 'pyro',
-    title: 'Pyro channels',
+    title: t.tilePyro,
     types: {_K},
-    val: (d) => '${d.tel.pyro.where((x) => x == 'OK').length} armed',
+    val: (d) => t.armedCount(d.tel.pyro.where((x) => x == 'OK').length),
     body: (d) => PyroBody(d),
     keys: ['volt'],
-    labels: ['Pyro bus'],
+    labels: [t.tilePyroBus],
     unit: 'V',
-    src: '4-channel pyro board',
+    src: t.tileSrcPyro,
   ),
   // bench
   TileDef(
     id: 'thrust',
     needs: ['thrust'],
-    title: 'Thrust',
+    title: t.rdThrust,
     types: {_D, _R, _A, _K, _B, _G},
     val: (d) => '${d.tel.thrust.toStringAsFixed(2)} N',
     body: (d) => LineChart(d, keys: const ['thr'], colors: const [VC.lime]),
     keys: ['thr'],
-    labels: ['Thrust'],
+    labels: [t.rdThrust],
     unit: 'N',
     src: 'Load cell · HX711 · 80 Hz',
   ),
@@ -290,41 +295,41 @@ final List<TileDef> tiles = [
     keys: ['rpm'],
     labels: ['RPM'],
     unit: 'rpm',
-    src: 'Optical tachometer',
+    src: t.tileSrcTacho,
   ),
   TileDef(
     id: 'torque',
     needs: ['thrust'],
-    title: 'Torque',
+    title: t.tileTorque,
     types: {_D, _R, _A, _K, _B, _G},
     val: (d) => '${d.tel.torque.toStringAsFixed(3)} N·m',
     body: (d) => LineChart(d, keys: const ['tq'], colors: const [VC.info]),
     keys: ['tq'],
-    labels: ['Torque'],
+    labels: [t.tileTorque],
     unit: 'N·m',
-    src: 'Reaction torque cell',
+    src: t.tileSrcTorque,
   ),
   TileDef(
     id: 'temp',
     needs: ['temp'],
-    title: 'Motor temp',
+    title: t.tileMotorTemp,
     types: {_D, _R, _A, _K, _B, _G},
     val: (d) => '${d.tel.temp.toStringAsFixed(1)} °C',
     body: (d) => LineChart(d, keys: const ['tmp'], colors: const [VC.warn]),
     keys: ['tmp'],
-    labels: ['Stator'],
+    labels: [t.tileStator],
     unit: '°C',
-    src: 'NTC thermistor',
+    src: t.tileSrcNtc,
   ),
   TileDef(
     id: 'elec',
     needs: ['bat'],
-    title: 'Current',
+    title: t.rdCurrent,
     types: {_B},
     val: (d) => '${d.tel.power.toStringAsFixed(0)} W',
     body: (d) => LineChart(d, keys: const ['cur'], colors: const [VC.info]),
     keys: ['cur', 'pw'],
-    labels: ['Current', 'Power'],
+    labels: [t.rdCurrent, t.rdPower],
     unit: 'A · W',
     src: 'Shunt · INA228',
   ),
@@ -346,7 +351,7 @@ List<TileDef> customTiles(Dash d) => [
       labels: c.axes,
       colors: c.axes.length > 3 ? j6 : null,
       unit: c.unit,
-      src: 'Custom channel · ${c.hz.toStringAsFixed(0)} Hz',
+      src: t.tileSrcCustom(c.hz.toStringAsFixed(0)),
     ),
 ];
 
@@ -359,7 +364,7 @@ List<TileDef> proxTiles(Dash d) {
   return [
     TileDef(
       id: 'prox',
-      title: 'Proximity',
+      title: t.tileProximity,
       types: DeviceKind.values.toSet(),
       val: (d) {
         final n = d.nearest;
@@ -368,14 +373,14 @@ List<TileDef> proxTiles(Dash d) {
           for (var i = 0; i < d.proxSensors.length && i < d.tel.prox.length; i++)
             if (d.proxSensors[i].down && d.tel.prox[i] >= 0) d.tel.prox[i],
         ];
-        return down.isNotEmpty ? '↓ ${down.first.toStringAsFixed(1)} m' : 'clear';
+        return down.isNotEmpty ? '↓ ${down.first.toStringAsFixed(1)} m' : t.proxClear;
       },
       body: (d) => LiveCanvas(ProxPainter(d)),
       keys: [for (var i = 0; i < ps.length; i++) 'prox:$i'],
       labels: [for (final p in ps) p.id.replaceAll('_', ' ')],
       colors: ps.length > 3 ? j6 : null,
       unit: 'm',
-      src: ps.isEmpty ? 'Proximity sensors' : {for (final p in ps) p.kind.isEmpty ? 'proximity' : p.kind}.join(' · '),
+      src: ps.isEmpty ? t.tileSrcProx : {for (final p in ps) p.kind.isEmpty ? t.tileProximity.toLowerCase() : p.kind}.join(' · '),
     ),
   ];
 }
@@ -403,7 +408,7 @@ List<TileDef> scriptTiles(Dash d) => [
         labels: v.labels,
         colors: v.labels.length > 3 ? j6 : const [VC.lime, VC.info, VC.warn],
         unit: '',
-        src: 'Script · ${v.script}',
+        src: '${t.tagScript} · ${v.script}',
       )
     else
       TileDef(
@@ -411,17 +416,17 @@ List<TileDef> scriptTiles(Dash d) => [
         title: v.name,
         types: DeviceKind.values.toSet(),
         val: (d) => v.ended
-            ? 'ended'
+            ? t.viewEnded
             : v.kind == 'picture'
             ? '${v.width}×${v.height} · ${v.fps.toStringAsFixed(0)} fps'
             : v.series.length == 1
-            ? '${v.chart} · ${v.series.values.first.length} points'
-            : '${v.chart} · ${v.series.length} series',
+            ? '${v.chart} · ${t.points(v.series.values.first.length)}'
+            : '${v.chart} · ${t.series(v.series.length)}',
         body: (d) => ScriptViewBody(v),
         keys: const [],
         labels: const [],
         unit: '',
-        src: 'Script · ${v.script}',
+        src: '${t.tagScript} · ${v.script}',
       ),
 ];
 
@@ -435,7 +440,18 @@ List<TileDef> allTiles(Dash d) => [tiles.first, ...tilesFor(d)];
 TileDef? tileById(Dash d, String id) => [...tiles, ...customTiles(d), ...proxTiles(d), ...scriptTiles(d)].where((t) => t.id == id).firstOrNull;
 
 const phases = ['PAD', 'COUNT', 'BOOST', 'COAST', 'DROGUE', 'MAIN', 'LANDED'];
-const phaseLabel = {'PAD': 'On pad', 'COUNT': 'Countdown', 'BOOST': 'Boost', 'COAST': 'Coast', 'DROGUE': 'Drogue', 'MAIN': 'Main', 'LANDED': 'Landed'};
+
+/// A flight phase as shown, in the language shown.
+String phaseLabel(String ph) => switch (ph) {
+  'PAD' => t.phasePad,
+  'COUNT' => t.phaseCount,
+  'BOOST' => t.phaseBoost,
+  'COAST' => t.phaseCoast,
+  'DROGUE' => t.phaseDrogue,
+  'MAIN' => t.phaseMain,
+  'LANDED' => t.phaseLanded,
+  _ => ph,
+};
 
 class ReadoutBody extends StatelessWidget {
   const ReadoutBody(this.d, {super.key});
@@ -445,28 +461,28 @@ class ReadoutBody extends StatelessWidget {
     final s = d.tel;
     final rd = switch (d.kind) {
       DeviceKind.arm => [
-        ['Tool Z', s.armPts[5][2].toStringAsFixed(3), 'm'],
-        ['Reach', hypot2(s.armPts[5][0], s.armPts[5][1]).toStringAsFixed(2), 'm'],
-        ['Gripper', (s.gripper * 100).toStringAsFixed(0), '%'],
-        ['Current', s.current.toStringAsFixed(1), 'A'],
+        [t.rdToolZ, s.armPts[5][2].toStringAsFixed(3), 'm'],
+        [t.rdReach, hypot2(s.armPts[5][0], s.armPts[5][1]).toStringAsFixed(2), 'm'],
+        [t.gripper, (s.gripper * 100).toStringAsFixed(0), '%'],
+        [t.rdCurrent, s.current.toStringAsFixed(1), 'A'],
       ],
       DeviceKind.rocket => [
-        ['Alt', s.pos[2].toStringAsFixed(0), 'm'],
-        ['Vz', f1(s.vel[2], 0), 'm/s'],
-        ['Max', s.maxAlt.toStringAsFixed(0), 'm'],
-        ['Range', s.range.toStringAsFixed(0), 'm'],
+        [t.rdAlt, s.pos[2].toStringAsFixed(0), 'm'],
+        [t.rdVz, f1(s.vel[2], 0), 'm/s'],
+        [t.rdMax, s.maxAlt.toStringAsFixed(0), 'm'],
+        [t.rdRange, s.range.toStringAsFixed(0), 'm'],
       ],
       DeviceKind.bench => [
-        ['Thrust', s.thrust.toStringAsFixed(1), 'N'],
-        ['RPM', '${s.rpm.round()}', ''],
-        ['Power', s.power.toStringAsFixed(0), 'W'],
-        ['Temp', s.temp.toStringAsFixed(0), '°C'],
+        [t.rdThrust, s.thrust.toStringAsFixed(1), 'N'],
+        [t.rdRpm, '${s.rpm.round()}', ''],
+        [t.rdPower, s.power.toStringAsFixed(0), 'W'],
+        [t.rdTemp, s.temp.toStringAsFixed(0), '°C'],
       ],
       _ => [
-        ['Alt', s.pos[2].toStringAsFixed(1), 'm'],
-        ['Speed', s.speed.toStringAsFixed(1), 'm/s'],
-        ['Hdg', s.heading.round().toString().padLeft(3, '0'), '°'],
-        ['Home', s.range.toStringAsFixed(0), 'm'],
+        [t.rdAlt, s.pos[2].toStringAsFixed(1), 'm'],
+        [t.rdSpeed, s.speed.toStringAsFixed(1), 'm/s'],
+        [t.rdHdg, s.heading.round().toString().padLeft(3, '0'), '°'],
+        [t.rdHome, s.range.toStringAsFixed(0), 'm'],
       ],
     };
     return LayoutBuilder(
@@ -572,7 +588,8 @@ class FlightPhases extends StatelessWidget {
   }
 }
 
-const pyroNames = ['Drogue', 'Main', 'Airstart', 'Spare'];
+/// The rocket's pyro channels, in order, as shown.
+List<String> get pyroNames => [t.pyroDrogue, t.pyroMain, t.pyroAirstart, t.pyroSpare];
 
 class PyroBody extends StatelessWidget {
   const PyroBody(this.d, {super.key});
@@ -596,10 +613,10 @@ class PyroBody extends StatelessWidget {
                     flex: 3,
                     child: KBadge(
                       py[i] == 'OK'
-                          ? 'Continuity'
+                          ? t.pyroContinuity
                           : py[i] == 'FIRED'
-                          ? 'Fired'
-                          : 'Not wired',
+                          ? t.pyroFired
+                          : t.pyroNotWired,
                       tone: py[i] == 'FIRED'
                           ? Tone.accent
                           : py[i] == 'OK'
@@ -725,7 +742,7 @@ class FleetTile extends StatelessWidget {
         Pressable(
           onTap: () => d.focusDevice(l.id),
           builder: (_, h, _) {
-            final t = l.tel, lost = l.linkLostFor > 0, alerts = l.alerts.shown.length, on = l.id == d.deviceId;
+            final tel = l.tel, lost = l.linkLostFor > 0, alerts = l.alerts.shown.length, on = l.id == d.deviceId;
             return Container(
               color: on ? K.surfaceAccentSoft : (h ? K.whiteA06 : Colors.transparent),
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
@@ -741,10 +758,17 @@ class FleetTile extends StatelessWidget {
                     child: Text(l.info.name, style: KText.bodySm, maxLines: 1, overflow: TextOverflow.ellipsis),
                   ),
                   const SizedBox(width: 8),
-                  MonoLabel(
-                    [if (lost) 'LOST' else t.mode, if (t.seen.contains('bat')) '${t.battery.round()}%', if (alerts > 0) '⚠ $alerts'].join(' · '),
-                    size: 9,
-                    color: lost || t.estop ? K.negative : (alerts > 0 ? K.warning : K.textSecondary),
+                  Flexible(
+                    child: MonoLabel(
+                      [
+                        if (lost) t.statLost.toUpperCase() else tel.mode,
+                        if (tel.seen.contains('bat')) '${tel.battery.round()}%',
+                        if (alerts > 0) '⚠ $alerts',
+                      ].join(' · '),
+                      size: 9,
+                      maxLines: 1,
+                      color: lost || tel.estop ? K.negative : (alerts > 0 ? K.warning : K.textSecondary),
+                    ),
                   ),
                 ],
               ),

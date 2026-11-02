@@ -37,7 +37,7 @@ import math
 
   test('why a device does not fit, in a sentence', () {
     final drone = ScriptRequirements.parse('# requires: drone, gps');
-    expect(drone.whyNot(sim('mule')), 'Mule is a rover; this script needs a drone with gps.');
+    expect(drone.whyNot(sim('mule')), 'Mule is a ground robot; this script needs a drone with gps.');
     expect(drone.whyNot(sim('kite')), isNull);
     expect(
       ScriptRequirements.parse('# requires: lidar, thrust').whyNot(sim('kite')),

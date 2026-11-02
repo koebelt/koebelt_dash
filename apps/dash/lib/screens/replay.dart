@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../l10n/l10n.dart';
 import '../core/dash.dart';
 import '../core/model.dart';
 import '../ui/icons.dart';
@@ -29,11 +30,11 @@ class ReplayScreen extends StatelessWidget {
             Builder(
               builder: (_) {
                 final n = sessionEntries(d.sessions).length;
-                return Expanded(child: MonoLabel('$n ${n == 1 ? 'session' : 'sessions'}', maxLines: 1));
+                return Expanded(child: MonoLabel(t.sessionsCount(n), maxLines: 1));
               },
             ),
             KButton(
-              'Import',
+              t.import,
               size: KSize.sm,
               variant: KButtonVariant.ghost,
               iconLeft: const KIcon('upload', size: 14),
@@ -42,14 +43,14 @@ class ReplayScreen extends StatelessWidget {
             const SizedBox(width: 8),
             d.recording
                 ? KButton(
-                    'Stop · ${mmss(d.t - d.recStart)}',
+                    '${t.stop} · ${mmss(d.t - d.recStart)}',
                     size: KSize.sm,
                     variant: KButtonVariant.secondary,
                     iconLeft: const PulseDot(),
                     onPressed: d.stopRec,
                   )
                 : KButton(
-                    'Record',
+                    t.record,
                     size: KSize.sm,
                     variant: KButtonVariant.secondary,
                     iconLeft: const PulseDot(animate: false),
@@ -62,10 +63,7 @@ class ReplayScreen extends StatelessWidget {
         if (d.sessions.isEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 20),
-            child: Text(
-              'No recordings yet. Record a connected device, or use Import for a file or the sample recordings.',
-              style: KText.bodySm.copyWith(color: K.textMuted),
-            ),
+            child: Text(t.noRecordings, style: KText.bodySm.copyWith(color: K.textMuted)),
           ),
         for (final e in sessionEntries(d.sessions))
           if (e.length == 1) _rec(context, e.first) else _group(context, e),
@@ -104,24 +102,24 @@ class ReplayScreen extends StatelessWidget {
                             if (recs.any((r) => r.fresh))
                               WidgetSpan(
                                 alignment: PlaceholderAlignment.middle,
-                                child: _tag(const KTag('New', tone: TagTone.accent, height: 20)),
+                                child: _tag(KTag(t.tagNew, tone: TagTone.accent, height: 20)),
                               ),
                             if (recs.any((r) => r.hasVideo))
                               WidgetSpan(
                                 alignment: PlaceholderAlignment.middle,
-                                child: _tag(const KTag('Video', tone: TagTone.info, height: 20)),
+                                child: _tag(KTag(t.tagVideo, tone: TagTone.info, height: 20)),
                               ),
                           ],
                         ),
                       ),
                       const SizedBox(height: 8),
-                      MonoLabel('${recs.length} devices · ${first.date} · ${mmss(dur)}'),
+                      MonoLabel('${t.devicesCount(recs.length)} · ${first.date} · ${mmss(dur)}'),
                     ],
                   ),
                 ),
                 KIconButton(
                   'trash',
-                  label: 'Delete $title',
+                  label: t.deleteName(title),
                   size: KSize.sm,
                   variant: KIconButtonVariant.bare,
                   onPressed: () => confirmDeleteGroup(context, d, recs),
@@ -166,17 +164,17 @@ class ReplayScreen extends StatelessWidget {
                         if (s.fresh && !inGroup)
                           WidgetSpan(
                             alignment: PlaceholderAlignment.middle,
-                            child: _tag(const KTag('New', tone: TagTone.accent, height: 20)),
+                            child: _tag(KTag(t.tagNew, tone: TagTone.accent, height: 20)),
                           ),
                         if (s.hasVideo)
                           WidgetSpan(
                             alignment: PlaceholderAlignment.middle,
-                            child: _tag(const KTag('Video', tone: TagTone.info, height: 20)),
+                            child: _tag(KTag(t.tagVideo, tone: TagTone.info, height: 20)),
                           ),
                         if (s.demo)
                           WidgetSpan(
                             alignment: PlaceholderAlignment.middle,
-                            child: _tag(const SimTag(text: 'Demo', height: 20)),
+                            child: _tag(SimTag(text: t.tagDemo, height: 20)),
                           ),
                       ],
                     ),
@@ -186,11 +184,17 @@ class ReplayScreen extends StatelessWidget {
                 ],
               ),
             ),
-            KIconButton('download', label: 'Export ${s.name}', size: KSize.sm, variant: KIconButtonVariant.bare, onPressed: () => showExportDialog(context, s)),
+            KIconButton(
+              'download',
+              label: t.exportName(s.name),
+              size: KSize.sm,
+              variant: KIconButtonVariant.bare,
+              onPressed: () => showExportDialog(context, s),
+            ),
             if (!s.demo)
               KIconButton(
                 'trash',
-                label: 'Delete ${s.name}',
+                label: t.deleteName(s.name),
                 size: KSize.sm,
                 variant: KIconButtonVariant.bare,
                 onPressed: () => confirmDeleteRecording(context, d, s),
@@ -212,7 +216,7 @@ class ReplayScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              PageHead(phone: phone, eyebrow: 'Recording and playback', title: 'Sessions'),
+              PageHead(phone: phone, eyebrow: t.replayEyebrow, title: t.sessions),
               SizedBox(height: phone ? 20 : 32),
               _list(context),
             ],
@@ -260,7 +264,7 @@ class ReplayScreen extends StatelessWidget {
                       ? Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            KBadge('Replay · ${R.session.name}', tone: Tone.info),
+                            KBadge('${t.navReplay} · ${R.session.name}', tone: Tone.info),
                             const SizedBox(height: 8),
                             Wrap(
                               runSpacing: 8,
@@ -290,6 +294,7 @@ class ReplayScreen extends StatelessWidget {
                                     color: K.inkA60,
                                     child: Seg(
                                       items: [for (final v in views) v.toUpperCase()],
+                                      labels: {'MAP': t.viewMap, 'VIDEO': t.tagVideo.toUpperCase()},
                                       value: view.toUpperCase(),
                                       small: true,
                                       onChanged: (v) {
@@ -303,7 +308,7 @@ class ReplayScreen extends StatelessWidget {
                                 Container(
                                   color: K.inkA60,
                                   child: KButton(
-                                    'Export',
+                                    t.export,
                                     size: KSize.sm,
                                     variant: KButtonVariant.secondary,
                                     iconLeft: const KIcon('download', size: 14),
@@ -313,7 +318,7 @@ class ReplayScreen extends StatelessWidget {
                                 const SizedBox(width: 8),
                                 Container(
                                   color: K.inkA60,
-                                  child: KButton('Exit to live', size: KSize.sm, variant: KButtonVariant.secondary, onPressed: d.closeReplay),
+                                  child: KButton(t.exitToLive, size: KSize.sm, variant: KButtonVariant.secondary, onPressed: d.closeReplay),
                                 ),
                               ],
                             ),
@@ -321,7 +326,7 @@ class ReplayScreen extends StatelessWidget {
                         )
                       : Row(
                           children: [
-                            Expanded(child: KBadge('Replay · ${R.session.name}', tone: Tone.info)),
+                            Expanded(child: KBadge('${t.navReplay} · ${R.session.name}', tone: Tone.info)),
                             // The other devices recorded in the same session, at the same moment.
                             if (R.session.group != null)
                               Builder(
@@ -347,6 +352,7 @@ class ReplayScreen extends StatelessWidget {
                                 color: K.inkA60,
                                 child: Seg(
                                   items: [for (final v in views) v.toUpperCase()],
+                                  labels: {'MAP': t.viewMap, 'VIDEO': t.tagVideo.toUpperCase()},
                                   value: view.toUpperCase(),
                                   small: true,
                                   onChanged: (v) {
@@ -360,7 +366,7 @@ class ReplayScreen extends StatelessWidget {
                             Container(
                               color: K.inkA60,
                               child: KButton(
-                                'Export',
+                                t.export,
                                 size: KSize.sm,
                                 variant: KButtonVariant.secondary,
                                 iconLeft: const KIcon('download', size: 14),
@@ -370,7 +376,7 @@ class ReplayScreen extends StatelessWidget {
                             const SizedBox(width: 8),
                             Container(
                               color: K.inkA60,
-                              child: KButton('Exit to live', size: KSize.sm, variant: KButtonVariant.secondary, onPressed: d.closeReplay),
+                              child: KButton(t.exitToLive, size: KSize.sm, variant: KButtonVariant.secondary, onPressed: d.closeReplay),
                             ),
                           ],
                         ),
@@ -393,7 +399,7 @@ class ReplayScreen extends StatelessWidget {
                 children: [
                   KIconButton(
                     R.playing ? 'pause' : 'play',
-                    label: R.playing ? 'Pause' : 'Play',
+                    label: R.playing ? t.pause : t.play,
                     variant: KIconButtonVariant.solid,
                     size: KSize.lg,
                     onPressed: () {
@@ -490,13 +496,13 @@ void confirmDeleteRecording(BuildContext context, Dash d, Recording s) {
   showKDialog(
     context,
     builder: (ctx) => KDialogPanel(
-      title: 'Delete ${s.name}?',
+      title: t.deleteTitle(s.name),
       width: 440,
       onClose: () => Navigator.pop(ctx),
       footer: [
-        KButton('Cancel', variant: KButtonVariant.ghost, onPressed: () => Navigator.pop(ctx)),
+        KButton(t.cancel, variant: KButtonVariant.ghost, onPressed: () => Navigator.pop(ctx)),
         KButton(
-          'Export first',
+          t.exportFirst,
           variant: KButtonVariant.secondary,
           onPressed: () {
             Navigator.pop(ctx);
@@ -504,7 +510,7 @@ void confirmDeleteRecording(BuildContext context, Dash d, Recording s) {
           },
         ),
         KButton(
-          'Delete',
+          t.delete,
           variant: KButtonVariant.inverse,
           onPressed: () {
             Navigator.pop(ctx);
@@ -512,10 +518,7 @@ void confirmDeleteRecording(BuildContext context, Dash d, Recording s) {
           },
         ),
       ],
-      children: [
-        MonoLabel('${s.deviceName} · ${s.date} · ${mmss(s.dur)}', height: 1.5),
-        const Text('The recording is removed from this device. This cannot be undone.'),
-      ],
+      children: [MonoLabel('${s.deviceName} · ${s.date} · ${mmss(s.dur)}', height: 1.5), Text(t.deleteRecordingBody)],
     ),
   );
 }
@@ -552,13 +555,13 @@ void confirmDeleteGroup(BuildContext context, Dash d, List<Recording> recs) {
   showKDialog(
     context,
     builder: (ctx) => KDialogPanel(
-      title: 'Delete $title?',
+      title: t.deleteTitle(title),
       width: 440,
       onClose: () => Navigator.pop(ctx),
       footer: [
-        KButton('Cancel', variant: KButtonVariant.ghost, onPressed: () => Navigator.pop(ctx)),
+        KButton(t.cancel, variant: KButtonVariant.ghost, onPressed: () => Navigator.pop(ctx)),
         KButton(
-          'Delete all ${recs.length}',
+          t.deleteAllN(recs.length),
           variant: KButtonVariant.inverse,
           onPressed: () {
             Navigator.pop(ctx);
@@ -568,10 +571,7 @@ void confirmDeleteGroup(BuildContext context, Dash d, List<Recording> recs) {
           },
         ),
       ],
-      children: [
-        MonoLabel('${recs.map((r) => r.deviceName).join(', ')} · ${recs.first.date}', height: 1.5),
-        const Text('Every device\'s recording of this session is removed from this device, with its video. This cannot be undone.'),
-      ],
+      children: [MonoLabel('${recs.map((r) => r.deviceName).join(', ')} · ${recs.first.date}', height: 1.5), Text(t.deleteSessionBody)],
     ),
   );
 }

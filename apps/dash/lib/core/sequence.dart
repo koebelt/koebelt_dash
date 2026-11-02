@@ -2,12 +2,34 @@
 // connected device, checking each step's completion against telemetry.
 import 'dart:math' as math;
 
+import '../l10n/l10n.dart';
 import 'model.dart';
 
 /// A numeric or choice input of a step.
 class StepField {
   const StepField(this.key, this.label, this.def, {this.min = 0, this.max = 100, this.step = 1, this.unit = '', this.choices});
+
+  /// [label] is in English (assistants, scripts); [shown] in the language shown.
   final String key, label, unit;
+  String get shown =>
+      {
+        'Altitude': t.altitude,
+        'East': t.fEast,
+        'North': t.fNorth,
+        'Open': t.gripperOpen,
+        'Hold': t.fHold,
+        'From': t.fFrom,
+        'To': t.fTo,
+        'Over': t.fOver,
+        'Duration': t.fDuration,
+        'Mode': t.fMode,
+        'State': t.fState,
+        'Limit': t.fLimit,
+        'Command': t.fCommand,
+        'Value': t.fValue,
+        'Throttle': t.stickThrottle,
+      }[label] ??
+      label;
   final double def, min, max, step;
 
   /// When set, the field is a choice (stored as a string) instead of a number.
@@ -17,7 +39,28 @@ class StepField {
 
 class StepDef {
   const StepDef(this.type, this.label, this.kinds, this.fields, {this.capture});
+
+  /// [label] is in English (assistants, scripts); [shown] in the language shown.
   final String type, label;
+  String get shown =>
+      {
+        'Take off': t.stTakeoff,
+        'Fly to': t.stFlyTo,
+        'Land': t.stLand,
+        'Return home': t.stRth,
+        'Drive to': t.stDriveTo,
+        'Move to pose': t.stPose,
+        'Gripper': t.gripper,
+        'Home pose': t.homePose,
+        'Throttle': t.stickThrottle,
+        'Ramp': t.stRamp,
+        'Wait': t.stWait,
+        'Set mode': t.stMode,
+        'Arm / disarm': t.stArm,
+        'Speed limit': t.speedLimit,
+        'Custom command': t.stCmd,
+      }[label] ??
+      label;
   final Set<DeviceKind> kinds;
   final List<StepField> fields;
 
@@ -116,7 +159,29 @@ class SeqStep {
   Map<String, dynamic> toJson() => {'type': type, 'p': p};
   factory SeqStep.fromJson(Map j) => SeqStep(j['type'], Map<String, dynamic>.from(j['p'] ?? const {}));
 
-  /// One-line summary used in lists and the run status.
+  /// One-line summary in the language shown, for lists and the run status.
+  String summaryShown(DeviceKind kind) {
+    String f(double v) => v == v.roundToDouble() ? v.toStringAsFixed(0) : v.toStringAsFixed(1);
+    return switch (type) {
+      'takeoff' => t.sumTakeoff(f(n('alt'))),
+      'goto' => kind == DeviceKind.drone ? t.sumFlyTo(f(n('x')), f(n('y')), f(n('z'))) : t.sumDriveTo(f(n('x')), f(n('y'))),
+      'land' => t.stLand,
+      'rth' => t.sumRth,
+      'pose' => t.sumPose([for (var i = 1; i <= 6; i++) f(n('j$i'))].join(' / ')),
+      'gripper' => t.sumGripper(f(n('open'))),
+      'home' => t.homePose,
+      'throttle' => t.sumThrottle(f(n('pct')), f(n('s'))),
+      'ramp' => t.sumRamp(f(n('from')), f(n('to')), f(n('s'))),
+      'wait' => t.sumWait(f(n('s'))),
+      'mode' => t.sumMode(s('m')),
+      'arm' => s('v') == 'ARM' ? t.sumArm : t.sumDisarm,
+      'speed' => t.sumSpeed(f(n('pct'))),
+      'cmd' => t.sumCmd(s('name').isEmpty ? '—' : s('name'), f(n('v'))),
+      _ => type,
+    };
+  }
+
+  /// The same in English, for assistants and logs.
   String summary(DeviceKind kind) {
     String f(double v) => v == v.roundToDouble() ? v.toStringAsFixed(0) : v.toStringAsFixed(1);
     return switch (type) {
@@ -311,10 +376,10 @@ class SequenceRunner {
     return (stepT / d).clamp(0, 1);
   }
 
-  void pause([String why = 'Paused']) {
+  void pause([String? why]) {
     if (state != RunState.running) return;
     state = RunState.paused;
-    message = why;
+    message = why ?? t.paused;
     if (step?.type == 'ramp' || step?.type == 'throttle') host.seqCmd('throttle', {'v': 0});
   }
 
@@ -338,12 +403,12 @@ class SequenceRunner {
 
   void tick(double dt) {
     if (state != RunState.running) return;
-    if (host.seqStopped) return stop('Stopped: emergency stop');
+    if (host.seqStopped) return stop(t.stoppedEstop);
     if (host.seqLinkLost) return pause('Paused: link lost');
     final s = step;
     if (s == null) {
       state = RunState.done;
-      message = 'Completed in ${totalT.toStringAsFixed(1)} s';
+      message = t.completedIn(totalT.toStringAsFixed(1));
       return;
     }
     totalT += dt;
@@ -359,7 +424,7 @@ class SequenceRunner {
       index++;
       _entered = false;
     } else if (r == null) {
-      stop('Step ${index + 1} timed out: ${s.summary(seq.kind)}');
+      stop(t.stepTimedOut(index + 1, s.summaryShown(seq.kind)));
     }
   }
 
@@ -406,7 +471,7 @@ class SequenceRunner {
       case 'goto':
         final dx = p[0] - s.n('x'), dy = p[1] - s.n('y');
         final dist = seq.kind == DeviceKind.drone ? math.sqrt(dx * dx + dy * dy + math.pow(p[2] - s.n('z', 8), 2)) : math.sqrt(dx * dx + dy * dy);
-        message = '${dist.toStringAsFixed(1)} m to go';
+        message = t.metresToGo(dist.toStringAsFixed(1));
         return within(300, dist < (seq.kind == DeviceKind.drone ? 1.0 : .6));
       case 'land' || 'rth':
         return within(300, stepT > .5 && (!host.seqArmed || (p[2] < .1 && host.seqMode != 'LAND' && host.seqMode != 'RTH')));
@@ -457,7 +522,7 @@ class SequenceRunner {
 /// link drops; this object only mirrors and steers it.
 class DeviceSequenceRunner extends SequenceRunner {
   DeviceSequenceRunner(super.seq, super.host, this.send) {
-    message = 'Uploading to the device';
+    message = t.uploadingToDevice;
   }
 
   /// Sends an app → device message.
@@ -483,7 +548,7 @@ class DeviceSequenceRunner extends SequenceRunner {
   /// `seqack` arrived and was accepted: start it.
   void accepted() {
     uploading = false;
-    message = 'Starting';
+    message = t.starting;
     send({'t': 'seqrun', 'id': seq.id});
   }
 
@@ -500,7 +565,7 @@ class DeviceSequenceRunner extends SequenceRunner {
       'fail' => RunState.failed,
       _ => RunState.running,
     };
-    if (state == RunState.done && message.isEmpty) message = 'Completed on the device';
+    if (state == RunState.done && message.isEmpty) message = t.completedOnDevice;
   }
 
   @override
@@ -510,15 +575,15 @@ class DeviceSequenceRunner extends SequenceRunner {
       if (_sinceUpload > 15) {
         uploading = false;
         state = RunState.failed;
-        message = 'The device did not accept the sequence';
+        message = t.deviceRejected;
       }
     } else if (host.seqLinkLost && state == RunState.running) {
-      message = 'Link lost · the device carries on';
+      message = t.linkLostCarriesOn;
     }
   }
 
   @override
-  void pause([String why = 'Paused']) {
+  void pause([String? why]) {
     if (state == RunState.running) send({'t': 'seqctl', 'c': 'pause'});
   }
 

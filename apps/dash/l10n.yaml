@@ -1,0 +1,9 @@
+# The app's text in each language: lib/l10n/app_<locale>.arb, English the
+# reference. `flutter gen-l10n` (or any build) writes lib/l10n/app_localizations*.dart.
+arb-dir: lib/l10n
+template-arb-file: app_en.arb
+output-dir: lib/l10n
+output-localization-file: app_localizations.dart
+output-class: AppLocalizations
+nullable-getter: false
+untranslated-messages-file: build/l10n_untranslated.json

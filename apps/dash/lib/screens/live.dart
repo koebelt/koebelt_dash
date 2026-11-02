@@ -3,6 +3,7 @@ import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 
+import '../l10n/l10n.dart';
 import '../core/dash.dart';
 import '../theme/tokens.dart';
 import '../ui/components.dart';
@@ -58,7 +59,13 @@ class _LiveScreenState extends State<LiveScreen> {
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: [
-                  Seg(small: true, items: const ['HUD', 'WALL'], value: wall ? 'WALL' : 'HUD', onChanged: (v) => setLayout(v == 'WALL' ? 'wall' : 'hud')),
+                  Seg(
+                    small: true,
+                    items: const ['HUD', 'WALL'],
+                    labels: {'HUD': t.layoutHud, 'WALL': t.layoutWall},
+                    value: wall ? 'WALL' : 'HUD',
+                    onChanged: (v) => setLayout(v == 'WALL' ? 'wall' : 'hud'),
+                  ),
                   if (!wall) ...[
                     const SizedBox(width: 8),
                     if (!phone)
@@ -82,9 +89,9 @@ class _LiveScreenState extends State<LiveScreen> {
           if (!wall && !edit) ...[
             const SizedBox(width: 8),
             if (phone)
-              KIconButton('pencil', label: 'Edit layout', size: KSize.sm, onPressed: () => setState(() => edit = true))
+              KIconButton('pencil', label: t.editLayout, size: KSize.sm, onPressed: () => setState(() => edit = true))
             else
-              KButton('Edit layout', size: KSize.sm, variant: KButtonVariant.secondary, onPressed: () => setState(() => edit = true)),
+              KButton(t.editLayout, size: KSize.sm, variant: KButtonVariant.secondary, onPressed: () => setState(() => edit = true)),
           ],
         ],
       ),
@@ -221,12 +228,12 @@ class _LayersBtnState extends State<LayersBtn> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const MonoLabel('3D scene layers'),
-                      for (final l in const [
-                        ['cloud', 'Point cloud'],
-                        ['trail', 'Trajectory'],
-                        ['radar', 'Radar tracks'],
-                        ['grid', 'Ground grid'],
+                      MonoLabel(t.sceneLayers3d),
+                      for (final l in [
+                        ['cloud', t.layerCloud],
+                        ['trail', t.layerTrail],
+                        ['radar', t.layerRadar],
+                        ['grid', t.layerGrid],
                       ]) ...[
                         const SizedBox(height: 14),
                         KSwitch(
@@ -268,7 +275,7 @@ class _LayersBtnState extends State<LayersBtn> {
     link: _link,
     child: KIconButton(
       'layers',
-      label: 'Scene layers',
+      label: t.sceneLayers,
       size: KSize.sm,
       variant: _entry != null ? KIconButtonVariant.solid : KIconButtonVariant.outline,
       onPressed: _toggle,
@@ -353,6 +360,15 @@ class _HudViewState extends State<HudView> {
 
   bool get _narrow => cls == 'phone' || cls == 'portrait';
 
+  /// The layout class, as the text names it.
+  static String _clsName(String cls) => switch (cls) {
+    'phone' => t.screenPhone,
+    'short' => t.screenShort,
+    'portrait' => t.screenPortrait,
+    'tablet' => t.screenTablet,
+    _ => t.screenDesktop,
+  };
+
   List<HudItem> get layout => draft ?? widget.d.savedHud(cls) ?? hudDefault(widget.d.kind, cls);
 
   void _add() {
@@ -361,11 +377,11 @@ class _HudViewState extends State<HudView> {
     showKDialog(
       context,
       builder: (ctx) => KDialogPanel(
-        title: 'Add widget',
+        title: t.addWidget,
         width: 420,
         onClose: () => Navigator.pop(ctx),
         children: [
-          Text('Widgets are saved for ${d.device?.name ?? 'this device'} on $cls screens.'),
+          Text(t.widgetsSavedFor(d.device?.name ?? t.thisDevice, _clsName(cls))),
           Column(
             children: [
               hairline,
@@ -492,14 +508,14 @@ class _HudViewState extends State<HudView> {
                     alignment: WrapAlignment.center,
                     children: [
                       KButton(
-                        'Add widget',
+                        t.addWidget,
                         size: KSize.sm,
                         variant: KButtonVariant.secondary,
                         iconLeft: const KIcon('plus', size: 14),
                         onPressed: unused.isEmpty ? null : _add,
                       ),
                       KButton(
-                        'Reset',
+                        t.reset,
                         size: KSize.sm,
                         variant: KButtonVariant.ghost,
                         onPressed: () {
@@ -508,7 +524,7 @@ class _HudViewState extends State<HudView> {
                         },
                       ),
                       KButton(
-                        'Cancel',
+                        t.cancel,
                         size: KSize.sm,
                         variant: KButtonVariant.ghost,
                         onPressed: () {
@@ -517,7 +533,7 @@ class _HudViewState extends State<HudView> {
                         },
                       ),
                       KButton(
-                        'Save layout',
+                        t.saveLayout,
                         size: KSize.sm,
                         onPressed: () {
                           if (draft != null) d.saveHud(cls, draft);
@@ -702,22 +718,22 @@ class _SensorDetailState extends State<SensorDetail> {
   Widget _body(TileDef t) => t.id == 'gps' ? MapView(widget.d) : t.body(widget.d);
 
   /// Tiles without charted values (the camera): one large picture.
-  Widget _picture(TileDef t, bool phone) => Padding(
+  Widget _picture(TileDef tile, bool phone) => Padding(
     padding: phone ? const EdgeInsets.all(16) : const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Row(
           children: [
-            KIconButton('arrow-left', label: 'Back', onPressed: widget.onBack),
+            KIconButton('arrow-left', label: t.back, onPressed: widget.onBack),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  MonoLabel(t.src, color: K.textAccent),
+                  MonoLabel(tile.src, color: K.textAccent),
                   const SizedBox(height: 6),
-                  Text(t.titleFor(widget.d.kind), style: phone ? KText.headingSm : KText.headingMd),
+                  Text(tile.titleFor(widget.d.kind), style: phone ? KText.headingSm : KText.headingMd),
                 ],
               ),
             ),
@@ -725,7 +741,7 @@ class _SensorDetailState extends State<SensorDetail> {
         ),
         SizedBox(height: phone ? 16 : 24),
         Expanded(
-          child: ClipRRect(borderRadius: BorderRadius.circular(K.radiusCard), child: t.id == 'video' ? VideoView(widget.d) : t.body(widget.d)),
+          child: ClipRRect(borderRadius: BorderRadius.circular(K.radiusCard), child: tile.id == 'video' ? VideoView(widget.d) : tile.body(widget.d)),
         ),
       ],
     ),
@@ -733,33 +749,33 @@ class _SensorDetailState extends State<SensorDetail> {
 
   @override
   Widget build(BuildContext context) {
-    final d = widget.d, t = tileById(d, widget.id), phone = widget.w < 600;
-    if (t == null) return const SizedBox();
-    if (t.keys.isEmpty) return _picture(t, phone);
-    final cols = t.colors ?? (t.keys.length == 1 ? const [VC.lime] : axisColors);
-    final visual = const ['attitude', 'gps', 'radar', 'lidar', 'joints', 'prox'].contains(t.id);
+    final d = widget.d, tile = tileById(d, widget.id), phone = widget.w < 600;
+    if (tile == null) return const SizedBox();
+    if (tile.keys.isEmpty) return _picture(tile, phone);
+    final cols = tile.colors ?? (tile.keys.length == 1 ? const [VC.lime] : axisColors);
+    final visual = const ['attitude', 'gps', 'radar', 'lidar', 'joints', 'prox'].contains(tile.id);
     final keys = [
-      for (var i = 0; i < t.keys.length; i++)
-        if (!off.contains(t.keys[i])) t.keys[i],
+      for (var i = 0; i < tile.keys.length; i++)
+        if (!off.contains(tile.keys[i])) tile.keys[i],
     ];
     final kc = [
-      for (var i = 0; i < t.keys.length; i++)
-        if (!off.contains(t.keys[i])) cols[i % cols.length],
+      for (var i = 0; i < tile.keys.length; i++)
+        if (!off.contains(tile.keys[i])) cols[i % cols.length],
     ];
     final chart = Panel(
       height: phone ? 220 : 340,
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
       child: LineChart(
         d,
-        keys: keys.isEmpty ? [t.keys.first] : keys,
+        keys: keys.isEmpty ? [tile.keys.first] : keys,
         colors: keys.isEmpty ? [cols.first] : kc,
-        sym: t.sym,
+        sym: tile.sym,
         frozen: frozen,
         labels: keys.isEmpty
-            ? [t.labels.first]
+            ? [tile.labels.first]
             : [
-                for (var i = 0; i < t.keys.length; i++)
-                  if (!off.contains(t.keys[i])) t.labels[i],
+                for (var i = 0; i < tile.keys.length; i++)
+                  if (!off.contains(tile.keys[i])) tile.labels[i],
               ],
         pinnable: true,
       ),
@@ -776,25 +792,25 @@ class _SensorDetailState extends State<SensorDetail> {
               spacing: 12,
               runSpacing: 12,
               children: [
-                KIconButton('arrow-left', label: 'Back', onPressed: widget.onBack),
+                KIconButton('arrow-left', label: t.back, onPressed: widget.onBack),
                 ConstrainedBox(
                   constraints: BoxConstraints(maxWidth: math.max(160, widget.w - 380)),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      MonoLabel(t.src, color: K.textAccent),
+                      MonoLabel(tile.src, color: K.textAccent),
                       const SizedBox(height: 6),
-                      Text(t.titleFor(d.kind), style: phone ? KText.headingSm : KText.headingMd),
+                      Text(tile.titleFor(d.kind), style: phone ? KText.headingSm : KText.headingMd),
                     ],
                   ),
                 ),
                 KBadge(
                   frozen != null
-                      ? 'Paused'
+                      ? t.paused
                       : d.linkLost
-                      ? 'Stale'
-                      : '${d.settings.rateHz} Hz live',
+                      ? t.stale
+                      : t.hzLive(d.settings.rateHz),
                   tone: frozen != null
                       ? Tone.warning
                       : d.linkLost
@@ -802,7 +818,7 @@ class _SensorDetailState extends State<SensorDetail> {
                       : Tone.positive,
                 ),
                 KButton(
-                  frozen != null ? 'Resume' : 'Pause',
+                  frozen != null ? t.resume : t.pause,
                   size: KSize.sm,
                   variant: KButtonVariant.secondary,
                   iconLeft: KIcon(frozen != null ? 'play' : 'pause', size: 14),
@@ -817,14 +833,14 @@ class _SensorDetailState extends State<SensorDetail> {
                 children: [
                   Expanded(
                     flex: 10,
-                    child: Panel(height: 340, padding: const EdgeInsets.all(12), child: _body(t)),
+                    child: Panel(height: 340, padding: const EdgeInsets.all(12), child: _body(tile)),
                   ),
                   const SizedBox(width: 16),
                   Expanded(flex: 16, child: chart),
                 ],
               )
             else ...[
-              if (visual) ...[Panel(height: phone ? 260 : 340, padding: const EdgeInsets.all(12), child: _body(t)), const SizedBox(height: 16)],
+              if (visual) ...[Panel(height: phone ? 260 : 340, padding: const EdgeInsets.all(12), child: _body(tile)), const SizedBox(height: 16)],
               chart,
             ],
             SizedBox(height: phone ? 16 : 24),
@@ -833,7 +849,7 @@ class _SensorDetailState extends State<SensorDetail> {
                 final min = phone ? 150.0 : 200.0;
                 final n = math.max(1, (c.maxWidth / min).floor());
                 final cw = (c.maxWidth - (n - 1)) / n;
-                final h = frozen ?? {for (final k in t.keys) k: d.hist[k].toList()};
+                final h = frozen ?? {for (final k in tile.keys) k: d.hist[k].toList()};
                 return ClipRRect(
                   borderRadius: BorderRadius.circular(K.radiusCard),
                   child: Container(
@@ -846,10 +862,10 @@ class _SensorDetailState extends State<SensorDetail> {
                       spacing: 1,
                       runSpacing: 1,
                       children: [
-                        for (var i = 0; i < t.keys.length; i++)
+                        for (var i = 0; i < tile.keys.length; i++)
                           Builder(
                             builder: (_) {
-                              final k = t.keys[i], st = _stats(h[k] ?? const []), on = !off.contains(k);
+                              final k = tile.keys[i], st = _stats(h[k] ?? const []), on = !off.contains(k);
                               return Pressable(
                                 onTap: () => setState(() => on ? off.add(k) : off.remove(k)),
                                 builder: (_, _, _) => Opacity(
@@ -865,13 +881,17 @@ class _SensorDetailState extends State<SensorDetail> {
                                           children: [
                                             Container(width: 10, height: 2, color: cols[i % cols.length]),
                                             const SizedBox(width: 8),
-                                            MonoLabel(t.labels[i]),
+                                            MonoLabel(tile.labels[i]),
                                           ],
                                         ),
                                         const SizedBox(height: 12),
                                         Text(_st(st[0]), style: KText.mono(24, tracking: -.02)),
                                         const SizedBox(height: 12),
-                                        MonoLabel('Min ${_st(st[1])} · Max ${_st(st[2])}\nMean ${_st(st[3])}', size: 10, height: 1.6),
+                                        MonoLabel(
+                                          '${t.statMin} ${_st(st[1])} · ${t.statMax} ${_st(st[2])}\n${t.statMean} ${_st(st[3])}',
+                                          size: 10,
+                                          height: 1.6,
+                                        ),
                                       ],
                                     ),
                                   ),
@@ -892,9 +912,9 @@ class _SensorDetailState extends State<SensorDetail> {
               crossAxisAlignment: WrapCrossAlignment.end,
               children: [
                 for (final r in [
-                  ['Unit', t.unit],
-                  ['Window', '10 s · 300 samples'],
-                  ['Source', t.src],
+                  [t.unit, tile.unit],
+                  [t.window, t.windowValue],
+                  [t.source, tile.src],
                 ])
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -905,7 +925,7 @@ class _SensorDetailState extends State<SensorDetail> {
                       Text(r[1], style: KText.bodySm.copyWith(color: K.textSecondary)),
                     ],
                   ),
-                const MonoLabel('Tap a channel to hide it'),
+                MonoLabel(t.tapChannelToHide),
               ],
             ),
           ],

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/l10n.dart';
 import '../core/dash.dart';
 import '../ui/components.dart';
 import '../video/video_view.dart';
@@ -59,7 +60,13 @@ class ViewSeg extends StatelessWidget {
     final items = viewItems(d, cameras3d: cameras3d);
     final v = MainView.available(d, view);
     final label = cameras3d ? v.toUpperCase() : (v == 'map' || v == 'cam' ? v.toUpperCase() : '3D');
-    return Seg(small: true, items: items, value: label, onChanged: (x) => onChanged(x == '3D' ? 'chase' : x.toLowerCase()));
+    return Seg(
+      small: true,
+      items: items,
+      labels: {'CHASE': t.viewChase, 'ORBIT': t.viewOrbit, 'TOP': t.viewTop, 'MAP': t.viewMap, 'CAM': t.viewCam},
+      value: label,
+      onChanged: (x) => onChanged(x == '3D' ? 'chase' : x.toLowerCase()),
+    );
   }
 }
 

@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../l10n/l10n.dart';
 import '../scripts/views.dart';
 import '../theme/tokens.dart';
 import 'viz.dart';
@@ -28,7 +29,7 @@ class ScriptViewBody extends StatelessWidget {
             color: K.surfaceDeep,
             child: view.image == null
                 ? Center(
-                    child: Text('Waiting for the script', style: KText.label(size: 10, color: K.textFaint)),
+                    child: Text(t.waitingScript, style: KText.label(size: 10, color: K.textFaint)),
                   )
                 : Image.memory(view.image!, fit: BoxFit.contain, gaplessPlayback: true, filterQuality: FilterQuality.medium),
           ),
@@ -39,7 +40,7 @@ class ScriptViewBody extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
               decoration: BoxDecoration(color: K.inkA70, borderRadius: BorderRadius.circular(K.radiusControl)),
-              child: Text('SCRIPT ENDED', style: KText.label(size: 9, color: K.textMuted)),
+              child: Text(t.scriptEnded.toUpperCase(), style: KText.label(size: 9, color: K.textMuted)),
             ),
           ),
       ],

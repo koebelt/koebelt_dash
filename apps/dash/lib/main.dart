@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'app.dart';
 import 'core/dash.dart';
 import 'core/macos_migrate.dart';
+import 'l10n/l10n.dart';
 import 'screens/assistant_ui.dart';
 import 'scripts/script_hub.dart';
 import 'theme/tokens.dart';
@@ -34,15 +35,45 @@ Future<void> main() async {
   await applyMcpListening(dash);
 }
 
-class KoebeltDash extends StatelessWidget {
+class KoebeltDash extends StatefulWidget {
   const KoebeltDash({super.key, required this.dash});
   final Dash dash;
+  @override
+  State<KoebeltDash> createState() => _KoebeltDashState();
+}
+
+class _KoebeltDashState extends State<KoebeltDash> {
+  Dash get dash => widget.dash;
+  late String _language = dash.settings.language;
+
+  // Settings > Language changes the text at once; nothing else rebuilds
+  // the app from here (telemetry updates the screens below).
+  void _changed() {
+    if (dash.settings.language != _language) setState(() => _language = dash.settings.language);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    dash.addListener(_changed);
+  }
+
+  @override
+  void dispose() {
+    dash.removeListener(_changed);
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final locale = resolveLocale(_language);
+    useLocale(locale);
     return MaterialApp(
       title: 'koebelt/dash',
       debugShowCheckedModeBanner: false,
+      locale: locale,
+      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
       theme: ThemeData(
         brightness: Brightness.dark,
         scaffoldBackgroundColor: K.surfacePage,

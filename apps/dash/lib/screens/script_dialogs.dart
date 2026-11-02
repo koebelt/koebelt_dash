@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../l10n/l10n.dart';
 import '../core/dash.dart';
 import '../core/gamepad.dart';
 import '../core/model.dart';
@@ -92,11 +93,11 @@ class _TriggerDialogState extends State<_TriggerDialog> {
     try {
       final c = Condition.parse(_expr.text);
       final l = widget.d.focus;
-      if (l == null) return (ok: true, text: 'Valid');
+      if (l == null) return (ok: true, text: t.valid);
       try {
-        return (ok: true, text: 'Valid · now ${c.test(fieldsOf(l))}');
+        return (ok: true, text: '${t.valid} · ${t.now.toLowerCase()} ${c.test(fieldsOf(l))}');
       } on ConditionError catch (e) {
-        return (ok: true, text: 'Valid · ${e.message}');
+        return (ok: true, text: '${t.valid} · ${e.message}');
       }
     } on ConditionError catch (e) {
       return (ok: false, text: e.message);
@@ -107,7 +108,7 @@ class _TriggerDialogState extends State<_TriggerDialog> {
     final src = b.pad;
     if (src == null) return null;
     final a = widget.d.pad.buttons.entries.where((e) => e.value == src).firstOrNull?.key;
-    return a == null ? null : '${padSourceLabel(src)} is ${a.label} in the controller mapping: that action wins.';
+    return a == null ? null : t.padTaken(padSourceLabel(src), a.label);
   }
 
   bool get _valid =>
@@ -195,7 +196,7 @@ class _TriggerDialogState extends State<_TriggerDialog> {
                   onSubmitted: (v) => setPicked((field: picked.field, op: picked.op, value: double.tryParse(v) ?? picked.value, seconds: picked.seconds)),
                 ),
               ),
-              Text('for', style: KText.bodySm.copyWith(color: K.textMuted)),
+              Text(t.forDuration, style: KText.bodySm.copyWith(color: K.textMuted)),
               box(
                 w: 70,
                 TextField(
@@ -239,15 +240,12 @@ class _TriggerDialogState extends State<_TriggerDialog> {
           ],
         ),
         const SizedBox(height: 8),
-        Text(
-          'Fields: ${[for (final f in fields) f.field].join(', ')}, mode, armed, and the device’s own channels (motor_temp.max…). '
-          'Combine with and, or, not; add “for 3s” to wait.',
-          style: KText.bodySm.copyWith(color: K.textMuted),
-        ),
+        Text(t.conditionHelp([for (final f in fields) f.field].join(', ')), style: KText.bodySm.copyWith(color: K.textMuted)),
         const SizedBox(height: 12),
         Seg(
           small: true,
           items: const ['WHEN TRUE', 'TRUE AND FALSE'],
+          labels: {'WHEN TRUE': t.whenTrue, 'TRUE AND FALSE': t.trueAndFalse},
           value: b.both ? 'TRUE AND FALSE' : 'WHEN TRUE',
           onChanged: (v) => setState(() => b.both = v != 'WHEN TRUE'),
         ),
@@ -265,13 +263,13 @@ class _TriggerDialogState extends State<_TriggerDialog> {
             KSwitch(checked: b.pinned, onChanged: (v) => setState(() => b.pinned = v)),
             const SizedBox(width: 12),
             Expanded(
-              child: Text('Also on Control, next to the sticks', style: KText.bodySm.copyWith(color: K.textSecondary)),
+              child: Text(t.alsoOnControl, style: KText.bodySm.copyWith(color: K.textSecondary)),
             ),
           ],
         );
       case TriggerSource.key:
         return _field(
-          'Key',
+          t.key,
           Focus(
             focusNode: _keyFocus,
             onKeyEvent: (_, e) {
@@ -296,7 +294,7 @@ class _TriggerDialogState extends State<_TriggerDialog> {
                       borderRadius: BorderRadius.circular(K.radiusControl),
                     ),
                     child: Text(
-                      _keyFocus.hasFocus ? (b.key == null ? 'Press a key…' : '${b.key} · press another to change') : (b.key ?? 'Click, then press a key'),
+                      _keyFocus.hasFocus ? (b.key == null ? t.pressKey : t.pressAnotherKey(b.key!)) : (b.key ?? t.clickThenKey),
                       style: KText.mono(13, color: b.key == null ? K.textMuted : K.textPrimary),
                     ),
                   ),
@@ -312,8 +310,8 @@ class _TriggerDialogState extends State<_TriggerDialog> {
           children: [
             Row(
               children: [
-                Expanded(child: Text(b.pad == null ? 'No button yet' : padSourceLabel(b.pad), style: KText.mono(13))),
-                KButton(_learning ? 'Press a button…' : 'Learn', size: KSize.sm, variant: KButtonVariant.secondary, onPressed: _learning ? null : _learnPad),
+                Expanded(child: Text(b.pad == null ? t.noButtonYet : padSourceLabel(b.pad), style: KText.mono(13))),
+                KButton(_learning ? t.pressButton : t.learn, size: KSize.sm, variant: KButtonVariant.secondary, onPressed: _learning ? null : _learnPad),
               ],
             ),
             if (conflict != null) ...[const SizedBox(height: 10), KNotice(tone: Tone.warning, child: Text(conflict))],
@@ -338,12 +336,7 @@ class _TriggerDialogState extends State<_TriggerDialog> {
             ),
             if (b.deviceEvent == 'mode' || b.deviceEvent == 'log') ...[
               const SizedBox(height: 12),
-              KInput(
-                controller: _match,
-                height: 40,
-                placeholder: b.deviceEvent == 'mode' ? 'Only this mode (HOLD…), or empty for any' : 'Only messages containing…',
-                style: KText.bodySm,
-              ),
+              KInput(controller: _match, height: 40, placeholder: b.deviceEvent == 'mode' ? t.onlyThisMode : t.onlyMessagesContaining, style: KText.bodySm),
             ],
           ],
         );
@@ -353,6 +346,7 @@ class _TriggerDialogState extends State<_TriggerDialog> {
             Seg(
               small: true,
               items: const ['EVERY', 'ONCE AFTER'],
+              labels: {'EVERY': t.every, 'ONCE AFTER': t.onceAfter},
               value: b.repeat ? 'EVERY' : 'ONCE AFTER',
               onChanged: (v) => setState(() => b.repeat = v == 'EVERY'),
             ),
@@ -368,7 +362,7 @@ class _TriggerDialogState extends State<_TriggerDialog> {
               ),
             ),
             const SizedBox(width: 8),
-            Text('seconds', style: KText.bodySm.copyWith(color: K.textMuted)),
+            Text(t.secondsWord, style: KText.bodySm.copyWith(color: K.textMuted)),
           ],
         );
     }
@@ -377,20 +371,20 @@ class _TriggerDialogState extends State<_TriggerDialog> {
   @override
   Widget build(BuildContext context) {
     return KDialogPanel(
-      title: widget.existing == null ? 'Add trigger' : 'Edit trigger',
+      title: widget.existing == null ? t.addTrigger : t.editTrigger,
       width: 600,
       onClose: () => Navigator.pop(context),
       footer: [
-        KButton('Cancel', variant: KButtonVariant.ghost, onPressed: () => Navigator.pop(context)),
-        KButton(widget.existing == null ? 'Add trigger' : 'Save', onPressed: _valid ? _save : null),
+        KButton(t.cancel, variant: KButtonVariant.ghost, onPressed: () => Navigator.pop(context)),
+        KButton(widget.existing == null ? t.addTrigger : t.save, onPressed: _valid ? _save : null),
       ],
       children: [
         _field(
-          'Event',
+          t.event,
           Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              KInput(controller: _event, height: 40, placeholder: 'The name the script receives', style: KText.bodySm, onChanged: (_) => setState(() {})),
+              KInput(controller: _event, height: 40, placeholder: t.eventPlaceholder, style: KText.bodySm, onChanged: (_) => setState(() {})),
               if (widget.events.isNotEmpty) ...[
                 const SizedBox(height: 8),
                 Wrap(
@@ -409,7 +403,7 @@ class _TriggerDialogState extends State<_TriggerDialog> {
           ),
         ),
         _field(
-          'Fired by',
+          t.firedBy,
           Wrap(
             spacing: 6,
             runSpacing: 6,
@@ -423,18 +417,14 @@ class _TriggerDialogState extends State<_TriggerDialog> {
           ),
         ),
         _sourceFields(),
-        Text(
-          'The script receives “${_event.text.isEmpty ? '…' : _event.text}” in the handler of that name, or in @dev.on_trigger. '
-          'Conditions, events and timers run in dash.',
-          style: KText.bodySm.copyWith(color: K.textMuted),
-        ),
+        Text(t.triggerHelp(_event.text.isEmpty ? '…' : _event.text), style: KText.bodySm.copyWith(color: K.textMuted)),
       ],
     );
   }
 }
 
 /// A key's label as bindings store it: `D`, `SPACE`, `F1`, `ARROW UP`.
-String keyLabelOf(LogicalKeyboardKey k) => (k == LogicalKeyboardKey.space ? 'Space' : k.keyLabel).toUpperCase();
+String keyLabelOf(LogicalKeyboardKey k) => (k == LogicalKeyboardKey.space ? 'SPACE' : k.keyLabel).toUpperCase();
 
 /// The operator's limits for a script.
 Future<void> showLimitsDialog(BuildContext context, ScriptLimits lim, {required VoidCallback onChanged, required DeviceKind? kind}) => showKDialog<void>(
@@ -480,45 +470,17 @@ Future<void> showLimitsDialog(BuildContext context, ScriptLimits lim, {required 
       );
       final flies = kind == null || kind == DeviceKind.drone;
       return KDialogPanel(
-        title: 'Limits',
+        title: t.limits,
         width: 560,
         onClose: () => Navigator.pop(ctx),
-        footer: [KButton('Done', onPressed: () => Navigator.pop(ctx))],
+        footer: [KButton(t.done, onPressed: () => Navigator.pop(ctx))],
         children: [
-          Text('Set here, not in the script: the script cannot change them.', style: KText.bodySm.copyWith(color: K.textMuted)),
-          slider(
-            'Maximum speed',
-            'The script’s sticks are scaled to this, and its speed limit capped.',
-            lim.maxSpeed,
-            .1,
-            1,
-            .05,
-            (v) => '${(v * 100).round()} %',
-            (v) => lim.maxSpeed = v,
-          ),
-          slider(
-            'Geofence',
-            'Beyond this distance from home, the script loses the sticks and the device holds.',
-            lim.fence,
-            0,
-            500,
-            5,
-            (v) => v == 0 ? 'off' : '${v.round()} m',
-            (v) => lim.fence = v,
-          ),
-          if (flies)
-            slider(
-              'Ceiling',
-              'Above this height, the same for drones.',
-              lim.ceiling,
-              0,
-              120,
-              5,
-              (v) => v == 0 ? 'off' : '${v.round()} m',
-              (v) => lim.ceiling = v,
-            ),
-          toggle('Allow arming and take-off', 'Otherwise the script can only move a device you armed.', lim.allowArm, (v) => lim.allowArm = v),
-          toggle('Allow parameter writes', 'For tuning scripts. They can change how the device behaves.', lim.allowParams, (v) => lim.allowParams = v),
+          Text(t.limitsHelp, style: KText.bodySm.copyWith(color: K.textMuted)),
+          slider(t.maximumSpeed, t.maximumSpeedDesc, lim.maxSpeed, .1, 1, .05, (v) => '${(v * 100).round()} %', (v) => lim.maxSpeed = v),
+          slider(t.geofence, t.geofenceDesc, lim.fence, 0, 500, 5, (v) => v == 0 ? t.off : '${v.round()} m', (v) => lim.fence = v),
+          if (flies) slider(t.ceiling, t.ceilingDesc, lim.ceiling, 0, 120, 5, (v) => v == 0 ? t.off : '${v.round()} m', (v) => lim.ceiling = v),
+          toggle(t.allowArming, t.allowArmingDesc, lim.allowArm, (v) => lim.allowArm = v),
+          toggle(t.allowParams, t.allowParamsDesc, lim.allowParams, (v) => lim.allowParams = v),
         ],
       );
     },
@@ -602,41 +564,35 @@ class _AddHostDialogState extends State<_AddHostDialog> {
       ),
     );
     return KDialogPanel(
-      title: 'Add a script host',
+      title: t.addScriptHost,
       width: 560,
       onClose: () => Navigator.pop(context),
       footer: [
-        KButton('Cancel', variant: KButtonVariant.ghost, onPressed: () => Navigator.pop(context)),
-        KButton(pairing ? 'Pairing…' : 'Pair', onPressed: pairing || _address.text.trim().isEmpty || _code.text.trim().length < 6 ? null : _pair),
+        KButton(t.cancel, variant: KButtonVariant.ghost, onPressed: () => Navigator.pop(context)),
+        KButton(pairing ? t.pairing : t.pair, onPressed: pairing || _address.text.trim().isEmpty || _code.text.trim().length < 6 ? null : _pair),
       ],
       children: [
-        Text(
-          'A script host is a computer on the same network that runs scripts for this ${Platform.isIOS || Platform.isAndroid ? 'phone or tablet' : 'computer'}: a laptop, a Raspberry Pi, a Jetson… On it:',
-          style: KText.bodySm.copyWith(color: K.textSecondary),
-        ),
+        Text(Platform.isIOS || Platform.isAndroid ? t.scriptHostIntroPhone : t.scriptHostIntro, style: KText.bodySm.copyWith(color: K.textSecondary)),
         mono('pip install koebelt-dash-scripts\nkoebelt-dash-scripts host'),
         _field(
-          'On the network',
+          t.onTheNetwork,
           Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               if (scanning)
                 // As device pairing looks for devices.
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
                   child: Row(
                     children: [
-                      MarkMotion(MarkLoop.searching, size: 36, gap: K.surfaceRaised),
-                      SizedBox(width: 10),
-                      Flexible(child: MonoLabel('Looking for script hosts', maxLines: 2)),
+                      const MarkMotion(MarkLoop.searching, size: 36, gap: K.surfaceRaised),
+                      const SizedBox(width: 10),
+                      Flexible(child: MonoLabel(t.lookingForHosts, maxLines: 2)),
                     ],
                   ),
                 )
               else if (found.isEmpty)
-                Text(
-                  'None found. Type its address below (shown by `ipconfig getifaddr en0`, `hostname -I`…).',
-                  style: KText.bodySm.copyWith(color: K.textMuted),
-                )
+                Text(t.noHostsFound, style: KText.bodySm.copyWith(color: K.textMuted))
               else
                 Wrap(
                   spacing: 6,
@@ -653,13 +609,13 @@ class _AddHostDialogState extends State<_AddHostDialog> {
               const SizedBox(height: 8),
               Align(
                 alignment: Alignment.centerLeft,
-                child: KButton('Look again', size: KSize.sm, variant: KButtonVariant.ghost, onPressed: scanning ? null : _scan),
+                child: KButton(t.lookAgain, size: KSize.sm, variant: KButtonVariant.ghost, onPressed: scanning ? null : _scan),
               ),
             ],
           ),
         ),
-        _field('Address', KInput(controller: _address, height: 40, placeholder: '192.168.1.20', style: KText.mono(13), keyboardType: TextInputType.url)),
-        _field('Pairing code', KInput(controller: _code, height: 40, placeholder: 'ABC-123, printed by the host', style: KText.mono(13))),
+        _field(t.address, KInput(controller: _address, height: 40, placeholder: '192.168.1.20', style: KText.mono(13), keyboardType: TextInputType.url)),
+        _field(t.pairingCode, KInput(controller: _code, height: 40, placeholder: t.pairingCodePlaceholder, style: KText.mono(13))),
         if (error != null) KNotice(tone: Tone.negative, child: Text(error!)),
       ],
     );

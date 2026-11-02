@@ -749,7 +749,7 @@ class McpServer {
       case 'get_alerts':
         final l = _link(a['device']);
         return _json({
-          'alerts': [for (final x in l.alerts.active.values) '${x.rule.label}: ${x.rule.fmt(x.value)}'],
+          'alerts': [for (final x in l.alerts.active.values) '${x.rule.labelEn}: ${x.rule.fmt(x.value)}'],
           'messages': [for (final m in l.logs.reversed.take(20)) '${m['lvl'] ?? 'info'}: ${m['msg']}'],
         });
       case 'list_recordings':

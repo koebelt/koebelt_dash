@@ -1,3 +1,5 @@
+import '../l10n/l10n.dart';
+
 /// Radio links: a radio modem on a serial port of the computer or phone,
 /// talking to a matching radio on the device. To the app every one of them
 /// is newline-delimited JSON on a serial port; the profile only sets the
@@ -6,11 +8,36 @@
 /// The same profiles exist in every library (see protocol/PROTOCOL.md,
 /// "Radio links"), so both ends agree on rates without negotiating.
 class RadioModule {
-  const RadioModule(this.id, this.name, this.desc, {required this.baud, required this.tlmHz, required this.ctlHz, this.bridge = false, this.usb = const []});
+  const RadioModule(
+    this.id,
+    this.nameEn,
+    this.descEn, {
+    required this.baud,
+    required this.tlmHz,
+    required this.ctlHz,
+    this.bridge = false,
+    this.usb = const [],
+  });
 
   /// Stable id used in saved devices and by the libraries (`sik`, `lora`…).
   final String id;
-  final String name, desc;
+  final String nameEn, descEn;
+
+  /// In the language shown.
+  String get name => switch (id) {
+    'sik' => t.radioSik,
+    'lora' => t.radioLoraName,
+    'other' => t.radioOther,
+    _ => nameEn,
+  };
+  String get desc => switch (id) {
+    'sik' => t.radioSikDesc,
+    'lora' => t.radioLoraDesc,
+    'hc12' => t.radioHc12Desc,
+    'xbee' => t.radioXbeeDesc,
+    'other' => t.radioOtherDesc,
+    _ => descEn,
+  };
 
   /// Default serial speed between the app and the ground radio.
   final int baud;

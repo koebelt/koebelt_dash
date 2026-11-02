@@ -10,6 +10,7 @@ import 'core/dash.dart';
 import 'core/model.dart';
 import 'core/system_ui.dart';
 import 'core/updater.dart' show UpdateState;
+import 'l10n/l10n.dart';
 import 'screens/assistant_ui.dart';
 import 'screens/common.dart' show ModeBadge;
 import 'screens/control.dart';
@@ -47,6 +48,20 @@ const nav = [
   ['guides', 'Guides', 'book'],
   ['settings', 'Settings', 'gear'],
 ];
+
+/// A screen's name in the navigation, in the language shown.
+String navLabel(String id) => switch (id) {
+  'live' => t.navLive,
+  'control' => t.navControl,
+  'automate' => t.navAutomate,
+  'params' => t.navTune,
+  'replay' => t.navReplay,
+  'devices' => t.navDevices,
+  'guides' => t.navGuides,
+  'program' => t.navSequences,
+  'scripts' => t.navScripts,
+  _ => t.navSettings,
+};
 
 /// Root: owns the frame ticker that drives telemetry sampling and canvases.
 class DashApp extends StatefulWidget {
@@ -205,8 +220,8 @@ class _ShellState extends State<Shell> {
             _ => SettingsScreen(d, w: bodyW, go: go),
           };
         }
-        // A narrow window or a portrait tablet: the bar's compact parts.
-        final narrow = bodyW < 900, gap = narrow ? 12.0 : 24.0;
+        // A laptop-sized window or smaller, a portrait tablet: the bar's compact parts.
+        final narrow = bodyW < 1100, gap = narrow ? 12.0 : 24.0;
         final top = phone
             ? Container(
                 height: topH,
@@ -265,14 +280,22 @@ class _ShellState extends State<Shell> {
                 ),
                 child: Row(
                   children: [
-                    ConstrainedBox(
-                      constraints: BoxConstraints(maxWidth: math.max(180, bodyW * .4)),
-                      child: DeviceBtn(d: d, go: go),
+                    // In a narrow bar the device's name and the alerts give
+                    // way first, so STOP always has its room.
+                    Flexible(
+                      flex: narrow ? 2 : 0,
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(maxWidth: narrow ? math.max(140, bodyW * .3) : math.max(180, bodyW * .4)),
+                        child: DeviceBtn(d: d, go: go),
+                      ),
                     ),
                     SizedBox(width: gap),
-                    ConstrainedBox(
-                      constraints: BoxConstraints(maxWidth: narrow ? 120 : 340),
-                      child: AlertChip(d: d, compact: narrow),
+                    Flexible(
+                      flex: narrow ? 1 : 0,
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(maxWidth: narrow ? 120 : 340),
+                        child: AlertChip(d: d, compact: narrow),
+                      ),
                     ),
                     if (d.mcp.enabled && d.mcp.connected != null) ...[const SizedBox(width: 12), AssistantChip(d, compact: narrow)],
                     SizedBox(width: gap),
@@ -389,10 +412,10 @@ class _ShellState extends State<Shell> {
                           children: [
                             const KIcon('check', size: 16, color: K.positive),
                             const SizedBox(width: 14),
-                            Text('Saved as ${toast!.name}', style: KText.bodySm),
+                            Text(t.toastSaved(toast!.name), style: KText.bodySm),
                             const SizedBox(width: 14),
                             KButton(
-                              'Replay',
+                              t.navReplay,
                               size: KSize.sm,
                               variant: KButtonVariant.ghost,
                               onPressed: () {
@@ -422,7 +445,7 @@ class _ShellState extends State<Shell> {
                           child: Center(
                             widthFactor: 1,
                             child: Text(
-                              'STOP ENGAGED · TAP TO RESET',
+                              t.stopEngagedBar.toUpperCase(),
                               style: KText.mono(11, w: FontWeight.w700, color: K.ink900, tracking: K.trLabel),
                             ),
                           ),
@@ -434,20 +457,20 @@ class _ShellState extends State<Shell> {
                   KModal(
                     onDismiss: d.ackStop,
                     child: KDialogPanel(
-                      title: 'Emergency stop engaged',
+                      title: t.stopEngagedTitle,
                       width: 440,
                       onClose: d.ackStop,
                       footer: [
-                        KButton('Keep stopped', variant: KButtonVariant.ghost, onPressed: d.ackStop),
-                        KButton(d.links.values.where((l) => l.tel.estop).length > 1 ? 'Reset all' : 'Reset stop', onPressed: d.resetStop),
+                        KButton(t.stopKeep, variant: KButtonVariant.ghost, onPressed: d.ackStop),
+                        KButton(d.links.values.where((l) => l.tel.estop).length > 1 ? t.stopResetAll : t.stopReset, onPressed: d.resetStop),
                       ],
                       children: [
                         Text(
                           d.links.length > 1
-                              ? 'Motors are stopped and all motion commands are blocked on ${d.links.values.where((l) => l.tel.estop).map((l) => l.info.name).join(', ')}.'
-                              : 'Motors are stopped and all motion commands are blocked on ${d.device?.name ?? 'the device'}.',
+                              ? t.stopBody(d.links.values.where((l) => l.tel.estop).map((l) => l.info.name).join(', '))
+                              : t.stopBody(d.device?.name ?? t.theDevice),
                         ),
-                        const Text('Check the device before you reset. After reset it stays disarmed until you arm it again.'),
+                        Text(t.stopCheck),
                       ],
                     ),
                   ),
@@ -495,7 +518,13 @@ class _ShellState extends State<Shell> {
                     for (final a in automateItems)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 2),
-                        child: NavSub(id: a[0], label: a[1], on: screen == a[0], go: go, live: a[0] == 'scripts' ? d.scriptRunning : d.sequenceRunning),
+                        child: NavSub(
+                          id: a[0],
+                          label: navLabel(a[0]),
+                          on: screen == a[0],
+                          go: go,
+                          live: a[0] == 'scripts' ? d.scriptRunning : d.sequenceRunning,
+                        ),
                       ),
                 ],
               ],
@@ -513,7 +542,7 @@ class _ShellState extends State<Shell> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const MonoLabel('Fleet'),
+                  MonoLabel(t.fleet),
                   for (final dev in d.devices.take(8)) ...[
                     const SizedBox(height: 12),
                     Pressable(
@@ -532,22 +561,22 @@ class _ShellState extends State<Shell> {
                               style: KText.bodySm.copyWith(color: dev.id == d.deviceId || h ? K.textPrimary : K.textMuted),
                             ),
                           ),
-                          if (dev.simulated) ...[const MonoLabel('Sim', color: K.info, size: 9), const SizedBox(width: 8)],
+                          if (dev.simulated) ...[MonoLabel(t.tagSim, color: K.info, size: 9), const SizedBox(width: 8)],
                           Builder(
                             builder: (_) {
                               final l = d.links[dev.id], lost = (l?.linkLostFor ?? 0) > 0;
                               return KBadge(
                                 dev.id == d.deviceId
-                                    ? 'Active'
+                                    ? t.fleetActive
                                     : lost
-                                    ? 'Lost'
+                                    ? t.fleetLost
                                     : l != null
-                                    ? 'Linked'
+                                    ? t.fleetLinked
                                     : dev.id == d.connecting
                                     ? '…'
                                     : !dev.online
-                                    ? 'Off'
-                                    : 'On',
+                                    ? t.fleetOff
+                                    : t.fleetOn,
                                 tone: !dev.online || lost
                                     ? Tone.negative
                                     : dev.id == d.deviceId || dev.id == d.connecting
@@ -619,7 +648,7 @@ class NavBtn extends StatelessWidget {
   final double height;
   @override
   Widget build(BuildContext context) {
-    final id = it[0], label = it[1], ic = it[2];
+    final id = it[0], label = navLabel(id), ic = it[2];
     Widget icon(double size, Color color) => live
         ? Stack(
             clipBehavior: Clip.none,
@@ -850,21 +879,21 @@ class StatusCluster extends StatelessWidget {
     if (!d.hasDevice && d.replay == null) {
       return Align(
         alignment: Alignment.centerLeft,
-        child: KBadge(d.connecting != null ? 'Connecting' : 'No link', tone: d.connecting != null ? Tone.accent : Tone.warning),
+        child: KBadge(d.connecting != null ? t.connecting : t.noLink, tone: d.connecting != null ? Tone.accent : Tone.warning),
       );
     }
     final lat = d.latency;
     final items = <Widget>[
-      if (d.simulated && !phone) const KBadge('Simulated', tone: Tone.info),
+      if (d.simulated && !phone) KBadge(t.simulated, tone: Tone.info),
       _Stat(
-        title: 'Link',
+        title: t.statLink,
         children: [
           LinkBars(rssi: s.rssi, lost: lost),
-          Text(lost ? 'LOST' : '${s.rssi.round()}', style: KText.mono(12, color: lost ? K.negative : null)),
+          Text(lost ? t.statLost.toUpperCase() : '${s.rssi.round()}', style: KText.mono(12, color: lost ? K.negative : null)),
         ],
       ),
       _Stat(
-        title: 'Latency',
+        title: t.statLatency,
         children: [
           Text(
             '${lost ? 900 : lat.round()} ms',
@@ -881,7 +910,7 @@ class StatusCluster extends StatelessWidget {
       ),
       if (d.kind != DeviceKind.arm)
         _Stat(
-          title: 'Battery',
+          title: t.statBattery,
           children: [
             BatIcon(pct: s.battery),
             Text('${s.battery.round()}%'),
@@ -891,7 +920,7 @@ class StatusCluster extends StatelessWidget {
         GestureDetector(
           onTap: d.stopRec,
           child: _Stat(
-            title: 'Recording',
+            title: t.statRecording,
             children: [
               const PulseDot(),
               Text(mmss(d.t - d.recStart), style: KText.mono(12, color: K.negative)),
@@ -929,18 +958,18 @@ class ModeArm extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         d.replay != null
-            ? const KTag('Replay', tone: TagTone.accent)
+            ? KTag(t.navReplay, tone: TagTone.accent)
             : d.linkLost || s.failsafe
             ? const KTag('FAILSAFE')
             // The control mode, AUTO lit while dash drives.
             : ModeBadge(d, height: 26),
         SizedBox(width: phone ? 10 : 16),
         Tooltip(
-          message: s.armed ? 'Armed' : 'Disarmed',
+          message: s.armed ? t.armed : t.disarmed,
           child: KSwitch(
             checked: s.armed,
             disabled: s.estop || d.replay != null,
-            label: phone ? null : (s.armed ? 'Armed' : 'Disarmed'),
+            label: phone ? null : (s.armed ? t.armed : t.disarmed),
             onChanged: d.setArmed,
           ),
         ),
@@ -959,12 +988,12 @@ class EStop extends StatelessWidget {
     final off = d.links.isEmpty, n = d.links.length;
     return Semantics(
       button: true,
-      label: n > 1 ? 'Emergency stop, all $n devices' : 'Emergency stop',
+      label: n > 1 ? t.stopLabelAll(n) : t.stopLabel,
       child: _maybeTip(
         n > 1
-            ? 'Stops all $n connected devices'
+            ? t.stopTipAll(n)
             : d.hasDevice && !d.canControl
-            ? 'STOP is still sent over this telemetry-only radio, but it is slow: up to a second'
+            ? t.stopTipSlowRadio
             : null,
         Opacity(
           opacity: off ? .3 : 1,
@@ -981,7 +1010,7 @@ class EStop extends StatelessWidget {
                   const KIcon('octagon', size: 18, color: K.ink900),
                   const SizedBox(width: 8),
                   Text(
-                    n > 1 && !compact ? 'STOP ALL' : 'STOP',
+                    n > 1 && !compact ? t.stopAll.toUpperCase() : t.stop.toUpperCase(),
                     style: KText.mono(12, w: FontWeight.w700, color: K.ink900, tracking: K.trLabel),
                   ),
                 ],
@@ -1013,25 +1042,23 @@ List<Issue> issuesOf(Dash d) {
   final lf = d.linkLostFor, several = d.links.length > 1;
   final who = several ? '${d.deviceName} · ' : '';
   if (lf > 0) {
-    final fs = d.kind == DeviceKind.drone
-        ? const {'HOLD': 'holding position', 'RTH': 'returning home', 'LAND': 'landing in place'}[d.settings.failsafe]!
-        : 'holding position';
+    final fs = d.kind == DeviceKind.drone ? {'HOLD': t.failsafeHold, 'RTH': t.failsafeRth, 'LAND': t.failsafeLand}[d.settings.failsafe]! : t.failsafeHold;
     out.add(
       Issue(
         'link',
-        '${who}Link lost · ${lf.toStringAsFixed(1)} s',
-        '${lf >= 1.8 ? 'Failsafe active: $fs.' : 'Reconnecting. Failsafe starts at 1.8 s.'} Controls are locked until the link is back.',
+        '$who${t.linkLostFor(lf.toStringAsFixed(1))}',
+        '${lf >= 1.8 ? t.failsafeActive(fs) : t.reconnecting} ${t.controlsLocked}',
         tone: Tone.negative,
         mark: true,
       ),
     );
   } else if (d.linkRestored > 0) {
-    out.add(Issue('link', '${who}Link restored', 'Manual control is available again.', tone: Tone.positive, mark: false));
+    out.add(Issue('link', '$who${t.linkRestored}', t.linkRestoredBody, tone: Tone.positive, mark: false));
   }
   Issue alert(ActiveAlert a, String name, VoidCallback ok, [VoidCallback? show]) => Issue(
     'alert-$name-${a.rule.id}',
     '$name${a.rule.label} · ${a.rule.fmt(a.value)}',
-    '${a.rule.below ? 'Below' : 'Above'} ${a.rule.fmt(a.limit)}. ${a.rule.act}',
+    '${a.rule.below ? t.alertBelow(a.rule.fmt(a.limit)) : t.alertAbove(a.rule.fmt(a.limit))} ${a.rule.act}',
     tone: a.rule.level == AlertLevel.critical ? Tone.negative : Tone.warning,
     ok: ok,
     show: show,
@@ -1048,8 +1075,8 @@ List<Issue> issuesOf(Dash d) {
       out.add(
         Issue(
           'lost-${l.id}',
-          '${l.info.name} · Link lost · ${l.linkLostFor.toStringAsFixed(1)} s',
-          'Its failsafe takes over after 1.8 s.',
+          '${l.info.name} · ${t.linkLostFor(l.linkLostFor.toStringAsFixed(1))}',
+          t.linkLostOther,
           tone: Tone.negative,
           show: () => d.focusDevice(l.id),
         ),
@@ -1069,8 +1096,8 @@ List<Issue> issuesOf(Dash d) {
     out.add(
       Issue(
         'compat-${l.id}',
-        '${l.info.name} · ${newer ? 'Needs a newer app' : 'Library too old'}',
-        'Some features may not work: $why. ${newer ? 'Update koebelt dash.' : 'Update the koebelt/link library on the device, or install an older koebelt dash in Settings > Updates.'}',
+        '${l.info.name} · ${newer ? t.compatNewerApp : t.compatOldLib}',
+        '${t.compatSome(why)} ${newer ? t.compatUpdateApp : t.compatUpdateLib}',
         tone: Tone.warning,
         show: l.id == d.deviceId ? null : () => d.focusDevice(l.id),
       ),
@@ -1154,7 +1181,7 @@ class _AlertChipState extends State<AlertChip> {
                                       children: [
                                         if (x.show != null)
                                           KButton(
-                                            'Show',
+                                            t.show,
                                             size: KSize.sm,
                                             variant: KButtonVariant.ghost,
                                             onPressed: () {
@@ -1200,7 +1227,7 @@ class _AlertChipState extends State<AlertChip> {
       link: _link,
       child: Semantics(
         button: true,
-        label: '${issues.length} alert${issues.length == 1 ? '' : 's'}: ${top.title}',
+        label: '${t.alerts(issues.length)}: ${top.title}',
         child: Pressable(
           onTap: () => _entry == null ? _open() : _close(),
           builder: (_, h, _) => Container(
@@ -1221,14 +1248,7 @@ class _AlertChipState extends State<AlertChip> {
                 const SizedBox(width: 8),
                 Flexible(
                   child: Text(
-                    (widget.compact
-                            ? (top.mark == true
-                                  ? 'Link lost'
-                                  : issues.length == 1
-                                  ? '1 alert'
-                                  : '${issues.length} alerts')
-                            : top.title)
-                        .toUpperCase(),
+                    (widget.compact ? (top.mark == true ? t.linkLost : t.alerts(issues.length)) : top.title).toUpperCase(),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: KText.mono(11, w: FontWeight.w600, color: c, tracking: K.trLabel),
@@ -1259,9 +1279,9 @@ class ReplayHold extends StatelessWidget {
   Widget build(BuildContext context) {
     final phone = w < 600;
     final (title, what) = switch (screen) {
-      'control' => ('Controls are off during a replay', 'Controls act'),
-      'program' => ('Sequences are off during a replay', 'Sequences run'),
-      _ => ('Tuning is off during a replay', 'Parameters are read and written'),
+      'control' => (t.replayOffControl, t.replayOffControlWhy),
+      'program' => (t.replayOffSequences, t.replayOffSequencesWhy),
+      _ => (t.replayOffTune, t.replayOffTuneWhy),
     };
     final live = d.device?.name;
     return SingleChildScrollView(
@@ -1273,22 +1293,18 @@ class ReplayHold extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                MonoLabel('Replay · ${groupTitle(d.replay!.session)}', color: K.textAccent),
+                MonoLabel('${t.navReplay} · ${groupTitle(d.replay!.session)}', color: K.textAccent),
                 const SizedBox(height: 12),
                 Text(title, style: phone ? KText.headingMd : KText.headingLg),
                 const SizedBox(height: 12),
-                Text(
-                  '$what on a connected device, not on a recording. '
-                  '${live != null ? 'Exit the replay to get back to $live.' : 'Exit the replay, then connect a device.'}',
-                  style: KText.bodyMd.copyWith(color: K.textSecondary),
-                ),
+                Text('$what ${live != null ? t.replayExitTo(live) : t.replayExitConnect}', style: KText.bodyMd.copyWith(color: K.textSecondary)),
                 SizedBox(height: phone ? 24 : 32),
                 Wrap(
                   spacing: 12,
                   runSpacing: 12,
                   children: [
-                    KButton('Back to the replay', iconLeft: const KIcon('replay', size: 16), onPressed: () => go('replay')),
-                    KButton(live != null ? 'Exit replay, back to $live' : 'Exit replay', variant: KButtonVariant.secondary, onPressed: d.closeReplay),
+                    KButton(t.replayBack, iconLeft: const KIcon('replay', size: 16), onPressed: () => go('replay')),
+                    KButton(live != null ? t.replayExitBackTo(live) : t.replayExit, variant: KButtonVariant.secondary, onPressed: d.closeReplay),
                   ],
                 ),
               ],
@@ -1317,24 +1333,18 @@ class NoDevice extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const MonoLabel('Not connected', color: K.textAccent),
+                MonoLabel(t.notConnected, color: K.textAccent),
                 const SizedBox(height: 12),
-                Text('No device connected', style: phone ? KText.headingMd : KText.headingLg),
+                Text(t.noDeviceTitle, style: phone ? KText.headingMd : KText.headingLg),
                 const SizedBox(height: 12),
-                Text(
-                  'Pick a paired device or pair a new one. Telemetry and controls appear once the link is up.',
-                  style: KText.bodyMd.copyWith(color: K.textSecondary),
-                ),
-                if (d.connectError != null) ...[
-                  const SizedBox(height: 20),
-                  KNotice(tone: Tone.negative, title: 'Could not connect', child: Text(d.connectError!)),
-                ],
+                Text(t.noDeviceBody, style: KText.bodyMd.copyWith(color: K.textSecondary)),
+                if (d.connectError != null) ...[const SizedBox(height: 20), KNotice(tone: Tone.negative, title: t.connectFailed, child: Text(d.connectError!))],
                 SizedBox(height: phone ? 24 : 32),
                 hairline,
                 if (d.devices.isEmpty)
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 20),
-                    child: Text('No paired devices yet.', style: KText.bodySm.copyWith(color: K.textMuted)),
+                    child: Text(t.noPairedDevices, style: KText.bodySm.copyWith(color: K.textMuted)),
                   ),
                 for (final dev in d.devices)
                   Opacity(
@@ -1357,14 +1367,14 @@ class NoDevice extends StatelessWidget {
                                   ],
                                 ),
                                 const SizedBox(height: 6),
-                                MonoLabel('${dev.kind.label} · ${!dev.online ? 'Offline' : '${dev.battery}% battery'}'),
+                                MonoLabel('${dev.kind.label} · ${!dev.online ? t.offline : t.batteryPct(dev.battery)}'),
                               ],
                             ),
                           ),
                           d.connecting == dev.id
-                              ? const Row(children: [MarkMotion(MarkLoop.loading, size: 28), SizedBox(width: 10), MonoLabel('Connecting')])
+                              ? Row(children: [const MarkMotion(MarkLoop.loading, size: 28), const SizedBox(width: 10), MonoLabel(t.connecting)])
                               : KButton(
-                                  'Connect',
+                                  t.connect,
                                   size: KSize.sm,
                                   variant: KButtonVariant.secondary,
                                   onPressed: !dev.online || d.connecting != null ? null : () => d.connect(dev.id),
@@ -1376,25 +1386,15 @@ class NoDevice extends StatelessWidget {
                 SizedBox(height: phone ? 20 : 28),
                 Align(
                   alignment: Alignment.centerLeft,
-                  child: KButton('Pair new device', iconLeft: const KIcon('plus', size: 16), onPressed: () => showPairDialog(context, d, go)),
+                  child: KButton(t.pairNewDevice, iconLeft: const KIcon('plus', size: 16), onPressed: () => showPairDialog(context, d, go)),
                 ),
                 SizedBox(height: phone ? 24 : 32),
-                const MonoLabel('Or'),
+                MonoLabel(t.or),
                 const SizedBox(height: 8),
                 hairline,
-                _Option(
-                  icon: 'devices',
-                  title: 'Add a simulated device',
-                  desc: 'A virtual drone, rover, arm, rocket or test bench, to try the app without hardware.',
-                  onTap: () => showPairDialog(context, d, go, simulated: true),
-                ),
-                _Option(icon: 'replay', title: 'Open a recording', desc: 'Replay a session, a flight log or the sample recordings.', onTap: () => go('replay')),
-                _Option(
-                  icon: 'book',
-                  title: 'Set up the library',
-                  desc: 'Add koebelt/link to your Arduino, Python, ROS 2 or Rust project.',
-                  onTap: () => go('guides'),
-                ),
+                _Option(icon: 'devices', title: t.addSimulated, desc: t.addSimulatedDesc, onTap: () => showPairDialog(context, d, go, simulated: true)),
+                _Option(icon: 'replay', title: t.openRecording, desc: t.openRecordingDesc, onTap: () => go('replay')),
+                _Option(icon: 'book', title: t.setUpLibrary, desc: t.setUpLibraryDesc, onTap: () => go('guides')),
               ],
             ),
           ),

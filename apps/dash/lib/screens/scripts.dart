@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../l10n/l10n.dart';
 import '../core/dash.dart';
 import '../core/save_io.dart';
 import '../mcp/docs.dart' show bundledExamples, exampleName, loadBundledText;
@@ -50,7 +51,20 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
   String? selected;
   final code = PythonController();
   final _editor = GlobalKey<CodeEditorState>();
-  String? _loaded, _diskText, _message;
+  String? _loaded, _diskText, _msg;
+
+  /// The note under the editor; [_failed] when it says something went wrong.
+  String? get _message => _msg;
+  set _message(String? m) {
+    _msg = m;
+    _failed = false;
+  }
+
+  bool _failed = false;
+  void _fail(String m) {
+    _msg = m;
+    _failed = true;
+  }
 
   /// What the last Check found (null: not checked since opening), and
   /// whether one runs.
@@ -186,7 +200,7 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
     if (dirty) await _saveNow();
     final py = d.scripts.pythonFor(d.scripts.configFor(selected ?? '')) ?? d.scripts.pythons?.firstOrNull?.path;
     if (py == null || selected == null) {
-      setState(() => _message = 'Check needs Python on this computer: Set up Python on the script\'s page.');
+      setState(() => _message = t.checkNeedsPython);
       return null;
     }
     setState(() => _checking = true);
@@ -195,7 +209,7 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
     setState(() {
       _checking = false;
       if (r == null) {
-        _message = 'Could not check with $py.';
+        _fail(t.couldNotCheck(py));
         return;
       }
       _problems = r;
@@ -224,15 +238,15 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
     final pick = await showKDialog<String>(
       context,
       builder: (ctx) => KDialogPanel(
-        title: errors.length == 1 ? 'This script has an error' : 'This script has ${errors.length} errors',
+        title: t.scriptErrors(errors.length),
         onClose: () => Navigator.pop(ctx),
         footer: [
-          KButton('Cancel', variant: KButtonVariant.ghost, onPressed: () => Navigator.pop(ctx)),
-          KButton('Run anyway', variant: KButtonVariant.secondary, onPressed: () => Navigator.pop(ctx, 'run')),
-          KButton('Show them', onPressed: () => Navigator.pop(ctx, 'show')),
+          KButton(t.cancel, variant: KButtonVariant.ghost, onPressed: () => Navigator.pop(ctx)),
+          KButton(t.runAnyway, variant: KButtonVariant.secondary, onPressed: () => Navigator.pop(ctx, 'run')),
+          KButton(t.showThem, onPressed: () => Navigator.pop(ctx, 'show')),
         ],
         children: [
-          const Text('Check found what would stop it, probably before it moves anything:'),
+          Text(t.checkFound),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(color: K.surfaceSunken, borderRadius: BorderRadius.circular(K.radiusControl)),
@@ -246,7 +260,7 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
                       TextSpan(
                         children: [
                           TextSpan(
-                            text: 'line ${p.line}'.padRight(9),
+                            text: t.lineN(p.line).padRight(9),
                             style: KText.mono(12, color: K.negative),
                           ),
                           TextSpan(
@@ -257,7 +271,7 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
                       ),
                     ),
                   ),
-                if (errors.length > 5) Text('and ${errors.length - 5} more', style: KText.bodySm.copyWith(fontSize: 13, color: K.textMuted)),
+                if (errors.length > 5) Text(t.andMore(errors.length - 5), style: KText.bodySm.copyWith(fontSize: 13, color: K.textMuted)),
               ],
             ),
           ),
@@ -294,18 +308,15 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
     final pick = await showKDialog<String>(
       context,
       builder: (ctx) => KDialogPanel(
-        title: 'Install what this script imports?',
+        title: t.installImports,
         onClose: () => Navigator.pop(ctx),
         footer: [
-          KButton('Cancel', variant: KButtonVariant.ghost, onPressed: () => Navigator.pop(ctx)),
-          KButton('Run anyway', variant: KButtonVariant.secondary, onPressed: () => Navigator.pop(ctx, 'run')),
-          KButton('Install and run', onPressed: () => Navigator.pop(ctx, 'install')),
+          KButton(t.cancel, variant: KButtonVariant.ghost, onPressed: () => Navigator.pop(ctx)),
+          KButton(t.runAnyway, variant: KButtonVariant.secondary, onPressed: () => Navigator.pop(ctx, 'run')),
+          KButton(t.installAndRun, onPressed: () => Navigator.pop(ctx, 'install')),
         ],
         children: [
-          Text(
-            '${missing.length == 1 ? missing.single : '${missing.sublist(0, missing.length - 1).join(', ')} and ${missing.last}'} '
-            '${missing.length == 1 ? 'is' : 'are'} not in this Python, so the script would stop at its imports.',
-          ),
+          Text(t.missingImports(missing.length, joinAnd(missing))),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(color: K.surfaceSunken, borderRadius: BorderRadius.circular(K.radiusControl)),
@@ -332,11 +343,11 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
     try {
       host == null ? await d.scripts.runFile(f.file, python: d.scripts.pythonFor(cfg)) : await d.scripts.runOnHost(f.file, host);
     } on HostError catch (e) {
-      setState(() => _message = e.message);
+      setState(() => _fail(e.message));
     } on StateError catch (e) {
-      setState(() => _message = e.message);
+      setState(() => _fail(e.message));
     } catch (e) {
-      setState(() => _message = 'Could not start: $e');
+      setState(() => _fail(t.couldNotStart('$e')));
     }
   }
 
@@ -355,7 +366,7 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
   Future<void> _import() async {
     final l = lib;
     if (l == null) return;
-    final got = await openBytes('Python scripts', ['py', 'zip']);
+    final got = await openBytes(t.pythonScripts, ['py', 'zip']);
     if (got == null) return;
     try {
       final f = await l.import(got.$1, got.$2);
@@ -363,7 +374,7 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
       final s = files.where((x) => x.path == f.path).firstOrNull;
       if (s != null) await _open(s);
     } on FormatException catch (e) {
-      if (mounted) setState(() => _message = e.message);
+      if (mounted) setState(() => _fail(e.message));
     }
   }
 
@@ -382,16 +393,16 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
       await _reload();
       final s = files.where((x) => x.path == f.path).firstOrNull;
       if (s != null) await _open(s);
-      if (mounted) setState(() => _message = 'Copied the example to ${f.uri.pathSegments.last} in your scripts.');
+      if (mounted) setState(() => _message = t.copiedExample(f.uri.pathSegments.last));
     } catch (e) {
-      if (mounted) setState(() => _message = 'Could not copy the example: $e');
+      if (mounted) setState(() => _fail(t.couldNotCopyExample('$e')));
     }
   }
 
   Future<void> _rename(ScriptFile s) async {
     final name = await showKDialog<String>(
       context,
-      builder: (ctx) => _NameDialog(title: 'Rename', initial: s.name),
+      builder: (ctx) => _NameDialog(title: t.rename, initial: s.name),
     );
     if (name == null || lib == null) return;
     await _saveNow();
@@ -406,13 +417,13 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
     final ok = await showKDialog<bool>(
       context,
       builder: (ctx) => KDialogPanel(
-        title: 'Delete “${s.name}”?',
+        title: t.deleteTitle('“${s.name}”'),
         onClose: () => Navigator.pop(ctx),
         footer: [
-          KButton('Cancel', variant: KButtonVariant.ghost, onPressed: () => Navigator.pop(ctx)),
-          KButton('Delete', onPressed: () => Navigator.pop(ctx, true)),
+          KButton(t.cancel, variant: KButtonVariant.ghost, onPressed: () => Navigator.pop(ctx)),
+          KButton(t.delete, onPressed: () => Navigator.pop(ctx, true)),
         ],
-        children: const [Text('It moves to the .trash folder inside the scripts folder, where you can get it back.')],
+        children: [Text(t.deleteScriptBody)],
       ),
     );
     if (ok != true || lib == null) return;
@@ -516,8 +527,8 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
 
   Widget _badge(ScriptFile f) {
     final run = d.scripts.runs.where((r) => r.file.path == f.path).lastOrNull;
-    if (run?.state == ScriptState.running) return const KBadge('RUNNING', tone: Tone.positive);
-    if (run?.state == ScriptState.failed) return const KBadge('ERROR', tone: Tone.negative);
+    if (run?.state == ScriptState.running) return KBadge(t.running, tone: Tone.positive);
+    if (run?.state == ScriptState.failed) return KBadge(t.error, tone: Tone.negative);
     return const SizedBox.shrink();
   }
 
@@ -577,7 +588,7 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
             padding: const EdgeInsets.symmetric(vertical: 4),
             child: Row(
               children: [
-                MonoLabel('Examples · ${examples.length}', color: h ? K.textPrimary : null),
+                MonoLabel('${t.examples} · ${examples.length}', color: h ? K.textPrimary : null),
                 const SizedBox(width: 6),
                 AnimatedRotation(
                   turns: open ? 0 : -.25,
@@ -611,7 +622,7 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const MonoLabel('Connected from outside dash'),
+          MonoLabel(t.connectedOutside),
           const SizedBox(height: 8),
           for (final c in outside)
             Padding(
@@ -623,7 +634,7 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
                   Expanded(
                     child: Text(c.name, style: KText.mono(12, color: K.textSecondary)),
                   ),
-                  if (c.blocked != null) KButton('Resume', size: KSize.sm, variant: KButtonVariant.ghost, onPressed: () => d.scripts.unblock(c)),
+                  if (c.blocked != null) KButton(t.resume, size: KSize.sm, variant: KButtonVariant.ghost, onPressed: () => d.scripts.unblock(c)),
                 ],
               ),
             ),
@@ -641,7 +652,7 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
     child: Row(
       children: [
         if (phone) ...[
-          KIconButton('arrow-left', label: 'Back', variant: KIconButtonVariant.bare, onPressed: () => setState(() => phoneView = 'run')),
+          KIconButton('arrow-left', label: t.back, variant: KIconButtonVariant.bare, onPressed: () => setState(() => phoneView = 'run')),
           const SizedBox(width: 4),
           Expanded(
             child: Text(f.label, overflow: TextOverflow.ellipsis, style: KText.labelMd()),
@@ -658,7 +669,7 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
                 Flexible(
                   flex: 2,
                   child: Text(
-                    '${f.label} · ${dirty ? 'editing' : 'saved'}',
+                    '${f.label} · ${dirty ? t.editing : t.saved}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: KText.mono(12, color: K.textMuted),
@@ -670,9 +681,9 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
         ],
         if (ScriptHub.canRunHere)
           phone
-              ? KIconButton('check', label: 'Check', size: KSize.sm, variant: KIconButtonVariant.bare, onPressed: _checking ? null : _check)
+              ? KIconButton('check', label: t.checkAction, size: KSize.sm, variant: KIconButtonVariant.bare, onPressed: _checking ? null : _check)
               : KButton(
-                  _checking ? 'Checking…' : 'Check',
+                  _checking ? t.checking : t.checkAction,
                   size: KSize.sm,
                   variant: KButtonVariant.ghost,
                   iconLeft: const KIcon('check', size: 14),
@@ -681,7 +692,7 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
         if (!phone && ScriptHub.canRunHere) ...[
           const SizedBox(width: 4),
           KButton(
-            'Open in editor',
+            t.openInEditor,
             size: KSize.sm,
             variant: KButtonVariant.ghost,
             iconLeft: const KIcon('arrow-up-right', size: 14),
@@ -712,7 +723,7 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
       ? _checkBar(_problems!)
       : Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          color: code.errorLine != null || _message!.startsWith('Could') ? const Color(0x33EE7A63) : K.surfaceRaised,
+          color: code.errorLine != null || _failed ? const Color(0x33EE7A63) : K.surfaceRaised,
           child: Row(
             children: [
               Expanded(
@@ -768,7 +779,7 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
                     TextSpan(
                       children: [
                         TextSpan(
-                          text: 'line ${p.line}'.padRight(9),
+                          text: t.lineN(p.line).padRight(9),
                           style: KText.mono(12, color: p.warning ? K.warning : K.negative),
                         ),
                         TextSpan(
@@ -830,9 +841,9 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
               children: [
-                const Expanded(child: MonoLabel('Scripts', color: K.textAccent)),
-                KIconButton('plus', label: 'New script', size: KSize.sm, variant: KIconButtonVariant.bare, onPressed: _new),
-                KIconButton('download', label: 'Import a .py or .zip', size: KSize.sm, variant: KIconButtonVariant.bare, onPressed: _import),
+                Expanded(child: MonoLabel(t.navScripts, color: K.textAccent)),
+                KIconButton('plus', label: t.newScript, size: KSize.sm, variant: KIconButtonVariant.bare, onPressed: _new),
+                KIconButton('download', label: t.importPyZip, size: KSize.sm, variant: KIconButtonVariant.bare, onPressed: _import),
               ],
             ),
           ),
@@ -841,7 +852,7 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
           if (files.isEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Text('No scripts yet. Start from an example, or press +.', style: KText.bodySm.copyWith(color: K.textMuted)),
+              child: Text(t.noScriptsPlus, style: KText.bodySm.copyWith(color: K.textMuted)),
             ),
           Padding(padding: const EdgeInsets.fromLTRB(16, 24, 16, 0), child: _examples()),
           Padding(padding: const EdgeInsets.symmetric(horizontal: 16), child: _outside()),
@@ -869,7 +880,7 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
               child: Padding(
                 padding: const EdgeInsets.all(32),
                 child: Text(
-                  'Scripts drive your devices from Python. Create one, import one, or start from an example.',
+                  t.scriptsEmpty,
                   textAlign: TextAlign.center,
                   style: KText.bodyMd.copyWith(color: K.textMuted),
                 ),
@@ -951,13 +962,13 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
         children: [
           Row(
             children: [
-              KIconButton('arrow-left', label: 'Back', variant: KIconButtonVariant.bare, onPressed: () => setState(() => phoneView = 'list')),
+              KIconButton('arrow-left', label: t.back, variant: KIconButtonVariant.bare, onPressed: () => setState(() => phoneView = 'list')),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(f.name, overflow: TextOverflow.ellipsis, style: KText.headingSm),
               ),
               KButton(
-                'Edit',
+                t.edit,
                 size: KSize.sm,
                 variant: KButtonVariant.secondary,
                 iconLeft: const KIcon('pencil', size: 14),
@@ -984,10 +995,10 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
             spacing: 8,
             runSpacing: 8,
             children: [
-              KButton('Rename', size: KSize.sm, variant: KButtonVariant.ghost, onPressed: () => _rename(f)),
-              KButton('Duplicate', size: KSize.sm, variant: KButtonVariant.ghost, onPressed: () => _duplicate(f)),
-              KButton('Share', size: KSize.sm, variant: KButtonVariant.ghost, onPressed: () => _export(f)),
-              KButton('Delete', size: KSize.sm, variant: KButtonVariant.ghost, onPressed: () => _delete(f)),
+              KButton(t.rename, size: KSize.sm, variant: KButtonVariant.ghost, onPressed: () => _rename(f)),
+              KButton(t.duplicate, size: KSize.sm, variant: KButtonVariant.ghost, onPressed: () => _duplicate(f)),
+              KButton(t.share, size: KSize.sm, variant: KButtonVariant.ghost, onPressed: () => _export(f)),
+              KButton(t.delete, size: KSize.sm, variant: KButtonVariant.ghost, onPressed: () => _delete(f)),
             ],
           ),
         ],
@@ -999,18 +1010,18 @@ class _ScriptsScreenState extends State<ScriptsScreen> {
         Row(
           children: [
             Expanded(
-              child: KButton('New', variant: KButtonVariant.secondary, iconLeft: const KIcon('plus', size: 16), onPressed: _new),
+              child: KButton(t.newShort, variant: KButtonVariant.secondary, iconLeft: const KIcon('plus', size: 16), onPressed: _new),
             ),
             const SizedBox(width: 8),
             Expanded(
-              child: KButton('Import', variant: KButtonVariant.secondary, iconLeft: const KIcon('download', size: 16), onPressed: _import),
+              child: KButton(t.import, variant: KButtonVariant.secondary, iconLeft: const KIcon('download', size: 16), onPressed: _import),
             ),
           ],
         ),
         if (_message != null) ...[const SizedBox(height: 12), _messageBar()],
         const SizedBox(height: 16),
         for (final s in files) _listItem(s),
-        if (files.isEmpty) Text('No scripts yet. Start from an example, or press New.', style: KText.bodySm.copyWith(color: K.textMuted)),
+        if (files.isEmpty) Text(t.noScriptsNew, style: KText.bodySm.copyWith(color: K.textMuted)),
         const SizedBox(height: 16),
         _examples(),
       ],
@@ -1023,17 +1034,17 @@ class _ScriptMenu extends StatelessWidget {
   final VoidCallback onRename, onDuplicate, onExport, onReveal, onDelete;
   @override
   Widget build(BuildContext context) => PopupMenuButton<VoidCallback>(
-    tooltip: 'More',
+    tooltip: t.more,
     color: K.surfaceRaised,
     icon: const KIcon('chevron-down', size: 16, color: K.textSecondary),
     onSelected: (f) => f(),
     itemBuilder: (_) => [
       for (final (label, f) in [
-        ('Rename', onRename),
-        ('Duplicate', onDuplicate),
-        ('Export', onExport),
-        (Platform.isMacOS ? 'Show in Finder' : 'Show in folder', onReveal),
-        ('Delete', onDelete),
+        (t.rename, onRename),
+        (t.duplicate, onDuplicate),
+        (t.export, onExport),
+        (Platform.isMacOS ? t.showInFinder : t.showInFolder, onReveal),
+        (t.delete, onDelete),
       ])
         PopupMenuItem(
           value: f,
@@ -1050,7 +1061,7 @@ class _NewScriptDialog extends StatefulWidget {
 }
 
 class _NewScriptDialogState extends State<_NewScriptDialog> {
-  final _name = TextEditingController(text: 'My script');
+  final _name = TextEditingController(text: t.myScript);
   String template = scriptTemplates.keys.first;
   @override
   void dispose() {
@@ -1060,11 +1071,11 @@ class _NewScriptDialogState extends State<_NewScriptDialog> {
 
   @override
   Widget build(BuildContext context) => KDialogPanel(
-    title: 'New script',
+    title: t.newScript,
     onClose: () => Navigator.pop(context),
     footer: [
-      KButton('Cancel', variant: KButtonVariant.ghost, onPressed: () => Navigator.pop(context)),
-      KButton('Create', onPressed: () => Navigator.pop(context, (_name.text.trim().isEmpty ? 'My script' : _name.text.trim(), template))),
+      KButton(t.cancel, variant: KButtonVariant.ghost, onPressed: () => Navigator.pop(context)),
+      KButton(t.create, onPressed: () => Navigator.pop(context, (_name.text.trim().isEmpty ? t.myScript : _name.text.trim(), template))),
     ],
     children: [
       KInput(controller: _name, height: 40, style: KText.bodySm),
@@ -1103,8 +1114,8 @@ class _NameDialogState extends State<_NameDialog> {
     title: widget.title,
     onClose: () => Navigator.pop(context),
     footer: [
-      KButton('Cancel', variant: KButtonVariant.ghost, onPressed: () => Navigator.pop(context)),
-      KButton('Save', onPressed: () => Navigator.pop(context, _c.text.trim().isEmpty ? null : _c.text.trim())),
+      KButton(t.cancel, variant: KButtonVariant.ghost, onPressed: () => Navigator.pop(context)),
+      KButton(t.save, onPressed: () => Navigator.pop(context, _c.text.trim().isEmpty ? null : _c.text.trim())),
     ],
     children: [KInput(controller: _c, height: 40, style: KText.bodySm)],
   );

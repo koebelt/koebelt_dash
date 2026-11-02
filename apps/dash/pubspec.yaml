@@ -18,6 +18,10 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  # Languages (lib/l10n, l10n.yaml).
+  flutter_localizations:
+    sdk: flutter
+  intl: any
 
   flutter_svg: ^2.3.0
   shared_preferences: ^2.5.5
@@ -55,6 +59,8 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
+  # The app's text in each language, from lib/l10n/*.arb.
+  generate: true
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in

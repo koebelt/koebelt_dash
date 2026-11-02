@@ -12,6 +12,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:koebelt_dash/app.dart';
 import 'package:koebelt_dash/core/dash.dart';
 import 'package:koebelt_dash/core/model.dart';
+import 'package:koebelt_dash/l10n/l10n.dart';
 import 'package:koebelt_dash/scripts/script_hub.dart';
 import 'package:koebelt_dash/screens/devices.dart';
 import 'package:koebelt_dash/screens/export_dialog.dart';
@@ -46,6 +47,9 @@ const _all = <_Size>[_se, _phone, _land, _ipad, _ipadLand, _small, _laptop, _des
 const _screens = ['live', 'live-wall', 'control', 'automate', 'program', 'scripts', 'params', 'replay', 'devices', 'guides', 'settings'];
 
 final _shots = Platform.environment['SWEEP_SHOTS'];
+
+/// The language to sweep in (SWEEP_LOCALE=de): long words and other scripts.
+final _locale = Platform.environment['SWEEP_LOCALE'];
 
 /// Pumps the app, records what goes wrong, takes the picture.
 class _Sweep {
@@ -142,6 +146,8 @@ class _Sweep {
 
 Future<(_Sweep, List<String>)> _start(WidgetTester tester) async {
   SharedPreferences.setMockInitialValues({});
+  useLocale(Locale(_locale ?? 'en'));
+  addTearDown(() => useLocale(const Locale('en')));
   await tester.runAsync(_loadFonts);
   if (_shots != null) await tester.runAsync(() => Directory(_shots!).create(recursive: true));
   final dash = Dash();
@@ -178,12 +184,16 @@ void main() {
     final (sw, ids) = await _start(tester);
     await sw.run(() async {
       await sw.connect(ids);
+      // An alert showing too (any latency is over this limit): the top bar
+      // at its fullest.
+      sw.dash.updateAlerts((p) => p.limit['latency'] = 1);
       for (final s in [_se, _phone, _ipad, _small, _laptop]) {
         for (final scr in _screens) {
           await sw.screen('fleet', s, scr);
         }
       }
       for (final dev in [ids[0], ids[1]]) {
+        sw.dash.updateAlerts((p) => p.limit.remove('latency'));
         await sw.connect([dev]);
         for (final s in [_se, _phone, _land, _ipad, _small]) {
           for (final scr in _screens) {

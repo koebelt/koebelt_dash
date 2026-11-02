@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../l10n/l10n.dart';
 import '../core/dash.dart';
 import '../link/discovery.dart';
 import '../theme/tokens.dart';
@@ -126,7 +127,7 @@ class _CodeBlockState extends State<CodeBlock> {
                       children: [
                         if (ok) ...[const KIcon('check', size: 14, color: K.textAccent), const SizedBox(width: 6)],
                         Text(
-                          ok ? 'COPIED' : 'COPY',
+                          (ok ? t.copied : t.copy).toUpperCase(),
                           style: KText.mono(
                             11,
                             color: ok
@@ -245,7 +246,7 @@ class _PairPanelState extends State<PairPanel> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const MonoLabel('Your pairing code · valid 10 min'),
+                  MonoLabel(t.yourPairingCode),
                   const SizedBox(height: 8),
                   SelectableText(
                     code,
@@ -253,18 +254,18 @@ class _PairPanelState extends State<PairPanel> {
                   ),
                 ],
               ),
-              if (paired != null) KBadge('${paired.name} paired') else if (st == 'idle') KButton('Start listening', size: KSize.sm, onPressed: _listen),
+              if (paired != null) KBadge(t.namePaired(paired.name)) else if (st == 'idle') KButton(t.startListening, size: KSize.sm, onPressed: _listen),
             ],
           ),
           if (paired == null && st == 'listen' && hit == null) ...[
             const SizedBox(height: 14),
             hairline,
             const SizedBox(height: 14),
-            const Row(
+            Row(
               children: [
-                MarkMotion(MarkLoop.searching, size: 36),
-                SizedBox(width: 10),
-                Expanded(child: MonoLabel('Listening on Wi-Fi and BLE · power on your device')),
+                const MarkMotion(MarkLoop.searching, size: 36),
+                const SizedBox(width: 10),
+                Expanded(child: MonoLabel(t.listeningWifiBle)),
               ],
             ),
           ],
@@ -282,15 +283,15 @@ class _PairPanelState extends State<PairPanel> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text('${hit.name} found', style: KText.bodyMd),
+                    Text(t.nameFound(hit.name), style: KText.bodyMd),
                     const SizedBox(height: 6),
                     MonoLabel(
-                      '${hit.kind[0].toUpperCase()}${hit.kind.substring(1)} · ${hit.lib ?? 'koebelt/link'} · ${hit.via} · ${hit.sensors.length} sensors',
+                      '${hit.kind[0].toUpperCase()}${hit.kind.substring(1)} · ${hit.lib ?? 'koebelt/link'} · ${hit.via} · ${t.sensorsCount(hit.sensors.length)}',
                     ),
                   ],
                 ),
                 KButton(
-                  'Add to devices',
+                  t.addToDevices,
                   size: KSize.sm,
                   onPressed: () async {
                     final e = await d.pair(hit);
@@ -313,7 +314,7 @@ class _PairPanelState extends State<PairPanel> {
               runSpacing: 8,
               children: [
                 KButton(
-                  d.links.containsKey(paired.id) ? 'Connected' : 'Connect now',
+                  d.links.containsKey(paired.id) ? t.connected : t.connectNow,
                   size: KSize.sm,
                   onPressed: d.links.containsKey(paired.id) || d.connecting != null
                       ? null
@@ -323,7 +324,7 @@ class _PairPanelState extends State<PairPanel> {
                           widget.go('live');
                         },
                 ),
-                KButton('View devices', size: KSize.sm, variant: KButtonVariant.ghost, onPressed: () => widget.go('devices')),
+                KButton(t.viewDevices, size: KSize.sm, variant: KButtonVariant.ghost, onPressed: () => widget.go('devices')),
               ],
             ),
           ],
@@ -394,7 +395,7 @@ class _GuideViewState extends State<GuideView> {
     final content = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        MonoLabel('${g.mins} min · ${appOnly ? 'In the app' : P.name}', color: K.textAccent),
+        MonoLabel('${g.mins} min · ${appOnly ? t.inTheApp : P.name}', color: K.textAccent),
         const SizedBox(height: 14),
         Text(g.title, style: phone ? KText.headingMd : KText.headingLg),
         const SizedBox(height: 14),
@@ -441,7 +442,7 @@ class _GuideViewState extends State<GuideView> {
               if (g.steps[i].table != null) ...[const SizedBox(height: 14), GuideTable(rows: g.steps[i].table!)],
               if (g.steps[i].c[plat] != null) ...[
                 const SizedBox(height: 14),
-                CodeBlock(lang: g.steps[i].c[plat]![0], code: g.steps[i].c[plat]![1], file: g.steps[i].complete ? 'Complete program · ${P.name}' : null),
+                CodeBlock(lang: g.steps[i].c[plat]![0], code: g.steps[i].c[plat]![1], file: g.steps[i].complete ? '${t.completeProgram} · ${P.name}' : null),
               ],
               if (g.steps[i].note != null) ...[
                 const SizedBox(height: 14),
@@ -460,14 +461,14 @@ class _GuideViewState extends State<GuideView> {
             runSpacing: 12,
             children: [
               KButton(
-                'API reference',
+                t.apiReference,
                 size: KSize.sm,
                 variant: KButtonVariant.secondary,
                 iconRight: const KIcon('arrow-up-right', size: 14),
                 onPressed: () => launchUrl(Uri.parse('$repoUrl/tree/main/${P.path}#readme')),
               ),
               KButton(
-                'Example projects',
+                t.exampleProjects,
                 size: KSize.sm,
                 variant: KButtonVariant.ghost,
                 iconRight: const KIcon('github', size: 14),
@@ -496,7 +497,7 @@ class _GuideViewState extends State<GuideView> {
                 KIcon('arrow-left', size: 14, color: h ? K.textPrimary : K.textMuted),
                 const SizedBox(width: 8),
                 Text(
-                  'ALL GUIDES',
+                  t.allGuides.toUpperCase(),
                   style: KText.mono(11, color: h ? K.textPrimary : K.textMuted, tracking: K.trLabel),
                 ),
               ],
@@ -506,7 +507,7 @@ class _GuideViewState extends State<GuideView> {
           const MonoLabel('/', color: K.textFaint),
           const SizedBox(width: 12),
           Expanded(child: MonoLabel(g.title, color: K.textSecondary, maxLines: 1)),
-          if (!wide && g.steps.length > 1) MonoLabel('Step ${_active + 1} of ${g.steps.length}'),
+          if (!wide && g.steps.length > 1) MonoLabel(t.stepOfUpper(_active + 1, g.steps.length)),
         ],
       ),
     );
@@ -538,7 +539,7 @@ class _GuideViewState extends State<GuideView> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const MonoLabel('Steps'),
+            MonoLabel(t.steps),
             const SizedBox(height: 10),
             for (var i = 0; i < g.steps.length; i++)
               Pressable(
@@ -679,7 +680,7 @@ class _GuidesScreenState extends State<GuidesScreen> {
           Text(g.sub, style: KText.bodySm.copyWith(color: K.textMuted)),
           const SizedBox(height: 12),
           MonoLabel(
-            g.platforms?.isEmpty ?? false ? 'In the app' : [for (final p in g.platforms ?? const <String>[]) _platformNames[p] ?? p].join(' · '),
+            g.platforms?.isEmpty ?? false ? t.inTheApp : [for (final p in g.platforms ?? const <String>[]) _platformNames[p] ?? p].join(' · '),
             color: K.textAccent,
           ),
         ],
@@ -724,10 +725,10 @@ class _GuidesScreenState extends State<GuidesScreen> {
         ),
       ),
     );
-    const flow = [
-      ['Your device', 'Sensors, motors and koebelt/link on the board or companion computer.'],
-      ['Link', 'Wi-Fi, BLE, USB serial or a radio, with a fallback link if one drops.'],
-      ['koebelt/dash', 'Dashboards, control, tuning and recording, on phone, tablet or desktop.'],
+    final flow = [
+      [t.flowDevice, t.flowDeviceDesc],
+      [t.statLink, t.flowLinkDesc],
+      ['koebelt/dash', t.flowDashDesc],
     ];
     Widget flowCell(int i) => Padding(
       padding: const EdgeInsets.all(18),
@@ -747,16 +748,13 @@ class _GuidesScreenState extends State<GuidesScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const MonoLabel('koebelt/link · library 1.0', color: K.textAccent),
+            MonoLabel('koebelt/link · ${t.library} 1.0', color: K.textAccent),
             const SizedBox(height: 12),
-            Text('Connect your hardware', style: phone ? KText.headingMd : KText.headingLg),
+            Text(t.connectHardware, style: phone ? KText.headingMd : KText.headingLg),
             const SizedBox(height: 12),
             ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 600),
-              child: Text(
-                'Your device runs a small library that streams sensors to this app and receives control input. Pick your platform to start.',
-                style: KText.bodyLg.copyWith(color: K.textSecondary),
-              ),
+              child: Text(t.connectHardwareDesc, style: KText.bodyLg.copyWith(color: K.textSecondary)),
             ),
             SizedBox(height: phone ? 28 : 40),
             Container(
@@ -799,8 +797,8 @@ class _GuidesScreenState extends State<GuidesScreen> {
               crossAxisAlignment: CrossAxisAlignment.baseline,
               textBaseline: TextBaseline.alphabetic,
               children: [
-                Expanded(child: Text('Quickstart', style: KText.headingSm)),
-                MonoLabel('${q.mins} min · ${q.steps.length} steps'),
+                Expanded(child: Text(t.quickstart, style: KText.headingSm)),
+                MonoLabel('${q.mins} min · ${t.stepsCount(q.steps.length)}'),
               ],
             ),
             const SizedBox(height: 16),
@@ -817,10 +815,10 @@ class _GuidesScreenState extends State<GuidesScreen> {
               },
             ),
             SizedBox(height: phone ? 28 : 40),
-            _section('Connections', 'How each link works, and what to do when a device does not show up.'),
+            _section(t.guidesConnections, t.guidesConnectionsDesc),
             for (final t in guides.where((g) => g.section == 'connections')) _row(t),
             SizedBox(height: phone ? 28 : 40),
-            _section('Device examples', 'A complete, commented program for each kind of device.'),
+            _section(t.guidesDevices, t.guidesDevicesDesc),
             LayoutBuilder(
               builder: (_, c) {
                 final n = (c.maxWidth / (phone ? 160.0 : 240.0)).floor().clamp(1, 3);
@@ -833,10 +831,10 @@ class _GuidesScreenState extends State<GuidesScreen> {
               },
             ),
             SizedBox(height: phone ? 28 : 40),
-            _section('Video, map and controllers', 'Show a camera, put the device on a map, drive with a gamepad.'),
+            _section(t.guidesFeatures, t.guidesFeaturesDesc),
             for (final t in guides.where((g) => g.section == 'features')) _row(t),
             SizedBox(height: phone ? 28 : 40),
-            _section('Going further', 'Custom data, tuning, sequences and safety.'),
+            _section(t.guidesMore, t.guidesMoreDesc),
             for (final t in guides.where((g) => g.section == 'more')) _row(t),
           ],
         ),

@@ -4,6 +4,7 @@ import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 
+import '../l10n/l10n.dart';
 import '../theme/tokens.dart';
 import 'icons.dart';
 
@@ -432,7 +433,7 @@ class KDialogPanel extends StatelessWidget {
                 child: Row(
                   children: [
                     Expanded(child: Text(title, style: KText.headingXs)),
-                    KIconButton('x', label: 'Close', size: KSize.sm, variant: KIconButtonVariant.bare, onPressed: onClose),
+                    KIconButton('x', label: t.close, size: KSize.sm, variant: KIconButtonVariant.bare, onPressed: onClose),
                   ],
                 ),
               ),
@@ -507,8 +508,12 @@ Future<T?> showKDialog<T>(BuildContext context, {required Widget Function(BuildC
 }
 
 class KTabs extends StatelessWidget {
-  const KTabs({super.key, required this.items, required this.value, required this.onChanged, this.border = true, this.live = const {}});
+  const KTabs({super.key, required this.items, required this.value, required this.onChanged, this.border = true, this.live = const {}, this.labels});
   final List<String> items;
+
+  /// What each item shows, when not the item itself (the text in the
+  /// language shown, for an item that stays the same in all of them).
+  final Map<String, String>? labels;
 
   /// Items marked with a pulsing dot: something runs there.
   final Set<String> live;
@@ -544,7 +549,7 @@ class KTabs extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          items[i].toUpperCase(),
+                          (labels?[items[i]] ?? items[i]).toUpperCase(),
                           style: KText.mono(13, color: on || hover ? K.textPrimary : K.textMuted, tracking: K.trLabel),
                         ),
                         if (live.contains(items[i])) ...[const SizedBox(width: 8), const PulseDot(color: K.accent)],
@@ -618,8 +623,11 @@ class _KInputState extends State<KInput> {
 
 /// Segmented control used for modes, views and input methods.
 class Seg extends StatelessWidget {
-  const Seg({super.key, required this.items, required this.value, required this.onChanged, this.small = false});
+  const Seg({super.key, required this.items, required this.value, required this.onChanged, this.small = false, this.labels});
   final List<String> items;
+
+  /// What each item shows, when not the item itself (see [KTabs.labels]).
+  final Map<String, String>? labels;
   final String? value;
   final ValueChanged<String> onChanged;
   final bool small;
@@ -653,7 +661,7 @@ class Seg extends StatelessWidget {
                         border: i > 0 ? const Border(left: BorderSide(color: K.borderHairline)) : null,
                       ),
                       child: Text(
-                        items[i],
+                        labels?[items[i]] ?? items[i],
                         style: KText.mono(11, color: on ? K.textOnAccent : K.textSecondary, tracking: K.trLabel),
                       ),
                     );
@@ -665,6 +673,41 @@ class Seg extends StatelessWidget {
       ),
     );
   }
+}
+
+/// A choice among a few, in a field that opens a list.
+class KDropdown<T> extends StatelessWidget {
+  const KDropdown({super.key, required this.value, required this.items, required this.onChanged});
+  final T value;
+  final Map<T, String> items;
+  final ValueChanged<T> onChanged;
+  @override
+  Widget build(BuildContext context) => Container(
+    height: 34,
+    padding: const EdgeInsets.symmetric(horizontal: 10),
+    decoration: BoxDecoration(
+      color: K.surfaceSunken,
+      border: Border.all(color: K.borderHairline),
+      borderRadius: BorderRadius.circular(K.radiusControl),
+    ),
+    child: DropdownButtonHideUnderline(
+      child: DropdownButton<T>(
+        value: items.containsKey(value) ? value : items.keys.firstOrNull,
+        isExpanded: true,
+        dropdownColor: K.surfaceRaised,
+        icon: const KIcon('chevron-down', size: 14, color: K.textMuted),
+        style: KText.mono(12),
+        items: [
+          for (final e in items.entries)
+            DropdownMenuItem<T>(
+              value: e.key,
+              child: Text(e.value, overflow: TextOverflow.ellipsis, style: KText.mono(12)),
+            ),
+        ],
+        onChanged: (v) => onChanged(v as T),
+      ),
+    ),
+  );
 }
 
 class MonoLabel extends StatelessWidget {
@@ -908,7 +951,7 @@ class SimTag extends StatelessWidget {
   final double height;
   @override
   Widget build(BuildContext context) => Tooltip(
-    message: 'Simulated in the app, not real hardware',
+    message: t.simulatedTip,
     child: KTag(text, tone: TagTone.info, height: height),
   );
 }
