@@ -9,6 +9,7 @@ import 'app_localizations.dart';
 import 'guides_de.dart';
 import 'guides_es.dart';
 import 'guides_fr.dart';
+import 'guides_ja.dart';
 import 'guides_pt.dart';
 
 export 'app_localizations.dart';
@@ -18,7 +19,7 @@ export 'app_localizations.dart';
 AppLocalizations t = lookupAppLocalizations(const Locale('en'));
 
 /// Each language the app has, by its own name, as Settings > Language lists them.
-const languageNames = {'en': 'English', 'de': 'Deutsch', 'es': 'Español', 'fr': 'Français', 'pt': 'Português (Brasil)'};
+const languageNames = {'en': 'English', 'de': 'Deutsch', 'es': 'Español', 'fr': 'Français', 'pt': 'Português (Brasil)', 'ja': '日本語'};
 
 /// The language to show: the one chosen in Settings ([setting], `fr` or
 /// `pt_BR`), else the first of the system's the app has, else English.
@@ -58,4 +59,4 @@ AppLocalizations get appText => t;
 String tg(String en) => (guideTables[t.localeName]?[en]) ?? en;
 
 /// The guide translations, by language.
-const guideTables = {'fr': guidesFr, 'es': guidesEs, 'de': guidesDe, 'pt': guidesPt};
+const guideTables = {'fr': guidesFr, 'es': guidesEs, 'de': guidesDe, 'pt': guidesPt, 'ja': guidesJa};
