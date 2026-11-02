@@ -114,23 +114,24 @@ class _DeviceBtnState extends State<DeviceBtn> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Flexible(
-                          child: Text(nm, style: KText.headingXs, maxLines: 1, overflow: TextOverflow.ellipsis),
-                        ),
-                        if (d.replay != null) ...[const SizedBox(width: 8), const KTag('Replay', tone: TagTone.info, height: 20)],
-                        // On a phone (no second line) one tag: Replay wins.
-                        if (d.simulated && (widget.sub || d.replay == null)) ...[
-                          const SizedBox(width: 8),
-                          SimTag(text: d.replay != null ? 'Demo' : 'Sim', height: 20),
+                    // The name first; the tags after it only while they fit
+                    // on its line (a narrow bar drops them, whole, onto a
+                    // second line that is clipped away).
+                    SizedBox(
+                      height: MediaQuery.textScalerOf(context).scale(24),
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 24,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        clipBehavior: Clip.hardEdge,
+                        children: [
+                          Text(nm, style: KText.headingXs, maxLines: 1, overflow: TextOverflow.ellipsis),
+                          if (d.replay != null) const KTag('Replay', tone: TagTone.info, height: 20),
+                          // On a phone (no second line) one tag: Replay wins.
+                          if (d.simulated && (widget.sub || d.replay == null)) SimTag(text: d.replay != null ? 'Demo' : 'Sim', height: 20),
+                          if (!widget.sub && d.replay == null && d.links.length > 1) MonoLabel('+${d.links.length - 1}', color: K.textAccent),
                         ],
-                        if (!widget.sub && d.replay == null && d.links.length > 1) ...[
-                          const SizedBox(width: 8),
-                          MonoLabel('+${d.links.length - 1}', color: K.textAccent),
-                        ],
-                      ],
+                      ),
                     ),
                     if (widget.sub) ...[
                       const SizedBox(height: 6),
