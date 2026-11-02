@@ -67,6 +67,10 @@ class Settings {
   /// The app's language (`fr`, `pt_BR`…); empty: the system's, when the app has it.
   String language = '';
 
+  /// Asked once which language to use, when the system's is one the app does
+  /// not have but comes close to (Traditional Chinese).
+  bool languageAsked = false;
+
   Map<String, dynamic> toJson() => {
     'control': control,
     'invertY': invertY,
@@ -80,6 +84,7 @@ class Settings {
     'recordVideo': recordVideo,
     'videoFps': videoFps,
     'language': language,
+    'languageAsked': languageAsked,
   };
   void load(Map? j) {
     if (j == null) return;
@@ -96,6 +101,7 @@ class Settings {
     recordVideo = j['recordVideo'] ?? recordVideo;
     videoFps = j['videoFps'] ?? videoFps;
     language = j['language'] ?? language;
+    languageAsked = j['languageAsked'] ?? languageAsked;
   }
 }
 
@@ -534,8 +540,12 @@ class Dash extends ChangeNotifier implements PadTarget {
       } catch (_) {}
     }
     sessions.sort((a, b) => b.id.compareTo(a.id));
+    loaded = true;
     notifyListeners();
   }
+
+  /// Whether [init] has read what was saved (settings, devices, recordings).
+  bool loaded = false;
 
   bool get hasSamples => sessions.any((s) => s.demo);
 

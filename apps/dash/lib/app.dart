@@ -29,6 +29,7 @@ import 'screens/update_ui.dart';
 import 'theme/tokens.dart';
 import 'ui/components.dart';
 import 'ui/icons.dart';
+import 'ui/language_prompt.dart';
 import 'ui/mark.dart';
 
 /// What Automate opens: always shown under it in the sidebar.
@@ -85,6 +86,19 @@ class _DashAppState extends State<DashApp> with SingleTickerProviderStateMixin {
       widget.dash.tick(dt);
     })..start();
     HardwareKeyboard.instance.addHandler(_onKey);
+    widget.dash.addListener(_onLoaded);
+    _onLoaded();
+  }
+
+  /// Once the settings are read: the language question, if it applies.
+  void _onLoaded() {
+    if (!widget.dash.loaded) return;
+    widget.dash.removeListener(_onLoaded);
+    if (!shouldAskLanguage(widget.dash)) return;
+    // After the boot splash has faded.
+    Future.delayed(const Duration(milliseconds: 700), () {
+      if (mounted) askLanguageIfNeeded(context, widget.dash);
+    });
   }
 
   /// Keys bound to script triggers, except while typing.
@@ -100,6 +114,7 @@ class _DashAppState extends State<DashApp> with SingleTickerProviderStateMixin {
   @override
   void dispose() {
     HardwareKeyboard.instance.removeHandler(_onKey);
+    widget.dash.removeListener(_onLoaded);
     _ticker.dispose();
     super.dispose();
   }

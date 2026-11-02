@@ -40,6 +40,16 @@ Locale resolveLocale(String setting, [List<Locale>? system]) {
   return const Locale('en');
 }
 
+/// Whether the system language the app would follow is Traditional Chinese,
+/// which it shows in Simplified Chinese: worth asking which one to use.
+bool systemIsTraditionalChinese([List<Locale>? system]) {
+  for (final l in system ?? PlatformDispatcher.instance.locales) {
+    if (!AppLocalizations.supportedLocales.any((s) => s.languageCode == l.languageCode)) continue;
+    return l.languageCode == 'zh' && (l.scriptCode == 'Hant' || const {'TW', 'HK', 'MO'}.contains(l.countryCode));
+  }
+  return false;
+}
+
 /// Switches [t] to [locale]'s text.
 void useLocale(Locale locale) => t = lookupAppLocalizations(locale);
 
