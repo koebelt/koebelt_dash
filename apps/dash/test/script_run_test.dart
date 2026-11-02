@@ -11,7 +11,9 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:koebelt_dash/core/compat.dart';
 import 'package:koebelt_dash/core/dash.dart';
+import 'package:koebelt_dash/link/protocol.dart' show appVersion;
 import 'package:koebelt_dash/scripts/hosts.dart';
 import 'package:koebelt_dash/scripts/script_runner.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -370,14 +372,14 @@ print("done")
     final pypi = MockClient(
       (_) async => http.Response(
         jsonEncode({
-          'releases': {'1.2.0': [], '1.3.0b1': [], have: [], '1.3.9b1': [], '2.0.0': []},
+          'releases': {'1.2.0': [], '1.3.0b1': [], have: [], '1.3.4': [], '1.3.9b1': [], '2.0.0': []},
         }),
         200,
       ),
     );
     await d.scripts.checkPackageUpdates(client: pypi, force: true);
-    // This app is a beta: betas count, 2.x does not.
-    expect(d.scripts.latestPackage, '1.3.9-beta.1');
+    // In a beta app betas count, in a release only releases; 2.x never.
+    expect(d.scripts.latestPackage, isPrerelease(appVersion) ? '1.3.9-beta.1' : '1.3.4');
     expect(d.scripts.packageOutdated(python), isTrue);
     await d.scripts.checkPackageUpdates(
       client: MockClient(
