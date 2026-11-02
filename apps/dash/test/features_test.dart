@@ -254,7 +254,10 @@ void main() {
       // It powers on disarmed in HOLD; arming hands it to the operator.
       expect((d.liveTel.armed, d.liveTel.mode), (false, 'HOLD'));
       d.setArmed(true);
-      await wait(200);
+      // Until the simulator answers: on a loaded CI machine, seconds.
+      for (var i = 0; i < 250 && !(d.liveTel.armed && d.liveTel.mode == 'MANUAL'); i++) {
+        await wait(20);
+      }
       expect((d.liveTel.armed, d.liveTel.mode), (true, 'MANUAL'));
       final why = 'armed ${d.liveTel.armed} estop ${d.liveTel.estop} lost ${d.linkLost} silence ${d.session?.silence} ctl ${d.canControl}';
       d.padMapper.input('n:leftStickY', 1);
