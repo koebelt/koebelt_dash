@@ -49,9 +49,9 @@ enum DeviceKind {
   List<String> get bodies => switch (this) {
     drone => const ['quad', 'hexa', 'octo', 'heli'],
     plane => const ['trainer', 'wing', 'vtol'],
-    rover => const ['4wd', 'car', 'tracked'],
+    rover => const ['4wd', 'car', 'tracked', 'balancer'],
     boat => const ['hull', 'catamaran'],
-    legged => const ['quadruped', 'hexapod'],
+    legged => const ['quadruped', 'hexapod', 'humanoid'],
     _ => const [],
   };
 

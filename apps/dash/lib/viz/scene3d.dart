@@ -291,7 +291,7 @@ class _ScenePainter extends FramePainter {
         // Body axes: forward, left, up; rolled (right side down when
         // positive), pitched (nose up), then yawed. Legged robots are small:
         // drawn larger about the ground under them, as the others are.
-        final k = kind.walks ? 2.2 : 1.0;
+        final k = kind.walks ? (body == 'humanoid' ? 1.2 : 2.2) : 1.0;
         List<double> b(double fu, double lv, double up) {
           final l1 = lv * cr - up * sr, u1 = lv * sr + up * cr;
           final f2 = fu * cp - u1 * sp, u2 = fu * sp + u1 * cp;
@@ -400,6 +400,21 @@ class _ScenePainter extends FramePainter {
               poly([b(1.25, l, .3), b(1.0, l, .55), b(-1.0, l, .55), b(-1.25, l, .3), b(-1.0, l, .02), b(1.0, l, .02)]);
             }
             heading(.9, .45);
+          case (DeviceKind.rover, 'balancer'):
+            // Two wheels that stay upright, a tall body leaning on them.
+            for (final l in const [.42, -.42]) {
+              var first = true;
+              for (var i = 0; i <= 20; i++) {
+                final a = i / 20 * 6.283, f = math.cos(a) * .35, u = .35 + math.sin(a) * .35;
+                final q = P([p[0] + cy * f - sy * l, p[1] + sy * f + cy * l, u]);
+                if (q == null) continue;
+                first ? rings.moveTo(q[0], q[1]) : rings.lineTo(q[0], q[1]);
+                first = false;
+              }
+            }
+            line(model, [p[0] - sy * .42, p[1] + cy * .42, .35], [p[0] + sy * .42, p[1] - cy * .42, .35]); // axle
+            box(-.18, .18, -.3, .3, .35, 1.4);
+            heading(.18, 1.2);
           case (DeviceKind.rover, _):
             box(-1.2, 1.2, -.8, .8, 0, .6);
             heading(1.2, .6);
@@ -425,6 +440,32 @@ class _ScenePainter extends FramePainter {
               line(model, deck[i], water[i]);
             }
             heading(1.5, .45);
+          case (DeviceKind.legged, 'humanoid'):
+            // Hips at its height, a torso and a head above; legs and arms
+            // swing in opposition while it walks.
+            final moving = S.speed > .03;
+            final ph = DateTime.now().millisecondsSinceEpoch / 1000 * 1.8 % 1 * 6.283;
+            final lx = -sy, ly = cy;
+            for (final (side, off) in const [(1.0, 0.0), (-1.0, 3.1416)]) {
+              final swing = moving ? math.sin(ph + off) * .18 : 0.0, lift = moving ? math.max(0.0, math.cos(ph + off)) * .08 : 0.0;
+              final hip = b(0, .12 * side, 0);
+              final f = b(swing, .14 * side, 0);
+              final foot = [f[0], f[1], lift * k];
+              final knee = [(hip[0] + foot[0]) / 2 + cy * .06 * k, (hip[1] + foot[1]) / 2 + sy * .06 * k, (hip[2] + foot[2]) / 2];
+              line(model, hip, knee);
+              line(model, knee, foot);
+              line(model, foot, [foot[0] + cy * .12 * k, foot[1] + sy * .12 * k, foot[2]]); // foot
+              // The arm opposite: from the shoulder, swinging the other way.
+              final sh = b(0, .2 * side, .55);
+              final hand = b(-swing * .8, .24 * side, .1);
+              line(model, sh, hand);
+              line(model, sh, [sh[0] - lx * .2 * side * k, sh[1] - ly * .2 * side * k, sh[2]]); // shoulders
+            }
+            line(model, b(0, .12, 0), b(0, -.12, 0)); // pelvis
+            line(model, b(0, 0, 0), b(0, 0, .55)); // spine
+            ring(0, 0, .72, .1, upright: true); // head
+            ring(0, 0, .72, .1);
+            heading(.1, .72);
           case (DeviceKind.legged, _):
             // The body at its height, legs from each hip to a foot on the
             // ground. Feet step while it moves: diagonal pairs in a trot,

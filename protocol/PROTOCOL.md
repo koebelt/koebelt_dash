@@ -56,19 +56,21 @@ manufacturer data (company id `0xFFFF`) holds the ASCII string `KL1`.
 ## Device kinds
 
 `drone`, `plane`, `rover`, `boat`, `legged`, `arm`, `rocket`, `bench`,
-`generic`. The kind picks the app's default dashboard, the control screen and
-the 3D model. A plane is flown like a drone (it takes off, flies to points,
-lands, returns home) but cannot stop: it holds by circling. A boat is driven
-like a rover. A legged robot (quadruped, hexapod) walks forward, sideways and
-turning at once; its `pos` z is its body height, and it stands or sits.
-Its `ctl` axes: `lx` turns, `ly` raises or lowers the body, `rx` steps
-sideways (right is positive), `ry` walks forward.
-Apps before 1.4 show a plane, a boat or a legged robot as a generic device.
+`generic`. The kind picks the app's default dashboard, the control screen
+and the 3D model. A plane is flown like a drone (it takes off, flies to
+points, lands, returns home) but cannot stop: it holds by circling. A boat
+is driven like a rover. A legged robot (quadruped, hexapod, humanoid) walks
+forward, sideways and turning at once; its `pos` z is its body height, and
+it stands or sits. Its `ctl` axes: `lx` turns, `ly` raises or lowers the
+body, `rx` steps sideways (right is positive), `ry` walks forward. Apps
+before 1.4 show a plane, a boat or a legged robot as a generic device.
 
 The optional `body` in `hello` says which shape the app draws, the first
 being the default: drone `quad`, `hexa`, `octo`, `heli`; plane `trainer`,
-`wing`, `vtol`; rover `4wd`, `car`, `tracked`; boat `hull`, `catamaran`;
-legged `quadruped`, `hexapod`. MAVLink vehicles get theirs from MAV_TYPE.
+`wing`, `vtol`; rover `4wd`, `car`, `tracked`, `balancer` (two wheels,
+self-balancing: it leans with `att` pitch); boat `hull`, `catamaran`; legged
+`quadruped`, `hexapod`, `humanoid` (on two legs). MAVLink vehicles get theirs
+from MAV_TYPE.
 
 ## Modes
 

@@ -208,7 +208,8 @@ void main() {
   testWidgets('five devices at once, large text, the other stick layouts', (tester) async {
     final (sw, ids) = await _start(tester);
     await sw.run(() async {
-      await sw.connect(ids);
+      // As many as the app connects at once.
+      await sw.connect(ids.take(8).toList());
       // An alert showing too (any latency is over this limit): the top bar
       // at its fullest.
       sw.dash.updateAlerts((p) => p.limit['latency'] = 1);

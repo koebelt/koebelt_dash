@@ -321,6 +321,24 @@ List<DeviceInfo> simTemplates() => [
     sensors: ['IMU', 'GPS', 'FOOT CONTACTS', 'CAMERA'],
   ),
   DeviceInfo(
+    id: 'wobble',
+    name: 'Wobble',
+    kind: DeviceKind.rover,
+    body: 'balancer',
+    model: 'Two-wheel balancing robot',
+    battery: 88,
+    sensors: ['IMU', 'WHEEL ODOM', 'CAMERA'],
+  ),
+  DeviceInfo(
+    id: 'ada',
+    name: 'Ada',
+    kind: DeviceKind.legged,
+    body: 'humanoid',
+    model: 'Humanoid · 22 servos',
+    battery: 64,
+    sensors: ['IMU', 'GPS', 'FOOT CONTACTS', 'CAMERA'],
+  ),
+  DeviceInfo(
     id: 'otter',
     name: 'Otter',
     kind: DeviceKind.boat,
@@ -1298,6 +1316,7 @@ class Dash extends ChangeNotifier implements PadTarget {
       model: t.model,
       battery: t.battery,
       sensors: t.sensors,
+      body: t.body,
       via: 'Simulated in the app',
     );
     devices.add(d);

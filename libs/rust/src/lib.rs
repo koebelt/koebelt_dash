@@ -146,9 +146,9 @@ impl Kind {
         match self {
             Kind::Drone => &["quad", "hexa", "octo", "heli"],
             Kind::Plane => &["trainer", "wing", "vtol"],
-            Kind::Rover => &["4wd", "car", "tracked"],
+            Kind::Rover => &["4wd", "car", "tracked", "balancer"],
             Kind::Boat => &["hull", "catamaran"],
-            Kind::Legged => &["quadruped", "hexapod"],
+            Kind::Legged => &["quadruped", "hexapod", "humanoid"],
             _ => &[],
         }
     }

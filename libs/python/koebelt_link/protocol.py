@@ -23,9 +23,9 @@ DRIVEN = ("rover", "boat", "legged")
 BODIES = {
     "drone": ("quad", "hexa", "octo", "heli"),
     "plane": ("trainer", "wing", "vtol"),
-    "rover": ("4wd", "car", "tracked"),
+    "rover": ("4wd", "car", "tracked", "balancer"),
     "boat": ("hull", "catamaran"),
-    "legged": ("quadruped", "hexapod"),
+    "legged": ("quadruped", "hexapod", "humanoid"),
 }
 
 #: Radio link profiles (protocol/PROTOCOL.md, "Radio links"): id -> (baud,

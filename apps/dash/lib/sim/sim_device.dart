@@ -240,6 +240,7 @@ class SimDevice {
           'name': info.name,
           'kind': kind.name,
           'model': info.model,
+          if (info.body.isNotEmpty) 'body': info.body,
           'fw': '2.4.1',
           'lib': 'sim/1.0.0',
           'sensors': info.sensors,
@@ -847,6 +848,7 @@ class SimDevice {
     } else if (live && (mode == 'MANUAL' || mode == 'AUTO')) {
       // MANUAL: the operator's sticks; AUTO: the sticks dash sends for a script.
       sp = inp[3] * 4 * speed * 2;
+      if (info.body == 'balancer') sp *= .4; // a balancing robot is slower
       tu = -inp[0] * 1.2 - inp[2] * .6;
     }
     final k = math.min(1.0, dt * (boat ? .8 : 2.5));
@@ -862,6 +864,9 @@ class SimDevice {
     final drift = boat ? const [.12, .06] : const [0.0, 0.0];
     pos = [pos[0] + (vel[0] + drift[0]) * dt, pos[1] + (vel[1] + drift[1]) * dt, 0];
     pitch = _rnd(.015) + math.sin(t * (boat ? 1.1 : 3)) * (boat ? .03 : .01 * ns);
+    // On two wheels it balances: it leans into what it does, forward to
+    // speed up, back to brake, and sways a little standing still.
+    if (info.body == 'balancer') pitch = (-(ns - cur) / math.max(dt, 1e-3) * .06 - ns * .04).clamp(-.35, .35) + math.sin(t * 1.7) * .012;
     roll = _rnd(.015) + yawRate * ns * .02 + (boat ? math.sin(t * .8) * .04 : 0);
     current = 2 + ns.abs() * 2.2 + _rnd(.3);
   }
@@ -994,7 +999,9 @@ class SimDevice {
       turn = -inp[0];
       trim = inp[1];
     }
-    final h = stance == 'stand' && live ? P('BODY_H', .22) + trim * .05 : .08;
+    // A humanoid stands about four times as tall, and crouches further.
+    final tall = info.body == 'humanoid' ? 3.8 : 1.0;
+    final h = (stance == 'stand' && live ? P('BODY_H', .22) + trim * .05 : .08) * tall;
     final k = math.min(1.0, dt * 4);
     final c = math.cos(yaw), s = math.sin(yaw);
     // Forward along the heading; sideways to the right.

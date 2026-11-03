@@ -1,6 +1,8 @@
 // Planes and boats: what they are from MAVLink, and the simulated ones flying
 // and sailing a stored sequence (a plane passes its waypoints and lands in a
 // glide; a boat drifts in the current).
+import 'dart:math' as math;
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:koebelt_dash/core/dash.dart';
 import 'package:koebelt_dash/core/model.dart';
@@ -17,11 +19,11 @@ Future<void> _until(Dash d, bool Function() done, {int maxMs = 20000}) async {
   }
 }
 
-Future<Dash> _connect(DeviceKind kind) async {
+Future<Dash> _connect(DeviceKind kind, {String? id}) async {
   SharedPreferences.setMockInitialValues({});
   final d = Dash();
   await d.init();
-  final dev = d.addSimulated(simTemplates().firstWhere((t) => t.kind == kind));
+  final dev = d.addSimulated(simTemplates().firstWhere((t) => t.kind == kind && (id == null || t.id == id)));
   await d.connect(dev.id);
   d.setSpeed(1);
   await _until(d, () => false, maxMs: 300);
@@ -47,6 +49,8 @@ void main() {
     expect(DeviceKind.drone.bodyOr('car'), 'quad', reason: 'not a drone shape');
     expect(DeviceKind.rover.bodyOr(''), '4wd');
     expect(DeviceKind.legged.bodyOr(null), 'quadruped');
+    expect(DeviceKind.legged.bodyOr('humanoid'), 'humanoid');
+    expect(DeviceKind.rover.bodyOr('balancer'), 'balancer');
     expect(DeviceKind.arm.bodyOr('hexa'), '');
     final info = DeviceInfo(id: 'x', name: 'X', kind: DeviceKind.rover, body: 'tracked');
     expect(DeviceInfo.fromJson(info.toJson()).body, 'tracked');
@@ -105,6 +109,36 @@ void main() {
     expect(d.liveTel.pos[2], lessThan(.12), reason: 'sitting, the body is low');
     await d.disconnect();
     d.dispose();
+  });
+
+  test('a two-wheeled robot leans to drive; a humanoid stands tall and crouches', () async {
+    final w = await _connect(DeviceKind.rover, id: 'wobble');
+    expect(w.device!.body, 'balancer');
+    w.setArmed(true);
+    w.operatorMode('MANUAL');
+    var leaned = 0.0;
+    await _until(w, () {
+      w.input[3] = 1;
+      leaned = math.min(leaned, w.liveTel.pitch);
+      return w.liveTel.speed > .5;
+    });
+    expect(leaned, lessThan(-.05), reason: 'nose down to speed up');
+    await w.disconnect();
+    w.dispose();
+
+    final a = await _connect(DeviceKind.legged, id: 'ada');
+    expect(a.device!.body, 'humanoid');
+    a.setArmed(true);
+    await _until(a, () => a.liveTel.pos[2] > .7);
+    expect(a.liveTel.pos[2], greaterThan(.7), reason: 'standing: hips at about 0.8 m');
+    a.operatorMode('MANUAL');
+    await _until(a, () {
+      a.input[1] = -1; // crouch
+      return a.liveTel.pos[2] < .7;
+    });
+    expect(a.liveTel.pos[2], lessThan(.7));
+    await a.disconnect();
+    a.dispose();
   });
 
   test('a boat sails a loop despite the current', () async {
