@@ -5557,6 +5557,114 @@ abstract class AppLocalizations {
   /// **'Tilt · walk and strafe'**
   String get tiltWalk;
 
+  /// No description provided for @shapeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Shape'**
+  String get shapeLabel;
+
+  /// No description provided for @shapeAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto ({shape})'**
+  String shapeAuto(String shape);
+
+  /// No description provided for @shQuad.
+  ///
+  /// In en, this message translates to:
+  /// **'Quadcopter'**
+  String get shQuad;
+
+  /// No description provided for @shHexa.
+  ///
+  /// In en, this message translates to:
+  /// **'Hexacopter'**
+  String get shHexa;
+
+  /// No description provided for @shOcto.
+  ///
+  /// In en, this message translates to:
+  /// **'Octocopter'**
+  String get shOcto;
+
+  /// No description provided for @shHeli.
+  ///
+  /// In en, this message translates to:
+  /// **'Helicopter'**
+  String get shHeli;
+
+  /// No description provided for @shTrainer.
+  ///
+  /// In en, this message translates to:
+  /// **'Trainer'**
+  String get shTrainer;
+
+  /// No description provided for @shWing.
+  ///
+  /// In en, this message translates to:
+  /// **'Flying wing'**
+  String get shWing;
+
+  /// No description provided for @shVtol.
+  ///
+  /// In en, this message translates to:
+  /// **'VTOL'**
+  String get shVtol;
+
+  /// No description provided for @sh4wd.
+  ///
+  /// In en, this message translates to:
+  /// **'4WD'**
+  String get sh4wd;
+
+  /// No description provided for @shCar.
+  ///
+  /// In en, this message translates to:
+  /// **'Car'**
+  String get shCar;
+
+  /// No description provided for @shTracked.
+  ///
+  /// In en, this message translates to:
+  /// **'Tracked'**
+  String get shTracked;
+
+  /// No description provided for @shBalancer.
+  ///
+  /// In en, this message translates to:
+  /// **'Two-wheel balancing'**
+  String get shBalancer;
+
+  /// No description provided for @shHull.
+  ///
+  /// In en, this message translates to:
+  /// **'Hull'**
+  String get shHull;
+
+  /// No description provided for @shCatamaran.
+  ///
+  /// In en, this message translates to:
+  /// **'Catamaran'**
+  String get shCatamaran;
+
+  /// No description provided for @shQuadruped.
+  ///
+  /// In en, this message translates to:
+  /// **'Quadruped'**
+  String get shQuadruped;
+
+  /// No description provided for @shHexapod.
+  ///
+  /// In en, this message translates to:
+  /// **'Hexapod'**
+  String get shHexapod;
+
+  /// No description provided for @shHumanoid.
+  ///
+  /// In en, this message translates to:
+  /// **'Humanoid'**
+  String get shHumanoid;
+
   /// No description provided for @kindArm.
   ///
   /// In en, this message translates to:

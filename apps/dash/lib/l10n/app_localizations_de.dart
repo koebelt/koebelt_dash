@@ -3080,6 +3080,62 @@ class AppLocalizationsDe extends AppLocalizations {
   String get tiltWalk => 'Tilt · laufen und seitwärts';
 
   @override
+  String get shapeLabel => 'Form';
+
+  @override
+  String shapeAuto(String shape) {
+    return 'Auto ($shape)';
+  }
+
+  @override
+  String get shQuad => 'Quadrocopter';
+
+  @override
+  String get shHexa => 'Hexacopter';
+
+  @override
+  String get shOcto => 'Octocopter';
+
+  @override
+  String get shHeli => 'Hubschrauber';
+
+  @override
+  String get shTrainer => 'Trainer';
+
+  @override
+  String get shWing => 'Nurflügler';
+
+  @override
+  String get shVtol => 'VTOL';
+
+  @override
+  String get sh4wd => 'Allrad';
+
+  @override
+  String get shCar => 'Auto';
+
+  @override
+  String get shTracked => 'Kettenfahrzeug';
+
+  @override
+  String get shBalancer => 'Zweirad-Balancer';
+
+  @override
+  String get shHull => 'Rumpf';
+
+  @override
+  String get shCatamaran => 'Katamaran';
+
+  @override
+  String get shQuadruped => 'Vierbeiner';
+
+  @override
+  String get shHexapod => 'Hexapod';
+
+  @override
+  String get shHumanoid => 'Humanoid';
+
+  @override
   String get kindArm => 'Roboterarm';
 
   @override

@@ -437,7 +437,14 @@ class Dash extends ChangeNotifier implements PadTarget {
   String get body {
     final r = replay;
     final info = r == null ? device : devices.where((x) => x.id == r.session.deviceId).firstOrNull;
-    return kind.bodyOr(info?.body);
+    return info?.shape ?? kind.bodyOr(null);
+  }
+
+  /// Picks the shape the 3D view draws for [dev] (empty: as it declares).
+  void setBodyChoice(DeviceInfo dev, String body) {
+    dev.bodyChoice = body;
+    _saveDevices();
+    notifyListeners();
   }
 
   bool get hasDevice => focus != null;

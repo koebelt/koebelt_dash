@@ -1934,6 +1934,31 @@
   "stickTurn": "Turn",
   "legHeight": "Height",
   "tiltWalk": "Tilt · walk and strafe",
+  "shapeLabel": "Shape",
+  "shapeAuto": "Auto ({shape})",
+  "@shapeAuto": {
+    "placeholders": {
+      "shape": {
+        "type": "String"
+      }
+    }
+  },
+  "shQuad": "Quadcopter",
+  "shHexa": "Hexacopter",
+  "shOcto": "Octocopter",
+  "shHeli": "Helicopter",
+  "shTrainer": "Trainer",
+  "shWing": "Flying wing",
+  "shVtol": "VTOL",
+  "sh4wd": "4WD",
+  "shCar": "Car",
+  "shTracked": "Tracked",
+  "shBalancer": "Two-wheel balancing",
+  "shHull": "Hull",
+  "shCatamaran": "Catamaran",
+  "shQuadruped": "Quadruped",
+  "shHexapod": "Hexapod",
+  "shHumanoid": "Humanoid",
   "kindArm": "Robot arm",
   "kindRocket": "Rocket",
   "kindBench": "Test bench",

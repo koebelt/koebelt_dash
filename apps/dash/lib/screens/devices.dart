@@ -121,6 +121,27 @@ class DevicesScreen extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         MonoLabel('${dev.kind.label} · ${dev.model.isEmpty ? dev.via : dev.model}', maxLines: 2, height: 1.3),
+        // The shape the 3D view draws, for firmware that does not say.
+        if (dev.kind.bodies.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              MonoLabel(t.shapeLabel),
+              const SizedBox(width: 10),
+              Flexible(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 260),
+                  child: KDropdown<String>(
+                    value: dev.kind.bodies.contains(dev.bodyChoice) ? dev.bodyChoice : '',
+                    items: {'': t.shapeAuto(shapeName(dev.kind.bodyOr(dev.body))), for (final b in dev.kind.bodies) b: shapeName(b)},
+                    onChanged: (v) => d.setBodyChoice(dev, v),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ],
     );
     final actions = Row(

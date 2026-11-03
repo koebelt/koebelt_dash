@@ -56,6 +56,24 @@ void main() {
     expect(DeviceInfo.fromJson(info.toJson()).body, 'tracked');
   });
 
+  test('a shape picked in the app wins over the declared one, and is kept', () async {
+    final d = await _connect(DeviceKind.rover, id: 'wobble');
+    final dev = d.device!;
+    expect(d.body, 'balancer', reason: 'as it declares');
+    d.setBodyChoice(dev, 'tracked');
+    expect(d.body, 'tracked');
+    await d.disconnect();
+    await d.connect(dev.id);
+    await _until(d, () => false, maxMs: 300);
+    expect(dev.body, 'balancer', reason: 'it still declares its own');
+    expect(d.body, 'tracked', reason: 'the pick survives the reconnect');
+    expect(DeviceInfo.fromJson(dev.toJson()).shape, 'tracked', reason: 'and is saved');
+    d.setBodyChoice(dev, '');
+    expect(d.body, 'balancer');
+    await d.disconnect();
+    d.dispose();
+  });
+
   test('a plane takes off, passes its waypoint and lands in a glide', () async {
     final d = await _connect(DeviceKind.plane);
     final q = Sequence(

@@ -3036,6 +3036,62 @@ class AppLocalizationsZh extends AppLocalizations {
   String get tiltWalk => '倾斜 · 行走和侧移';
 
   @override
+  String get shapeLabel => '外形';
+
+  @override
+  String shapeAuto(String shape) {
+    return '自动（$shape）';
+  }
+
+  @override
+  String get shQuad => '四旋翼';
+
+  @override
+  String get shHexa => '六旋翼';
+
+  @override
+  String get shOcto => '八旋翼';
+
+  @override
+  String get shHeli => '直升机';
+
+  @override
+  String get shTrainer => '教练机';
+
+  @override
+  String get shWing => '飞翼';
+
+  @override
+  String get shVtol => '垂直起降';
+
+  @override
+  String get sh4wd => '四驱';
+
+  @override
+  String get shCar => '汽车';
+
+  @override
+  String get shTracked => '履带';
+
+  @override
+  String get shBalancer => '两轮自平衡';
+
+  @override
+  String get shHull => '单体船';
+
+  @override
+  String get shCatamaran => '双体船';
+
+  @override
+  String get shQuadruped => '四足';
+
+  @override
+  String get shHexapod => '六足';
+
+  @override
+  String get shHumanoid => '人形';
+
+  @override
   String get kindArm => '机械臂';
 
   @override

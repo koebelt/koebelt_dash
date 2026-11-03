@@ -3045,6 +3045,62 @@ class AppLocalizationsJa extends AppLocalizations {
   String get tiltWalk => 'チルト · 歩行と横移動';
 
   @override
+  String get shapeLabel => '形状';
+
+  @override
+  String shapeAuto(String shape) {
+    return '自動（$shape）';
+  }
+
+  @override
+  String get shQuad => 'クアッドコプター';
+
+  @override
+  String get shHexa => 'ヘキサコプター';
+
+  @override
+  String get shOcto => 'オクトコプター';
+
+  @override
+  String get shHeli => 'ヘリコプター';
+
+  @override
+  String get shTrainer => 'トレーナー機';
+
+  @override
+  String get shWing => '全翼機';
+
+  @override
+  String get shVtol => 'VTOL';
+
+  @override
+  String get sh4wd => '四輪駆動';
+
+  @override
+  String get shCar => '車';
+
+  @override
+  String get shTracked => 'クローラー';
+
+  @override
+  String get shBalancer => '二輪倒立振子';
+
+  @override
+  String get shHull => '船体';
+
+  @override
+  String get shCatamaran => 'カタマラン';
+
+  @override
+  String get shQuadruped => '四足';
+
+  @override
+  String get shHexapod => '六足';
+
+  @override
+  String get shHumanoid => 'ヒューマノイド';
+
+  @override
   String get kindArm => 'ロボットアーム';
 
   @override

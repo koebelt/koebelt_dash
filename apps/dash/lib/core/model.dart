@@ -61,6 +61,27 @@ enum DeviceKind {
   static DeviceKind parse(String? s) => DeviceKind.values.firstWhere((k) => k.name == s, orElse: () => DeviceKind.generic);
 }
 
+/// A body shape's name in the language shown ([DeviceKind.bodies]).
+String shapeName(String body) => switch (body) {
+  'quad' => t.shQuad,
+  'hexa' => t.shHexa,
+  'octo' => t.shOcto,
+  'heli' => t.shHeli,
+  'trainer' => t.shTrainer,
+  'wing' => t.shWing,
+  'vtol' => t.shVtol,
+  '4wd' => t.sh4wd,
+  'car' => t.shCar,
+  'tracked' => t.shTracked,
+  'balancer' => t.shBalancer,
+  'hull' => t.shHull,
+  'catamaran' => t.shCatamaran,
+  'quadruped' => t.shQuadruped,
+  'hexapod' => t.shHexapod,
+  'humanoid' => t.shHumanoid,
+  _ => body,
+};
+
 /// How the app reaches a device. `radio` is a serial port with a radio
 /// modem behind it (see link/radio.dart).
 enum TransportKind {
@@ -150,6 +171,7 @@ class DeviceInfo {
     this.lib,
     this.protocol,
     this.body = '',
+    this.bodyChoice = '',
   });
 
   final String id;
@@ -199,6 +221,14 @@ class DeviceInfo {
   /// as it declared it; empty for its kind's default.
   String body;
 
+  /// The shape picked in the app (Devices), over what it declares; empty to
+  /// follow the device.
+  String bodyChoice;
+
+  /// The shape the 3D view draws: the one picked, else the declared one,
+  /// else the kind's usual one.
+  String get shape => kind.bodyOr(bodyChoice.isNotEmpty ? bodyChoice : body);
+
   bool get simulated => transport == TransportKind.sim;
 
   Map<String, dynamic> toJson() => {
@@ -220,6 +250,7 @@ class DeviceInfo {
     'lib': ?lib,
     'protocol': ?protocol,
     if (body.isNotEmpty) 'body': body,
+    if (bodyChoice.isNotEmpty) 'bodyChoice': bodyChoice,
   };
 
   factory DeviceInfo.fromJson(Map<String, dynamic> j) => DeviceInfo(
@@ -241,6 +272,7 @@ class DeviceInfo {
     lib: j['lib'] as String?,
     protocol: (j['protocol'] as num?)?.toInt(),
     body: j['body'] as String? ?? '',
+    bodyChoice: j['bodyChoice'] as String? ?? '',
     online: true, // reachability is only known when connecting
   );
 }
