@@ -1049,6 +1049,7 @@ const guidesJa = <String, String>{
   'koebelt/link is a convenience link, not a certified safety system.': 'koebelt/link は便利なリンクであり、認証済みの安全システムではありません。',
   'Flight controllers, small rovers, sensor boards': 'フライトコントローラー、小型地上ロボット、センサーボード',
   'Companion computers, robot arms over USB': 'コンパニオンコンピューター、USB 接続のロボットアーム',
+  'Small robots and sensor boards, in Python': '小型ロボットとセンサーボードを Python で',
   'Robots that already publish ROS topics': '既に ROS トピックを publish しているロボット',
   'Custom firmware, high-rate control loops': 'カスタムファームウェア、高レートの制御ループ',
 };

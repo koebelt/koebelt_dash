@@ -99,9 +99,21 @@ koebelt-link = { path = "$root/libs/rust", features = ["ble"] }
   final py = File('$root/libs/python/.venv/bin/python');
   test('Python examples run against the library', () {
     final failures = <String>[];
-    for (final (id, i, _, _, code) in all.where((e) => e.$4 == 'python')) {
+    for (final (id, i, _, _, code) in all.where((e) => e.$4 == 'python' && e.$3 != 'micropython')) {
       final f = File('${work.path}/${id}_$i.py')..writeAsStringSync(code);
       final r = Process.runSync(py.path, ['$root/libs/python/tests/run_guide_example.py', f.path]);
+      if (r.exitCode != 0) failures.add('${id}_$i:\n${(r.stderr as String).trim().split('\n').reversed.take(6).toList().reversed.join('\n')}');
+    }
+    expect(failures, isEmpty, reason: failures.join('\n\n'));
+  }, skip: py.existsSync() ? false : 'python venv not set up (libs/python)');
+
+  test('MicroPython examples run against the module', () {
+    final mp = all.where((e) => e.$3 == 'micropython').toList();
+    expect(mp, isNotEmpty);
+    final failures = <String>[];
+    for (final (id, i, _, _, code) in mp) {
+      final f = File('${work.path}/${id}_${i}_mp.py')..writeAsStringSync(code);
+      final r = Process.runSync(py.path, ['$root/libs/micropython/tests/run_guide_example.py', f.path]);
       if (r.exitCode != 0) failures.add('${id}_$i:\n${(r.stderr as String).trim().split('\n').reversed.take(6).toList().reversed.join('\n')}');
     }
     expect(failures, isEmpty, reason: failures.join('\n\n'));
@@ -118,7 +130,7 @@ for path in sys.argv[1:]:
     c = yaml.safe_load(open(path))
     bad = (set(c) - top) | (set(c.get("sensors") or {}) - sensors) | (set(c.get("controls") or {}) - controls) | (set(c.get("safety") or {}) - safety)
     assert not bad, f"{path}: unknown keys {sorted(bad)}"
-    assert c.get("kind") in ("drone", "rover", "arm", "rocket", "bench", "generic"), path
+    assert c.get("kind") in ("drone", "plane", "rover", "boat", "arm", "rocket", "bench", "generic"), path
     assert set(c.get("video") or {}) <= {"topic", "port", "label"}, path
     for ch in c.get("channels") or []:
         assert {"id", "topic"} <= set(ch), f"{path}: channel needs id and topic"

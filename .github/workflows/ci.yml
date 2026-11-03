@@ -48,6 +48,8 @@ jobs:
         with: { python-version: "3.12" }
       - run: pip install -e ".[dev]" && pytest -q
       - run: PYTHONPATH=../ros2/koebelt_link_ros pytest -q ../ros2/koebelt_link_ros/test
+      # MicroPython: the module run by CPython, and compiled with mpy-cross.
+      - run: pip install mpy-cross && pytest -q ../micropython/tests
 
   # koebelt-dash-scripts, on the oldest and newest Python and websockets it supports.
   python-dash-scripts:

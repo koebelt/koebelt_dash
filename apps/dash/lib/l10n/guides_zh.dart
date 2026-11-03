@@ -1025,6 +1025,7 @@ const guidesZh = <String, String>{
   'koebelt/link is a convenience link, not a certified safety system.': 'koebelt/link 是一个便利的链路，而不是经过认证的安全系统。',
   'Flight controllers, small rovers, sensor boards': '飞控、小型地面机器人、传感器板',
   'Companion computers, robot arms over USB': '协处理电脑、通过 USB 连接的机械臂',
+  'Small robots and sensor boards, in Python': '小型机器人和传感器板，用 Python',
   'Robots that already publish ROS topics': '已经发布 ROS 话题的机器人',
   'Custom firmware, high-rate control loops': '自定义固件、高频控制回路',
 };

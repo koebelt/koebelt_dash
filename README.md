@@ -19,6 +19,7 @@ connects your hardware to it.
 | [`apps/dash/`](apps/dash/) | The Flutter app: iOS, Android, macOS, Windows and Linux (x64 and ARM64). |
 | [`libs/arduino/KoebeltLink/`](libs/arduino/KoebeltLink/) | C++ library for ESP32, RP2040 W, Teensy and other Arduino boards. |
 | [`libs/python/`](libs/python/) | `koebelt-link` for Raspberry Pi, Jetson and any Linux/macOS computer, plus a network simulator. |
+| [`libs/micropython/`](libs/micropython/) | `koebelt_link.py` for MicroPython boards: ESP32, Raspberry Pi Pico W. |
 | [`libs/rust/`](libs/rust/) | `koebelt-link` crate: `no_std` core with no dependencies, plus a `std` layer. |
 | [`libs/ros2/koebelt_link_ros/`](libs/ros2/koebelt_link_ros/) | ROS 2 bridge node that maps existing topics to the app. |
 | [`libs/python-dash-scripts/`](libs/python-dash-scripts/) | `koebelt-dash-scripts`: Python scripts that drive devices through the app, and the script host for phones. |
@@ -30,6 +31,7 @@ connects your hardware to it.
 |---|---|
 | Arduino | Library Manager: search **KoebeltLink**. PlatformIO: `lib_deps = koebelt/KoebeltLink@^1.1.0` |
 | Python | `pip install koebelt-link` |
+| MicroPython | `mpremote mip install github:koebelt/koebelt_dash/libs/micropython` |
 | Rust | `cargo add koebelt-link` |
 | ROS 2 | `pip install koebelt-link`, then build `libs/ros2/koebelt_link_ros` in your workspace |
 
@@ -123,26 +125,26 @@ connects your hardware to it.
 
 ## Library support
 
-Every library implements the whole protocol. What differs is what each
-platform can do:
+Every library implements the protocol. What differs is what each platform
+can do:
 
-| | Arduino | Python | Rust | ROS 2 bridge |
-|---|---|---|---|---|
-| Wi-Fi (UDP) | ESP32, ESP8266, Pico W, UNO R4 WiFi, Nano 33 IoT, MKR WiFi 1010 / 1000, Nano RP2040 Connect, Portenta, GIGA | yes | yes, `std` | yes |
-| Any networking library (`beginUdp(udp)`): W5500/ENC28J60 Ethernet, QNEthernet, WiFiEspAT, WiFi101 | yes | – | any `Transport` | – |
-| BLE peripheral | ESP32 (Bluedroid or NimBLE), nRF52 (Bluefruit), Nano 33 BLE / IoT, UNO R4 WiFi (ArduinoBLE) | yes (`bless`) | `.ble()` with feature `ble` (Linux, macOS, Windows); `no_std`: your stack implements `Transport` | yes |
-| Bluetooth serial modules (HM-10 family, HC-05/06, RN4870, Bluno) | `beginModule()` | `module=` | `.module()` | – |
-| USB serial | any `Stream` | yes (`pyserial`) | yes (`stty`, no deps) | yes |
-| Radio: SiK, XBee, HC-12, LoRa UART | `beginRadio()` | `radio=` | `.radio()` | `radio:` |
-| LoRa on SPI | `fallback(LORA)` | via a UART module | via a UART module | via a UART module |
-| Several links, fallback | yes | yes | yes (`Fallback`) | `fallback:` |
-| All telemetry channels, points, tracks, log | yes | yes | yes | from topics |
-| Custom channels, parameters with labels | yes | yes | yes | yes |
-| Saved parameters (`psave`) | ESP32 flash | file | file | file |
-| Pairing key storage | ESP32 flash | file | file | file |
-| Video | `video()` + ESP32-CAM example | `MjpegServer`, `camera()` | `MjpegServer` | `video:` topic |
-| Sequences stored on the device | 32 steps (8 on AVR) | 64 steps | 32 steps | yes, via Python |
-| `no_std` / embedded | — | — | yes | — |
+| | Arduino | Python | MicroPython | Rust | ROS 2 bridge |
+|---|---|---|---|---|---|
+| Wi-Fi (UDP) | ESP32, ESP8266, Pico W, UNO R4 WiFi, Nano 33 IoT, MKR WiFi 1010 / 1000, Nano RP2040 Connect, Portenta, GIGA | yes | yes (`network`) | yes, `std` | yes |
+| Any networking library (`beginUdp(udp)`): W5500/ENC28J60 Ethernet, QNEthernet, WiFiEspAT, WiFi101 | yes | – | – | any `Transport` | – |
+| BLE peripheral | ESP32 (Bluedroid or NimBLE), nRF52 (Bluefruit), Nano 33 BLE / IoT, UNO R4 WiFi (ArduinoBLE) | yes (`bless`) | – | `.ble()` with feature `ble` (Linux, macOS, Windows); `no_std`: your stack implements `Transport` | yes |
+| Bluetooth serial modules (HM-10 family, HC-05/06, RN4870, Bluno) | `beginModule()` | `module=` | `module=` | `.module()` | – |
+| USB serial | any `Stream` | yes (`pyserial`) | yes (`usb=True`, `serial=UART`) | yes (`stty`, no deps) | yes |
+| Radio: SiK, XBee, HC-12, LoRa UART | `beginRadio()` | `radio=` | `radio=` | `.radio()` | `radio:` |
+| LoRa on SPI | `fallback(LORA)` | via a UART module | via a UART module | via a UART module | via a UART module |
+| Several links, fallback | yes | yes | yes | yes (`Fallback`) | `fallback:` |
+| All telemetry channels, points, tracks, log | yes | yes | channels and log | yes | from topics |
+| Custom channels, parameters with labels | yes | yes | yes | yes | yes |
+| Saved parameters (`psave`) | ESP32 flash | file | flash | file | file |
+| Pairing key storage | ESP32 flash | file | flash | file | file |
+| Video | `video()` + ESP32-CAM example | `MjpegServer`, `camera()` | – | `MjpegServer` | `video:` topic |
+| Sequences stored on the device | 32 steps (8 on AVR) | 64 steps | no: run from the app | 32 steps | yes, via Python |
+| `no_std` / embedded | — | — | — | yes | — |
 
 ## Quick start
 

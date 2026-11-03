@@ -813,8 +813,9 @@ class _GuidesScreenState extends State<GuidesScreen> {
             const SizedBox(height: 16),
             LayoutBuilder(
               builder: (_, c) {
-                final min = phone ? 160.0 : 220.0;
-                final n = (c.maxWidth / min).floor().clamp(1, 4);
+                // One row for every platform when it fits.
+                final min = phone ? 160.0 : 180.0;
+                final n = (c.maxWidth / min).floor().clamp(1, platforms.length);
                 final cw = (c.maxWidth - 12 * (n - 1)) / n;
                 return Wrap(
                   spacing: 12,

@@ -1,0 +1,6 @@
+{
+  "urls": [
+    ["koebelt_link.py", "github:koebelt/koebelt_dash/libs/micropython/koebelt_link.py"]
+  ],
+  "version": "1.0.0"
+}

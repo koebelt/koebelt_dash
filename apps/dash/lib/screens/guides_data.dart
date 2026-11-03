@@ -39,6 +39,16 @@ const platforms = [
     'Companion computers, robot arms over USB',
     'libs/python',
   ),
+  Platform(
+    'micropython',
+    'MicroPython',
+    'python',
+    'koebelt_link',
+    'mip',
+    'ESP32, Raspberry Pi Pico W',
+    'Small robots and sensor boards, in Python',
+    'libs/micropython',
+  ),
   Platform('ros2', 'ROS 2', 'bash', 'koebelt_link_ros', 'apt', 'Humble, Jazzy', 'Robots that already publish ROS topics', 'libs/ros2'),
   Platform('rust', 'Rust', 'rust', 'koebelt-link', 'cargo', 'std and no_std (embassy, embedded-hal)', 'Custom firmware, high-rate control loops', 'libs/rust'),
 ];
@@ -97,6 +107,10 @@ Guide quickstart(String pair) => Guide('quickstart', 'Quickstart', "Install the 
       '// Arduino IDE: Sketch > Include Library > Manage Libraries\n// search "KoebeltLink" and install 1.1.x\n\n// PlatformIO: platformio.ini\nlib_deps = koebelt/KoebeltLink@^1.1.0',
     ],
     'python': ['bash', 'pip install koebelt-link\n\n# optional extras\npip install "koebelt-link[ble,serial]"'],
+    'micropython': [
+      'bash',
+      '# from your computer, with the board on USB\nmpremote mip install github:koebelt/koebelt_dash/libs/micropython\n\n# or on the board, once it is on Wi-Fi\n>>> import mip; mip.install("github:koebelt/koebelt_dash/libs/micropython")',
+    ],
     'ros2': [
       'bash',
       'sudo apt install ros-humble-koebelt-link-ros\n# or build from source\ncd ~/ros2_ws/src && git clone https://github.com/koebelt/koebelt_dash\ncolcon build --packages-select koebelt_link_ros',
@@ -115,6 +129,10 @@ Guide quickstart(String pair) => Guide('quickstart', 'Quickstart', "Install the 
         'python',
         'from koebelt_link import Device\n\ndev = Device("Mule-2", kind="rover")\ndev.connect(wifi=True)   # or ble=True, serial="/dev/ttyUSB0"',
       ],
+      'micropython': [
+        'python',
+        'import koebelt_link as kl\n\nkl.wifi(WIFI_SSID, WIFI_PASS)\ndev = kl.Device("Mule-3", kind="rover")\ndev.connect(wifi=True)   # or usb=True, serial=UART(1, 115200)',
+      ],
       'ros2': ['yaml', '# config/device.yaml\nname: Cell-B\nkind: arm\ntransport: wifi'],
       'rust': ['rust', 'use koebelt_link::{Device, Kind};\n\nlet mut dev = Device::new("Kite-04", Kind::Drone)\n    .wifi(SSID, PASS)\n    .start()?;'],
     },
@@ -131,6 +149,7 @@ Guide quickstart(String pair) => Guide('quickstart', 'Quickstart', "Install the 
         'python',
         'from koebelt_link import Vec3\n\nwhile True:\n    dev.publish("imu", accel=Vec3(*imu.accel()), gyro=Vec3(*imu.gyro()))\n    dev.publish("lidar", points=lidar.scan())   # Nx3 array\n    dev.tick(hz=50)',
       ],
+      'micropython': ['python', 'while True:\n    dev.imu(*imu.accel(), *imu.gyro())\n    dev.battery(vbat(), pct())\n    dev.tick(hz=50)'],
       'ros2': [
         'yaml',
         '# map existing topics to app channels\nsensors:\n  imu:    /imu/data          # sensor_msgs/Imu\n  lidar:  /points            # sensor_msgs/PointCloud2\n  joints: /joint_states      # sensor_msgs/JointState\n  power:  /battery_state',
@@ -150,6 +169,10 @@ Guide quickstart(String pair) => Guide('quickstart', 'Quickstart', "Install the 
         'python',
         '@dev.on_control\ndef drive(c):\n    motors.set(speed=c.ry, turn=c.lx)\n\n@dev.on_mode\ndef mode(m):\n    print("mode ->", m)   # AUTO, MANUAL, HOLD',
       ],
+      'micropython': [
+        'python',
+        '@dev.on_control\ndef drive(c):\n    motors(c.ry, c.lx)\n\n@dev.on_mode\ndef mode(m):\n    print("mode ->", m)   # AUTO, MANUAL, HOLD',
+      ],
       'ros2': [
         'yaml',
         'controls:\n  twist: /cmd_vel                         # rovers, geometry_msgs/Twist\n  jog:   /servo_node/delta_joint_cmds      # arms, MoveIt Servo\n  mode:  /koebelt/mode',
@@ -166,6 +189,7 @@ Guide quickstart(String pair) => Guide('quickstart', 'Quickstart', "Install the 
         'klink.onStop([] { motors.cut(); });\nklink.onArm([](bool armed) { motors.enable(armed); });\n\n// no packet for 1.8 s -> hold position\nklink.failsafe(1800, KMode::HOLD);',
       ],
       'python': ['python', '@dev.on_stop\ndef stop():\n    motors.brake()\n\ndev.failsafe(timeout=1.8, action="hold")'],
+      'micropython': ['python', '@dev.on_stop\ndef stop():\n    motors(0, 0)\n\ndev.failsafe(timeout=1.8, action="hold")'],
       'ros2': ['yaml', 'safety:\n  stop_service: /robot/estop     # std_srvs/Trigger\n  failsafe_timeout: 1.8\n  failsafe_action: hold'],
       'rust': ['rust', 'dev.on_stop(|| motors.cut());\ndev.failsafe(Duration::from_millis(1800), Mode::Hold);'],
     },
@@ -177,6 +201,7 @@ Guide quickstart(String pair) => Guide('quickstart', 'Quickstart', "Install the 
     c: {
       'arduino': ['cpp', 'void setup() {\n  klink.begin(WIFI_SSID, WIFI_PASS);\n  klink.pair("$pair");   // remove after first pairing\n}'],
       'python': ['python', 'dev.pair("$pair")'],
+      'micropython': ['python', 'dev.pair("$pair")   # remove after the first pairing'],
       'ros2': ['bash', 'ros2 launch koebelt_link_ros bridge.launch.py \\\n  config:=config/device.yaml pair:=$pair'],
       'rust': ['rust', 'dev.pair("$pair")?;'],
     },

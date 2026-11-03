@@ -1043,6 +1043,7 @@ const guidesEs = <String, String>{
   'koebelt/link is a convenience link, not a certified safety system.': 'koebelt/link es un enlace de conveniencia, no un sistema de seguridad certificado.',
   'Flight controllers, small rovers, sensor boards': 'Controladoras de vuelo, rovers pequeños, placas de sensores',
   'Companion computers, robot arms over USB': 'Ordenadores de a bordo, brazos robóticos por USB',
+  'Small robots and sensor boards, in Python': 'Robots pequeños y placas de sensores, en Python',
   'Robots that already publish ROS topics': 'Robots que ya publican topics de ROS',
   'Custom firmware, high-rate control loops': 'Firmware a medida, bucles de control de alta frecuencia',
 };

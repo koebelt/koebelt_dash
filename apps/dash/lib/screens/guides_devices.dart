@@ -254,7 +254,7 @@ fn main() -> std::io::Result<()> {
     15,
     section: 'devices',
     kind: 'rover',
-    platforms: ['arduino', 'python', 'ros2'],
+    platforms: ['arduino', 'python', 'micropython', 'ros2'],
     [
       Step.rich(
         'What the app gives you',
@@ -425,6 +425,75 @@ def loop():
     dev.publish("att", roll=0, pitch=0, yaw=state["h"])
     dev.battery(12.4, 76)
     dev.publish("lidar", points=[(state["x"] + 3 * math.cos(a / 57.3), state["y"] + 3 * math.sin(a / 57.3), 0.2) for a in range(0, 360, 2)])
+
+
+dev.run(hz=50, loop=loop)''',
+          ],
+          'micropython': [
+            'python',
+            r'''"""Rover on an ESP32 with MicroPython: two motors on PWM, odometry, waypoints."""
+import math
+
+from machine import PWM, Pin
+
+import koebelt_link as kl
+
+kl.wifi("my-network", "password")
+dev = kl.Device("Mule", kind="rover", model="2WD rover", sensors=["IMU", "WHEEL ODOM"])
+dev.connect(wifi=True)
+dev.failsafe(timeout=1.0, action="hold")
+max_speed = dev.param("MAX_SPD", 1.0, min=0.2, max=2, unit="m/s")
+left, right = PWM(Pin(25), freq=1000), PWM(Pin(26), freq=1000)   # motor driver inputs
+state = {"x": 0.0, "y": 0.0, "h": 0.0, "v": 0.0, "w": 0.0, "goal": None}
+
+
+def drive(fwd, turn):
+    """Each −1…1. 50 % duty is stopped on this driver; adapt to yours."""
+    l, r = max(-1, min(1, fwd - turn)), max(-1, min(1, fwd + turn))
+    left.duty_u16(int(32768 + l * 32767))
+    right.duty_u16(int(32768 + r * 32767))
+    state["v"], state["w"] = fwd * max_speed.value, turn * 2
+
+
+@dev.on_control
+def sticks(c):
+    if dev.mode == "MANUAL":
+        drive(c.ry * dev.speed * 2, -c.lx)
+
+
+@dev.on_stop
+def stop():
+    drive(0, 0)
+    state["goal"] = None
+
+
+@dev.on_command
+def command(name, a):
+    if name == "goto":
+        state["goal"] = (a["x"], a["y"])
+        dev.set_mode("AUTO")
+    elif name == "sethome":
+        state["x"] = state["y"] = 0.0
+
+
+def loop():
+    dt = 1 / 50   # dead reckoning: replace with your wheel encoders
+    state["h"] += state["w"] * dt
+    state["x"] += math.cos(state["h"]) * state["v"] * dt
+    state["y"] += math.sin(state["h"]) * state["v"] * dt
+    goal = state["goal"]
+    if goal and dev.armed and not dev.estop:
+        dx, dy = goal[0] - state["x"], goal[1] - state["y"]
+        if math.sqrt(dx * dx + dy * dy) < 0.3:
+            drive(0, 0)
+            state["goal"] = None
+            dev.set_mode("HOLD")
+        else:
+            err = math.atan2(dy, dx) - state["h"]
+            drive(0.5, math.atan2(math.sin(err), math.cos(err)))
+    dev.position(state["x"], state["y"], 0)
+    dev.attitude(0, 0, state["h"])
+    dev.battery(7.6, 80)
 
 
 dev.run(hz=50, loop=loop)''',
