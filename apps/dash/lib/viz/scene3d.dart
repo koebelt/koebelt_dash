@@ -182,7 +182,7 @@ class _ScenePainter extends FramePainter {
       // moves instead of popping. A line a coarser layer also draws is left
       // to it. Vehicles see as far as their camera's height and distance.
       final reach = arm ? 3.0 : ((cam.dist + focus[2].abs()) * 8).clamp(50.0, 2000.0);
-      final grids = arm ? const [(0.5, 3.0, 0x24), (2.5, 3.0, 0x4D)] : const [(5.0, 50.0, 0x24), (25.0, 400.0, 0x4D), (100.0, 2000.0, 0x4D)];
+      final grids = arm ? const [(0.5, 3.0, 0x24), (2.5, 3.0, 0x4D)] : const [(5.0, 150.0, 0x24), (25.0, 600.0, 0x4D), (100.0, 2000.0, 0x4D)];
       const buckets = 6;
       for (var li = 0; li < grids.length; li++) {
         final (g, most, alpha) = grids[li];
@@ -194,7 +194,7 @@ class _ScenePainter extends FramePainter {
         final x0 = ((focus[0] - ext) / g).floor(), x1 = ((focus[0] + ext) / g).ceil();
         final y0 = ((focus[1] - ext) / g).floor(), y1 = ((focus[1] + ext) / g).ceil();
         bool covered(double v) => coarser.any((c) => (v / c - (v / c).roundToDouble()).abs() < 1e-6);
-        // One cell-long piece of a line, in the bucket of its fade.
+        // A piece of a line, in the bucket of its fade.
         void piece(List<double> a, List<double> b) {
           final mx = (a[0] + b[0]) / 2 - focus[0], my = (a[1] + b[1]) / 2 - focus[1];
           final d = math.sqrt(mx * mx + my * my);
@@ -203,16 +203,18 @@ class _ScenePainter extends FramePainter {
           line(paths[(f * (buckets - 1)).round()], a, b);
         }
 
+        // Pieces of several cells on a large grid: the fade needs about 15 steps.
+        final k = math.max(1, (ext / 15 / g).floor());
         for (var i = x0; i <= x1; i++) {
           if (covered(i * g)) continue;
-          for (var j = y0; j < y1; j++) {
-            piece([i * g, j * g, 0], [i * g, (j + 1) * g, 0]);
+          for (var j = y0; j < y1; j += k) {
+            piece([i * g, j * g, 0], [i * g, math.min(j + k, y1) * g, 0]);
           }
         }
         for (var j = y0; j <= y1; j++) {
           if (covered(j * g)) continue;
-          for (var i = x0; i < x1; i++) {
-            piece([i * g, j * g, 0], [(i + 1) * g, j * g, 0]);
+          for (var i = x0; i < x1; i += k) {
+            piece([i * g, j * g, 0], [math.min(i + k, x1) * g, j * g, 0]);
           }
         }
         for (var b = 1; b < buckets; b++) {
