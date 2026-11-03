@@ -315,12 +315,19 @@ class _ScenePainter extends FramePainter {
           }
         }
 
-        // A ring: flat (rotors), or upright along the heading (wheels).
-        void ring(double fu, double lv, double up, double r, {bool upright = false, int n = 16}) {
+        // A ring: flat (rotors), upright along the heading (wheels), or
+        // upright across it.
+        void ring(double fu, double lv, double up, double r, {bool upright = false, bool sideways = false, int n = 16}) {
           var first = true;
           for (var i = 0; i <= n; i++) {
             final a = i / n * 6.283, c = math.cos(a) * r, s2 = math.sin(a) * r;
-            final q = P(upright ? b(fu + c, lv, up + s2) : b(fu + c, lv + s2, up));
+            final q = P(
+              sideways
+                  ? b(fu, lv + c, up + s2)
+                  : upright
+                  ? b(fu + c, lv, up + s2)
+                  : b(fu + c, lv + s2, up),
+            );
             if (q == null) continue;
             first ? rings.moveTo(q[0], q[1]) : rings.lineTo(q[0], q[1]);
             first = false;
@@ -441,31 +448,69 @@ class _ScenePainter extends FramePainter {
             }
             heading(1.5, .45);
           case (DeviceKind.legged, 'humanoid'):
-            // Hips at its height, a torso and a head above; legs and arms
-            // swing in opposition while it walks.
+            // Proportions of a person about 1.7 m tall, the hips at the
+            // device's height. Legs of a fixed length bend at the knees to
+            // reach their feet (walking, crouching, sitting); arms swing
+            // against the legs with the elbows bent.
             final moving = S.speed > .03;
+            final stride = moving ? math.min(.2, S.speed * .3) : 0.0;
             final ph = DateTime.now().millisecondsSinceEpoch / 1000 * 1.8 % 1 * 6.283;
-            final lx = -sy, ly = cy;
-            for (final (side, off) in const [(1.0, 0.0), (-1.0, 3.1416)]) {
-              final swing = moving ? math.sin(ph + off) * .18 : 0.0, lift = moving ? math.max(0.0, math.cos(ph + off)) * .08 : 0.0;
-              final hip = b(0, .12 * side, 0);
-              final f = b(swing, .14 * side, 0);
-              final foot = [f[0], f[1], lift * k];
-              final knee = [(hip[0] + foot[0]) / 2 + cy * .06 * k, (hip[1] + foot[1]) / 2 + sy * .06 * k, (hip[2] + foot[2]) / 2];
-              line(model, hip, knee);
-              line(model, knee, foot);
-              line(model, foot, [foot[0] + cy * .12 * k, foot[1] + sy * .12 * k, foot[2]]); // foot
-              // The arm opposite: from the shoulder, swinging the other way.
-              final sh = b(0, .2 * side, .55);
-              final hand = b(-swing * .8, .24 * side, .1);
-              line(model, sh, hand);
-              line(model, sh, [sh[0] - lx * .2 * side * k, sh[1] - ly * .2 * side * k, sh[2]]); // shoulders
+            final fw = [cy, sy, 0.0]; // forward, in the world
+            const thigh = .38, shin = .37; // nearly straight standing, the hips at 0.84 m
+            // Where a knee goes: on the circle where thigh and shin meet,
+            // bent forward.
+            List<double> knee(List<double> hip, List<double> foot) {
+              final v = [for (var i = 0; i < 3; i++) foot[i] - hip[i]];
+              final lt = thigh * k, ls = shin * k;
+              final d = math.min(math.max(1e-6, hypot3(v[0], v[1], v[2])), lt + ls - 1e-4);
+              final n = [for (final x in v) x / hypot3(v[0], v[1], v[2])];
+              final a = (lt * lt - ls * ls + d * d) / (2 * d), h = math.sqrt(math.max(0.0, lt * lt - a * a));
+              final dot = fw[0] * n[0] + fw[1] * n[1] + fw[2] * n[2];
+              var pe = [for (var i = 0; i < 3; i++) fw[i] - n[i] * dot];
+              final pl = math.max(1e-6, hypot3(pe[0], pe[1], pe[2]));
+              pe = [for (final x in pe) x / pl];
+              return [for (var i = 0; i < 3; i++) hip[i] + n[i] * a + pe[i] * h];
             }
-            line(model, b(0, .12, 0), b(0, -.12, 0)); // pelvis
-            line(model, b(0, 0, 0), b(0, 0, .55)); // spine
-            ring(0, 0, .72, .1, upright: true); // head
-            ring(0, 0, .72, .1);
-            heading(.1, .72);
+
+            for (final (side, off) in const [(1.0, 0.0), (-1.0, 3.1416)]) {
+              final sw = math.sin(ph + off), lift = moving ? math.max(0.0, math.cos(ph + off)) * .07 : 0.0;
+              // Leg: hip, knee, ankle, then the foot from heel to toe.
+              final hip = b(0, .1 * side, -.05);
+              final g = b(sw * stride, .11 * side, 0);
+              final ankle = [g[0], g[1], (lift + .06) * k];
+              final kn = knee(hip, ankle);
+              line(model, hip, kn);
+              line(model, kn, ankle);
+              final heel = [ankle[0] - fw[0] * .05 * k, ankle[1] - fw[1] * .05 * k, lift * k];
+              final toe = [ankle[0] + fw[0] * .17 * k, ankle[1] + fw[1] * .17 * k, lift * k];
+              line(model, heel, toe);
+              line(model, ankle, heel);
+              // Arm: swings against the leg on the same side, the elbow bent.
+              final a1 = -sw * (moving ? .35 : 0) - .05, a2 = a1 + .35 + math.max(0.0, -a1) * .6;
+              final sh = [.0, .22 * side, .47];
+              final el = [sh[0] + math.sin(a1) * .28, sh[1] + .02 * side, sh[2] - math.cos(a1) * .28];
+              final ha = [el[0] + math.sin(a2) * .25, el[1], el[2] - math.cos(a2) * .25];
+              line(model, b(sh[0], sh[1], sh[2]), b(el[0], el[1], el[2]));
+              line(model, b(el[0], el[1], el[2]), b(ha[0], ha[1], ha[2]));
+              ring(ha[0], ha[1], ha[2] - .03, .035, upright: true, n: 8); // hand
+            }
+            // Pelvis, a torso tapering from the shoulders to the waist, the neck.
+            box(-.07, .07, -.14, .14, -.07, .03);
+            final waist = [b(.07, .13, .1), b(.07, -.13, .1), b(-.07, -.13, .1), b(-.07, .13, .1)];
+            final chest = [b(.09, .21, .5), b(.09, -.21, .5), b(-.08, -.21, .5), b(-.08, .21, .5)];
+            for (var i = 0; i < 4; i++) {
+              line(model, waist[i], waist[(i + 1) % 4]);
+              line(model, chest[i], chest[(i + 1) % 4]);
+              line(model, waist[i], chest[i]);
+            }
+            line(model, b(0, 0, .03), b(0, 0, .1)); // waist to pelvis
+            line(model, b(0, 0, .5), b(0, 0, .58)); // neck
+            // The head: three rings, and a visor where it looks.
+            ring(0, 0, .69, .1, upright: true);
+            ring(0, 0, .69, .1);
+            ring(0, 0, .69, .1, upright: true, sideways: true);
+            line(model, b(.09, .05, .7), b(.09, -.05, .7));
+            heading(.1, .69);
           case (DeviceKind.legged, _):
             // The body at its height, legs from each hip to a foot on the
             // ground. Feet step while it moves: diagonal pairs in a trot,
