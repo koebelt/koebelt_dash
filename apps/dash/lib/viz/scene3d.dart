@@ -184,11 +184,17 @@ class _ScenePainter extends FramePainter {
       final reach = arm ? 3.0 : ((cam.dist + focus[2].abs()) * 8).clamp(50.0, 2000.0);
       final grids = arm ? const [(0.5, 3.0, 0x24), (2.5, 3.0, 0x4D)] : const [(5.0, 150.0, 0x24), (25.0, 600.0, 0x4D), (100.0, 2000.0, 0x4D)];
       const buckets = 6;
-      for (var li = 0; li < grids.length; li++) {
-        final (g, most, alpha) = grids[li];
+      // Only the grids this view reaches far enough to show; a line is left
+      // to a coarser one only if that one is drawn (zoomed in, the 100 m grid
+      // is not, and the lines through 0 are the fine grid's).
+      final drawn = [
+        for (final l in grids)
+          if (math.min(reach, l.$2) >= l.$1 * 2) l,
+      ];
+      for (var li = 0; li < drawn.length; li++) {
+        final (g, most, alpha) = drawn[li];
         final ext = math.min(reach, most);
-        if (ext < g * 2) continue;
-        final coarser = [for (final l in grids.skip(li + 1)) l.$1];
+        final coarser = [for (final l in drawn.skip(li + 1)) l.$1];
         final fadeFrom = ext * .55;
         final paths = List.generate(buckets, (_) => Path());
         final x0 = ((focus[0] - ext) / g).floor(), x1 = ((focus[0] + ext) / g).ceil();
