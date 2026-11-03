@@ -295,19 +295,21 @@ class _ShellState extends State<Shell> {
                 ),
                 child: Row(
                   children: [
-                    // The device's name and the alerts give way first (most
-                    // in a narrow bar), so STOP always has its room.
+                    // In a narrow bar the device's name and the alerts give
+                    // way first, so STOP always has its room. In a wide one
+                    // they keep their size, capped so the rest always fits.
                     Flexible(
-                      flex: narrow ? 2 : 1,
+                      flex: narrow ? 2 : 0,
                       child: ConstrainedBox(
-                        constraints: BoxConstraints(maxWidth: narrow ? math.max(140, bodyW * .3) : math.max(180, bodyW * .4)),
+                        constraints: BoxConstraints(maxWidth: narrow ? math.max(140, bodyW * .3) : math.max(180, bodyW * .28)),
                         child: DeviceBtn(d: d, go: go),
                       ),
                     ),
                     SizedBox(width: gap),
                     Flexible(
+                      flex: narrow ? 1 : 0,
                       child: ConstrainedBox(
-                        constraints: BoxConstraints(maxWidth: narrow ? 120 : 340),
+                        constraints: BoxConstraints(maxWidth: narrow ? 120 : 280),
                         child: AlertChip(d: d, compact: narrow),
                       ),
                     ),
