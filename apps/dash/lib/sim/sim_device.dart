@@ -803,7 +803,7 @@ class SimDevice {
     final fw = c * vel[0] + s * vel[1], lt = -s * vel[0] + c * vel[1];
     final air = pos[2] > .1 ? 1.0 : 0.0;
     pitch += ((-fw * .06 + _rnd(.01)) * air - pitch) * k;
-    roll += ((lt * .06 + _rnd(.01)) * air - roll) * k;
+    roll += ((-lt * .06 + _rnd(.01)) * air - roll) * k; // right wing down when sliding right
     current = live && pos[2] > .1 ? 14 + vel[2].abs() * 4 + hypot2(fw, lt) * .6 + _rnd(.8) : .4;
   }
 
@@ -854,11 +854,12 @@ class SimDevice {
     final air = pos[2] > .3;
     var gs = hypot2(vel[0], vel[1]); // speed along the heading
     var tSp = cruise, bank = 0.0, climb = 0.0;
-    // Bank towards [heading], within the limit.
+    // Bank towards [heading], within the limit. Roll is positive with the
+    // right wing down, and yaw counter-clockwise: a left turn banks negative.
     double steer(double heading) {
       var a = heading - yaw;
       a = math.atan2(math.sin(a), math.cos(a));
-      return (a * 1.4).clamp(-bankMax, bankMax);
+      return (-a * 1.4).clamp(-bankMax, bankMax);
     }
 
     // Circle around the current point (or home) at the loiter radius.
@@ -928,8 +929,8 @@ class SimDevice {
     gs += (tSp - gs) * math.min(1.0, dt * (air ? .6 : 1.2));
     if (gs < 0) gs = 0;
     roll += (bank - roll) * math.min(1.0, dt * 2);
-    // Coordinated turn: rate = g · tan(bank) / speed.
-    yawRate = air && gs > 1 ? 9.81 * math.tan(roll) / gs : 0;
+    // Coordinated turn: rate = g · tan(bank) / speed, right bank turning right.
+    yawRate = air && gs > 1 ? -9.81 * math.tan(roll) / gs : 0;
     yaw += yawRate * dt;
     vel = [math.cos(yaw) * gs, math.sin(yaw) * gs, climb];
     pos = [pos[0] + vel[0] * dt, pos[1] + vel[1] * dt, math.max(0.0, pos[2] + climb * dt)];
