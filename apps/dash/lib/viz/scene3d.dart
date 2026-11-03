@@ -177,37 +177,49 @@ class _ScenePainter extends FramePainter {
       ..strokeWidth = lw;
 
     if (layers['grid'] ?? true) {
-      final g = arm ? .5 : 5.0, n = arm ? 6 : 10;
-      final ox = (focus[0] / g).round() * g, oy = (focus[1] / g).round() * g;
-      final minor = Path(), major = Path();
-      for (var i = -n; i <= n; i++) {
-        final x = ox + i * g, y = oy + i * g;
-        line((x / g).round() % 5 != 0 ? minor : major, [x, oy - n * g, 0], [x, oy + n * g, 0]);
-        line((y / g).round() % 5 != 0 ? minor : major, [ox - n * g, y, 0], [ox + n * g, y, 0]);
-      }
-      // Beyond it, as far as the camera sees from its height and distance:
-      // lines every 25 m (100 m far out), outside the fine square only.
-      if (!arm) {
-        final inner = n * g, reach = ((cam.dist + focus[2].abs()) * 8).clamp(inner, 2000.0);
-        final gg = reach > 400 ? 100.0 : 25.0, e = (reach / gg).ceil() * gg;
-        final fx = (focus[0] / gg).round() * gg, fy = (focus[1] / gg).round() * gg;
-        void span(double at, bool alongY) {
-          // A line at x = at (alongY) or y = at, leaving out the fine square.
-          final o = alongY ? fy : fx, inside = ((alongY ? at - ox : at - oy).abs()) <= inner;
-          final cuts = inside ? [(o - e, (alongY ? oy : ox) - inner), ((alongY ? oy : ox) + inner, o + e)] : [(o - e, o + e)];
-          for (final (a0, a1) in cuts) {
-            if (a1 <= a0) continue;
-            line(major, alongY ? [at, a0, 0] : [a0, at, 0], alongY ? [at, a1, 0] : [a1, at, 0]);
-          }
+      // Layers of lines fixed on the ground, each fading out towards the edge
+      // of its reach, measured from the device: they fade in and out as it
+      // moves instead of popping. A line a coarser layer also draws is left
+      // to it. Vehicles see as far as their camera's height and distance.
+      final reach = arm ? 3.0 : ((cam.dist + focus[2].abs()) * 8).clamp(50.0, 2000.0);
+      final grids = arm ? const [(0.5, 3.0, 0x24), (2.5, 3.0, 0x4D)] : const [(5.0, 50.0, 0x24), (25.0, 400.0, 0x4D), (100.0, 2000.0, 0x4D)];
+      const buckets = 6;
+      for (var li = 0; li < grids.length; li++) {
+        final (g, most, alpha) = grids[li];
+        final ext = math.min(reach, most);
+        if (ext < g * 2) continue;
+        final coarser = [for (final l in grids.skip(li + 1)) l.$1];
+        final fadeFrom = ext * .55;
+        final paths = List.generate(buckets, (_) => Path());
+        final x0 = ((focus[0] - ext) / g).floor(), x1 = ((focus[0] + ext) / g).ceil();
+        final y0 = ((focus[1] - ext) / g).floor(), y1 = ((focus[1] + ext) / g).ceil();
+        bool covered(double v) => coarser.any((c) => (v / c - (v / c).roundToDouble()).abs() < 1e-6);
+        // One cell-long piece of a line, in the bucket of its fade.
+        void piece(List<double> a, List<double> b) {
+          final mx = (a[0] + b[0]) / 2 - focus[0], my = (a[1] + b[1]) / 2 - focus[1];
+          final d = math.sqrt(mx * mx + my * my);
+          if (d >= ext) return;
+          final f = d <= fadeFrom ? 1.0 : 1 - (d - fadeFrom) / (ext - fadeFrom);
+          line(paths[(f * (buckets - 1)).round()], a, b);
         }
 
-        for (var v = -e; v <= e; v += gg) {
-          span(fx + v, true);
-          span(fy + v, false);
+        for (var i = x0; i <= x1; i++) {
+          if (covered(i * g)) continue;
+          for (var j = y0; j < y1; j++) {
+            piece([i * g, j * g, 0], [i * g, (j + 1) * g, 0]);
+          }
+        }
+        for (var j = y0; j <= y1; j++) {
+          if (covered(j * g)) continue;
+          for (var i = x0; i < x1; i++) {
+            piece([i * g, j * g, 0], [(i + 1) * g, j * g, 0]);
+          }
+        }
+        for (var b = 1; b < buckets; b++) {
+          c.drawPath(paths[b], st(Color.fromARGB((alpha * b / (buckets - 1)).round(), 255, 255, 255)));
         }
       }
-      c.drawPath(minor, st(const Color(0x24FFFFFF)));
-      c.drawPath(major, st(const Color(0x4DFFFFFF)));
+      final g = arm ? .5 : 5.0;
       final ax = Path(), ay = Path();
       line(ax, [0, 0, 0], [g * 2, 0, 0]);
       line(ay, [0, 0, 0], [0, g * 2, 0]);
