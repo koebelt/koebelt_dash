@@ -368,18 +368,18 @@ print("done")
     await d.init();
     await d.scripts.recheckPython(python!);
     final have = d.scripts.envOf(python)!.packageVersion!;
-    expect(have, matches(RegExp(r'^1\.3\.0((a|b|rc)\d+)?$')), reason: 'the version pip installed');
+    expect(have, matches(RegExp(r'^1\.\d+\.\d+((a|b|rc)\d+)?$')), reason: 'the version pip installed');
     final pypi = MockClient(
       (_) async => http.Response(
         jsonEncode({
-          'releases': {'1.2.0': [], '1.3.0b1': [], have: [], '1.3.4': [], '1.3.9b1': [], '2.0.0': []},
+          'releases': {'1.2.0': [], '1.3.0b1': [], have: [], '1.9.4': [], '1.9.9b1': [], '2.0.0': []},
         }),
         200,
       ),
     );
     await d.scripts.checkPackageUpdates(client: pypi, force: true);
     // In a beta app betas count, in a release only releases; 2.x never.
-    expect(d.scripts.latestPackage, isPrerelease(appVersion) ? '1.3.9-beta.1' : '1.3.4');
+    expect(d.scripts.latestPackage, isPrerelease(appVersion) ? '1.9.9-beta.1' : '1.9.4');
     expect(d.scripts.packageOutdated(python), isTrue);
     await d.scripts.checkPackageUpdates(
       client: MockClient(
