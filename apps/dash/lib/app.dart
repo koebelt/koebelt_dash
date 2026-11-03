@@ -61,8 +61,12 @@ String navLabel(String id) => switch (id) {
   'guides' => t.navGuides,
   'program' => t.navSequences,
   'scripts' => t.navScripts,
+  'more' => t.more,
   _ => t.navSettings,
 };
+
+/// The phone tab bar: these, then More for the rest of [nav].
+const phoneTabs = ['live', 'control', 'automate'];
 
 /// Root: owns the frame ticker that drives telemetry sampling and canvases.
 class DashApp extends StatefulWidget {
@@ -162,6 +166,58 @@ class _ShellState extends State<Shell> {
     detail = null;
     screen = s;
   });
+
+  /// The screens that are not in the phone tab bar, in a panel above it.
+  void _more(BuildContext context, double barH) {
+    showGeneralDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: t.close,
+      barrierColor: K.scrim,
+      transitionDuration: K.durBase,
+      pageBuilder: (ctx, _, _) => Stack(
+        children: [
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: barH,
+            child: Material(
+              type: MaterialType.transparency,
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                decoration: const BoxDecoration(
+                  color: K.surfaceRaised,
+                  border: Border(top: BorderSide(color: K.borderSubtle)),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    for (final n in nav.where((n) => !phoneTabs.contains(n[0])))
+                      NavBtn(
+                        it: n,
+                        on: _on(n[0]),
+                        go: (id) {
+                          Navigator.of(ctx).pop();
+                          go(id);
+                        },
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+      transitionBuilder: (_, a, _, child) => FadeTransition(
+        opacity: CurvedAnimation(parent: a, curve: K.easeStandard),
+        child: SlideTransition(
+          position: Tween(begin: const Offset(0, .04), end: Offset.zero).animate(CurvedAnimation(parent: a, curve: K.easeStandard)),
+          child: child,
+        ),
+      ),
+    );
+  }
 
   /// Whether nav item [id] is the screen shown (Automate: or one under it).
   bool _on(String id) => screen == id || (id == 'automate' && (screen == 'program' || screen == 'scripts'));
@@ -367,7 +423,7 @@ class _ShellState extends State<Shell> {
                               ),
                               child: Row(
                                 children: [
-                                  for (final n in nav.where((n) => !const ['devices', 'guides'].contains(n[0])))
+                                  for (final n in nav.where((n) => phoneTabs.contains(n[0])))
                                     Expanded(
                                       child: NavBtn(
                                         it: n,
@@ -378,6 +434,15 @@ class _ShellState extends State<Shell> {
                                         live: n[0] == 'automate' && (d.scriptRunning || d.sequenceRunning),
                                       ),
                                     ),
+                                  Expanded(
+                                    child: NavBtn(
+                                      it: const ['more', 'More', 'ellipsis'],
+                                      on: nav.any((n) => !phoneTabs.contains(n[0]) && _on(n[0])),
+                                      go: (_) => _more(context, navH),
+                                      variant: 'tab',
+                                      height: tabH,
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
