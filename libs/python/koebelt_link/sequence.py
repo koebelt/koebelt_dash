@@ -19,6 +19,7 @@ STEP_TYPES = {
     "plane": _COMMON | {"takeoff", "goto", "land", "rth"},
     "rover": _COMMON | {"goto"},
     "boat": _COMMON | {"goto"},
+    "legged": _COMMON | {"goto"},
     "arm": _COMMON | {"pose", "home", "gripper"},
     "bench": {"wait", "arm", "cmd", "throttle", "ramp"},
     "rocket": {"wait", "arm", "cmd"},
@@ -28,7 +29,7 @@ STEP_TYPES = {
 
 #: How close a waypoint counts as reached, in metres: a plane cannot stop on
 #: a point, it passes it; a boat drifts.
-ARRIVAL = {"drone": 1.0, "plane": 15.0, "rover": 0.6, "boat": 1.5}
+ARRIVAL = {"drone": 1.0, "plane": 15.0, "rover": 0.6, "boat": 1.5, "legged": 0.5}
 
 
 def validate(kind: str, steps: Any) -> Optional[str]:

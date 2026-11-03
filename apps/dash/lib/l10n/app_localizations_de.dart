@@ -3035,6 +3035,51 @@ class AppLocalizationsDe extends AppLocalizations {
   String get kindBoat => 'Boot';
 
   @override
+  String get kindLegged => 'Laufroboter';
+
+  @override
+  String get stWalkTo => 'Laufen zu';
+
+  @override
+  String sumWalkTo(String x, String y) {
+    return 'Laufen zu $x, $y';
+  }
+
+  @override
+  String get stepsLegged => 'zu Wegpunkten laufen, warten, Tempo ändern';
+
+  @override
+  String get planNoteLegged =>
+      'Wegpunkte sind Meter östlich und nördlich vom Startpunkt. Der Roboter hält an jedem an und steht, bevor der nächste Schritt beginnt.';
+
+  @override
+  String get legStand => 'Stehen';
+
+  @override
+  String get legSit => 'Sitzen';
+
+  @override
+  String get gaitWalk => 'Schritt';
+
+  @override
+  String get gaitTrot => 'Trab';
+
+  @override
+  String get stickTurnHeight => 'Drehen · Höhe';
+
+  @override
+  String get stickWalk => 'Laufen · seitwärts';
+
+  @override
+  String get stickTurn => 'Drehen';
+
+  @override
+  String get legHeight => 'Höhe';
+
+  @override
+  String get tiltWalk => 'Tilt · laufen und seitwärts';
+
+  @override
   String get kindArm => 'Roboterarm';
 
   @override

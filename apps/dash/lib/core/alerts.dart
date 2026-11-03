@@ -164,7 +164,7 @@ final alertRules = <AlertRule>[
     below: false,
     def: 300,
     hyst: 10,
-    kinds: {DeviceKind.drone, DeviceKind.plane, DeviceKind.rover, DeviceKind.boat},
+    kinds: {DeviceKind.drone, DeviceKind.plane, DeviceKind.rover, DeviceKind.boat, DeviceKind.legged},
     read: (t, _) => t.seen.contains('pos') ? t.range : null,
   ),
   AlertRule(

@@ -3039,6 +3039,51 @@ class AppLocalizationsFr extends AppLocalizations {
   String get kindBoat => 'Bateau';
 
   @override
+  String get kindLegged => 'Robot à pattes';
+
+  @override
+  String get stWalkTo => 'Marcher vers';
+
+  @override
+  String sumWalkTo(String x, String y) {
+    return 'Marcher vers $x, $y';
+  }
+
+  @override
+  String get stepsLegged => 'marcher vers des waypoints, attendre, changer la vitesse';
+
+  @override
+  String get planNoteLegged =>
+      'Les waypoints sont en mètres à l’est et au nord du point de départ. Le robot s’arrête et se tient debout à chacun avant l’étape suivante.';
+
+  @override
+  String get legStand => 'Debout';
+
+  @override
+  String get legSit => 'Assis';
+
+  @override
+  String get gaitWalk => 'Marche';
+
+  @override
+  String get gaitTrot => 'Trot';
+
+  @override
+  String get stickTurnHeight => 'Tourner · hauteur';
+
+  @override
+  String get stickWalk => 'Marcher · de côté';
+
+  @override
+  String get stickTurn => 'Tourner';
+
+  @override
+  String get legHeight => 'Hauteur';
+
+  @override
+  String get tiltWalk => 'Tilt · marcher et se décaler';
+
+  @override
   String get kindArm => 'Bras robotisé';
 
   @override

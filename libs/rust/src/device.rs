@@ -113,6 +113,7 @@ pub struct DeviceBuilder {
     kind: Kind,
     port: u16,
     model: &'static str,
+    body: &'static str,
     state_dir: Option<PathBuf>,
     links: Vec<Spec>,
 }
@@ -161,6 +162,11 @@ impl DeviceBuilder {
         self.model = model;
         self
     }
+    /// The shape the app draws (`hexa`, `car`, `hexapod`…, see [`Kind::bodies`]).
+    pub fn body(mut self, body: &'static str) -> Self {
+        self.body = body;
+        self
+    }
     /// Where the pairing key and saved parameters live (default `~/.config/koebelt-link`).
     pub fn state_dir(mut self, dir: impl Into<PathBuf>) -> Self {
         self.state_dir = Some(dir.into());
@@ -196,6 +202,7 @@ impl DeviceBuilder {
         }
         let mut link = Link::new(self.name, self.kind, chain);
         link.set_model(self.model);
+        link.set_body(self.body);
         let dir = self.state_dir.unwrap_or_else(|| {
             std::env::var_os("KOEBELT_LINK_HOME")
                 .map(PathBuf::from)
@@ -260,7 +267,7 @@ pub struct Device {
 impl Device {
     #[allow(clippy::new_ret_no_self)]
     pub fn new(name: &'static str, kind: Kind) -> DeviceBuilder {
-        DeviceBuilder { name, kind, port: UDP_DEVICE_PORT, model: "", state_dir: None, links: vec![] }
+        DeviceBuilder { name, kind, port: UDP_DEVICE_PORT, model: "", body: "", state_dir: None, links: vec![] }
     }
 
     /// The UDP port `.wifi()` listens on, 0 without Wi-Fi.

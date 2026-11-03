@@ -22,6 +22,15 @@ String mavKind(int type) => switch (type) {
   _ => 'generic',
 };
 
+/// The body shape the 3D view draws, from MAV_TYPE (DeviceKind.bodies).
+String mavBody(int type) => switch (type) {
+  4 => 'heli',
+  13 => 'hexa',
+  14 => 'octo',
+  19 || 20 || 21 || 22 || 23 || 24 || 25 => 'vtol',
+  _ => '',
+};
+
 bool _isPlane(int type) => type == 1 || (type >= 19 && type <= 25);
 bool _isRover(int type) => type == 10 || type == 11;
 
@@ -365,6 +374,7 @@ class MavlinkTransport implements Transport {
       'id': 'mav-$sys',
       'name': mavVehicleName(autopilot, type),
       'kind': kind,
+      if (mavBody(type).isNotEmpty) 'body': mavBody(type),
       'model':
           '${autopilot == Mav.px4
               ? 'PX4'

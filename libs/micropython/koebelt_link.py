@@ -47,7 +47,16 @@ VERSION = 1
 UDP_DEVICE_PORT = 47800
 UDP_ANNOUNCE_PORT = 47801
 
-KINDS = ("drone", "plane", "rover", "boat", "arm", "rocket", "bench", "generic")
+KINDS = ("drone", "plane", "rover", "boat", "legged", "arm", "rocket", "bench", "generic")
+
+#: Body shapes the app draws for a kind (`Device(body=…)`); the first is the default.
+BODIES = {
+    "drone": ("quad", "hexa", "octo", "heli"),
+    "plane": ("trainer", "wing", "vtol"),
+    "rover": ("4wd", "car", "tracked"),
+    "boat": ("hull", "catamaran"),
+    "legged": ("quadruped", "hexapod"),
+}
 FLYING = ("drone", "plane")
 
 #: Radio link profiles (protocol/PROTOCOL.md, "Radio links"): id -> (baud,
@@ -354,9 +363,12 @@ class Proximity:
 class Device:
     """A koebelt/link device."""
 
-    def __init__(self, name, kind="generic", id=None, model="", sensors=None, fw="", state_file="koebelt_link.json"):
+    def __init__(self, name, kind="generic", id=None, model="", sensors=None, fw="", state_file="koebelt_link.json", body=""):
         if kind not in KINDS:
             raise ValueError("kind must be one of " + ", ".join(KINDS))
+        if body and body not in BODIES.get(kind, ()):
+            raise ValueError("a " + kind + " body is one of " + ", ".join(BODIES.get(kind, ())))
+        self.body = body  # the shape the app draws (hexa, car, hexapod…); empty: the usual one
         self.name, self.kind, self.model, self.fw = name, kind, model, fw
         self.id = id or _slug(name)
         self.sensors = list(sensors or [])
@@ -673,6 +685,8 @@ class Device:
              "lib": self._lib(), "sensors": self.sensors, "ok": True}
         if self.prox:
             m["prox"] = self.prox
+        if self.body:
+            m["body"] = self.body
         return m
 
     def _announce(self):

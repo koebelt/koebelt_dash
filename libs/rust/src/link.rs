@@ -300,6 +300,7 @@ pub struct Link<T: Transport> {
     id_len: usize,
     kind: Kind,
     model: &'static str,
+    body: &'static str,
     fw: &'static str,
     sensors: &'static [&'static str],
     video: [Option<Video>; 2],
@@ -377,6 +378,7 @@ impl<T: Transport> Link<T> {
             id_len: n,
             kind,
             model: "",
+            body: "",
             fw: "",
             sensors: &[],
             video: [None; 2],
@@ -429,6 +431,11 @@ impl<T: Transport> Link<T> {
     }
     pub fn set_model(&mut self, model: &'static str) {
         self.model = model;
+    }
+    /// The shape the app draws (`hexa`, `car`, `hexapod`…, see
+    /// [`Kind::bodies`]); empty for the kind's usual one.
+    pub fn set_body(&mut self, body: &'static str) {
+        self.body = body;
     }
     pub fn set_firmware(&mut self, fw: &'static str) {
         self.fw = fw;
@@ -1083,6 +1090,10 @@ impl<T: Transport> Link<T> {
         w.string(self.kind.as_str());
         w.raw(r#","model":"#);
         w.string(self.model);
+        if !self.body.is_empty() {
+            w.raw(r#","body":"#);
+            w.string(self.body);
+        }
         w.raw(r#","fw":"#);
         w.string(self.fw);
         w.raw(r#","lib":"#);

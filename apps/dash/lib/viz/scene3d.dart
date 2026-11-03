@@ -284,97 +284,182 @@ class _ScenePainter extends FramePainter {
     final model = Path();
     final lime2 = st(VC.lime, 2);
     switch (kind) {
-      case DeviceKind.drone:
-        final p = S.rPos, cyw = math.cos(S.rYaw), syw = math.sin(S.rYaw);
-        const a = .9;
-        final arms = [
-          for (final uv in const [
-            [a, a],
-            [a, -a],
-            [-a, a],
-            [-a, -a],
-          ])
-            [p[0] + cyw * uv[0] - syw * uv[1], p[1] + syw * uv[0] + cyw * uv[1], p[2] + (uv[0] * S.rPitch * -1 + uv[1] * S.rRoll) * .6],
-        ];
-        line(model, arms[0], arms[3]);
-        line(model, arms[1], arms[2]);
-        c.drawPath(model, lime2);
-        final rotors = Path();
-        for (final q in arms) {
-          _ring(rotors, P, q, .45, 16);
-        }
-        c.drawPath(rotors, st(VC.lime, 1.25));
-        final drop = Path();
-        line(drop, p, [p[0], p[1], 0]);
-        c.drawPath(_dash(drop), st(const Color(0x40FFFFFF)));
-        final hd = Path();
-        line(hd, p, [p[0] + cyw * 2, p[1] + syw * 2, p[2]]);
-        c.drawPath(hd, st(VC.white));
-      case DeviceKind.plane:
-        // Body axes: forward, left, up; rolled, pitched, then yawed.
-        final p = S.rPos, cy = math.cos(S.rYaw), sy = math.sin(S.rYaw), cp = math.cos(S.rPitch), sp = math.sin(S.rPitch);
+      case DeviceKind.drone || DeviceKind.plane || DeviceKind.rover || DeviceKind.boat || DeviceKind.legged:
+        final p = S.rPos, body = dash.body;
+        final cy = math.cos(S.rYaw), sy = math.sin(S.rYaw), cp = math.cos(S.rPitch), sp = math.sin(S.rPitch);
         final cr = math.cos(S.rRoll), sr = math.sin(S.rRoll);
+        // Body axes: forward, left, up; rolled (right side down when
+        // positive), pitched (nose up), then yawed. Legged robots are small:
+        // drawn larger about the ground under them, as the others are.
+        final k = kind.walks ? 2.2 : 1.0;
         List<double> b(double fu, double lv, double up) {
-          final l1 = lv * cr - up * sr, u1 = lv * sr + up * cr; // roll about forward
-          final f2 = fu * cp - u1 * sp, u2 = fu * sp + u1 * cp; // pitch about left
-          return [p[0] + cy * f2 - sy * l1, p[1] + sy * f2 + cy * l1, p[2] + u2];
+          final l1 = lv * cr - up * sr, u1 = lv * sr + up * cr;
+          final f2 = fu * cp - u1 * sp, u2 = fu * sp + u1 * cp;
+          return [p[0] + (cy * f2 - sy * l1) * k, p[1] + (sy * f2 + cy * l1) * k, (p[2] + u2) * k];
         }
-        line(model, b(1.1, 0, 0), b(-1.3, 0, 0)); // fuselage
-        for (final sd in const [1.0, -1.0]) {
-          line(model, b(.3, 0, 0), b(.15, 1.7 * sd, .08)); // wing leading edge
-          line(model, b(.15, 1.7 * sd, .08), b(-.2, 1.7 * sd, .08));
-          line(model, b(-.2, 1.7 * sd, .08), b(-.25, 0, 0)); // trailing edge
-          line(model, b(-1.05, 0, 0), b(-1.2, .55 * sd, 0)); // tailplane
-          line(model, b(-1.2, .55 * sd, 0), b(-1.3, .55 * sd, 0));
+
+        final rings = Path(), hd = Path();
+        void poly(List<List<double>> pts, {bool close = true}) {
+          for (var i = 0; i < pts.length - (close ? 0 : 1); i++) {
+            line(model, pts[i], pts[(i + 1) % pts.length]);
+          }
         }
-        line(model, b(-1.0, 0, 0), b(-1.3, 0, .5)); // fin
-        line(model, b(-1.3, 0, .5), b(-1.3, 0, 0));
+
+        // A box between [f0, f1] forward, [l0, l1] left and [u0, u1] up.
+        void box(double f0, double f1, double l0, double l1, double u0, double u1) {
+          final k = [b(f1, l1, u0), b(f1, l0, u0), b(f0, l0, u0), b(f0, l1, u0), b(f1, l1, u1), b(f1, l0, u1), b(f0, l0, u1), b(f0, l1, u1)];
+          for (var i = 0; i < 4; i++) {
+            line(model, k[i], k[(i + 1) % 4]);
+            line(model, k[i + 4], k[(i + 1) % 4 + 4]);
+            line(model, k[i], k[i + 4]);
+          }
+        }
+
+        // A ring: flat (rotors), or upright along the heading (wheels).
+        void ring(double fu, double lv, double up, double r, {bool upright = false, int n = 16}) {
+          var first = true;
+          for (var i = 0; i <= n; i++) {
+            final a = i / n * 6.283, c = math.cos(a) * r, s2 = math.sin(a) * r;
+            final q = P(upright ? b(fu + c, lv, up + s2) : b(fu + c, lv + s2, up));
+            if (q == null) continue;
+            first ? rings.moveTo(q[0], q[1]) : rings.lineTo(q[0], q[1]);
+            first = false;
+          }
+        }
+
+        void heading(double fu, double up) => line(hd, b(fu, 0, up), b(fu + 2, 0, up));
+        void drop() {
+          final dp = Path();
+          line(dp, p, [p[0], p[1], 0]);
+          c.drawPath(_dash(dp), st(const Color(0x40FFFFFF)));
+        }
+
+        switch ((kind, body)) {
+          case (DeviceKind.drone, 'heli'):
+            poly([b(.7, 0, 0), b(.3, 0, .25), b(-.4, 0, .25), b(-.5, 0, 0)]);
+            line(model, b(-.5, 0, .12), b(-1.8, 0, .15)); // tail boom
+            line(model, b(-1.8, 0, .15), b(-1.9, 0, .45)); // fin
+            line(model, b(0, 0, .25), b(0, 0, .4)); // mast
+            for (final sd in const [1.0, -1.0]) {
+              line(model, b(.5, .35 * sd, -.25), b(-.6, .35 * sd, -.25)); // skids
+              line(model, b(.2, .35 * sd, -.25), b(.1, .1 * sd, 0));
+            }
+            ring(0, 0, .4, 1.5, n: 32);
+            ring(-1.85, .1, .3, .25, upright: true);
+            drop();
+            heading(.7, 0);
+          case (DeviceKind.drone, _):
+            // Arms in an X: four, six or eight rotors.
+            final n = body == 'hexa' ? 6 : (body == 'octo' ? 8 : 4);
+            final len = n == 4 ? 1.27 : (n == 6 ? 1.3 : 1.35), rr = n == 4 ? .45 : (n == 6 ? .38 : .3);
+            for (var k = 0; k < n; k++) {
+              final a = (k + .5) * 6.283 / n, fu = math.cos(a) * len, lv = math.sin(a) * len;
+              line(model, b(0, 0, 0), b(fu, lv, 0));
+              ring(fu, lv, 0, rr);
+            }
+            drop();
+            heading(0, 0);
+          case (DeviceKind.plane, 'wing'):
+            poly([b(.7, 0, 0), b(-.5, 1.7, .05), b(-.7, 1.6, .05), b(-.35, 0, 0), b(-.7, -1.6, .05), b(-.5, -1.7, .05)]);
+            for (final sd in const [1.0, -1.0]) {
+              line(model, b(-.5, 1.7 * sd, .05), b(-.7, 1.7 * sd, .35)); // winglets
+            }
+            drop();
+            heading(.7, 0);
+          case (DeviceKind.plane, _):
+            line(model, b(1.1, 0, 0), b(-1.3, 0, 0)); // fuselage
+            for (final sd in const [1.0, -1.0]) {
+              line(model, b(.3, 0, 0), b(.15, 1.7 * sd, .08)); // wing leading edge
+              line(model, b(.15, 1.7 * sd, .08), b(-.2, 1.7 * sd, .08));
+              line(model, b(-.2, 1.7 * sd, .08), b(-.25, 0, 0)); // trailing edge
+              line(model, b(-1.05, 0, 0), b(-1.2, .55 * sd, 0)); // tailplane
+              line(model, b(-1.2, .55 * sd, 0), b(-1.3, .55 * sd, 0));
+              if (body == 'vtol') {
+                // Booms under the wings, a lift rotor at each end.
+                line(model, b(.8, .9 * sd, 0), b(-.9, .9 * sd, 0));
+                ring(.8, .9 * sd, .05, .35);
+                ring(-.9, .9 * sd, .05, .35);
+              }
+            }
+            line(model, b(-1.0, 0, 0), b(-1.3, 0, .5)); // fin
+            line(model, b(-1.3, 0, .5), b(-1.3, 0, 0));
+            drop();
+            heading(1.1, 0);
+          case (DeviceKind.rover, 'car'):
+            box(-.85, .85, -.45, .45, .15, .45);
+            box(-.55, .25, -.38, .38, .45, .75); // cabin
+            for (final f in const [.6, -.6]) {
+              for (final l in const [.5, -.5]) {
+                ring(f, l, .25, .25, upright: true);
+              }
+            }
+            heading(.85, .3);
+          case (DeviceKind.rover, 'tracked'):
+            box(-.9, .9, -.45, .45, .25, .65);
+            for (final l in const [.62, -.62]) {
+              poly([b(1.25, l, .3), b(1.0, l, .55), b(-1.0, l, .55), b(-1.25, l, .3), b(-1.0, l, .02), b(1.0, l, .02)]);
+            }
+            heading(.9, .45);
+          case (DeviceKind.rover, _):
+            box(-1.2, 1.2, -.8, .8, 0, .6);
+            heading(1.2, .6);
+          case (DeviceKind.boat, 'catamaran'):
+            for (final l in const [.6, -.6]) {
+              final deck = [b(1.4, l, .35), b(1.0, l + .18, .35), b(-1.2, l + .18, .35), b(-1.2, l - .18, .35), b(1.0, l - .18, .35)];
+              final water = [b(1.2, l, 0), b(.9, l + .14, 0), b(-1.1, l + .14, 0), b(-1.1, l - .14, 0), b(.9, l - .14, 0)];
+              poly(deck);
+              poly(water);
+              for (var i = 0; i < 5; i++) {
+                line(model, deck[i], water[i]);
+              }
+            }
+            poly([b(.4, .6, .45), b(.4, -.6, .45), b(-.7, -.6, .45), b(-.7, .6, .45)]); // deck between the hulls
+            heading(1.4, .35);
+          case (DeviceKind.boat, _):
+            // A pointed hull: the deck, the waterline under it, and the stems.
+            final deck = [b(1.5, 0, .45), b(.6, .65, .45), b(-1.2, .65, .45), b(-1.2, -.65, .45), b(.6, -.65, .45)];
+            final water = [b(1.2, 0, 0), b(.5, .5, 0), b(-1.1, .5, 0), b(-1.1, -.5, 0), b(.5, -.5, 0)];
+            poly(deck);
+            poly(water);
+            for (var i = 0; i < 5; i++) {
+              line(model, deck[i], water[i]);
+            }
+            heading(1.5, .45);
+          case (DeviceKind.legged, _):
+            // The body at its height, legs from each hip to a foot on the
+            // ground. Feet step while it moves: diagonal pairs in a trot,
+            // one at a time in a walk, tripods on a hexapod.
+            final hex = body == 'hexapod';
+            box(-.45, .45, -.2, .2, -.05, .1);
+            final hips = hex
+                ? const [(.38, .22), (0.0, .26), (-.38, .22), (.38, -.22), (0.0, -.26), (-.38, -.22)]
+                : const [(.38, .2), (.38, -.2), (-.38, .2), (-.38, -.2)];
+            final trot = S.gait == 'trot';
+            final offs = hex
+                ? const [0.0, .5, 0.0, .5, 0.0, .5]
+                : trot
+                ? const [0.0, .5, .5, 0.0]
+                : const [0.0, .5, .75, .25];
+            final moving = S.speed > .03;
+            final tt = DateTime.now().millisecondsSinceEpoch / 1000 * (trot ? 3.2 : 2.0);
+            final lx = -sy, ly = cy; // left, in the world
+            for (var i = 0; i < hips.length; i++) {
+              final (hu, hv) = hips[i];
+              final ph = (tt + offs[i]) % 1 * 6.283;
+              final swing = moving ? math.sin(ph) * .1 : 0.0, lift = moving ? math.max(0.0, math.cos(ph)) * .06 : 0.0;
+              final hip = b(hu, hv, 0);
+              final f = b(hu + swing, hv * 1.3, 0);
+              final foot = [f[0], f[1], lift * k];
+              final out = hv.sign * .12 * k;
+              final knee = [(hip[0] + foot[0]) / 2 + lx * out, (hip[1] + foot[1]) / 2 + ly * out, (hip[2] + foot[2]) / 2 + .06 * k];
+              line(model, hip, knee);
+              line(model, knee, foot);
+            }
+            heading(.45, .05);
+          default:
+        }
         c.drawPath(model, lime2);
-        final drop = Path();
-        line(drop, p, [p[0], p[1], 0]);
-        c.drawPath(_dash(drop), st(const Color(0x40FFFFFF)));
-        final hd = Path();
-        line(hd, b(1.1, 0, 0), b(3.1, 0, 0));
-        c.drawPath(hd, st(VC.white));
-      case DeviceKind.boat:
-        final p = S.rPos, cyw = math.cos(S.rYaw), syw = math.sin(S.rYaw);
-        List<double> b(double u, double v, double z) => [p[0] + cyw * u - syw * v, p[1] + syw * u + cyw * v, z + math.sin(S.rRoll) * v * .5];
-        // A pointed hull: the deck, the waterline under it, and the stems.
-        final deck = [b(1.5, 0, .45), b(.6, .65, .45), b(-1.2, .65, .45), b(-1.2, -.65, .45), b(.6, -.65, .45)];
-        final water = [b(1.2, 0, 0), b(.5, .5, 0), b(-1.1, .5, 0), b(-1.1, -.5, 0), b(.5, -.5, 0)];
-        for (var i = 0; i < 5; i++) {
-          line(model, deck[i], deck[(i + 1) % 5]);
-          line(model, water[i], water[(i + 1) % 5]);
-          line(model, deck[i], water[i]);
-        }
-        c.drawPath(model, lime2);
-        final hd = Path();
-        line(hd, b(1.5, 0, .45), b(3.5, 0, .45));
-        c.drawPath(hd, st(VC.white));
-      case DeviceKind.rover:
-        final p = S.rPos, cyw = math.cos(S.rYaw), syw = math.sin(S.rYaw);
-        List<double> b(double u, double v, double z) => [p[0] + cyw * u - syw * v, p[1] + syw * u + cyw * v, z];
-        const L = 1.2, W = .8, H = .6;
-        final k = [b(L, W, 0), b(L, -W, 0), b(-L, -W, 0), b(-L, W, 0), b(L, W, H), b(L, -W, H), b(-L, -W, H), b(-L, W, H)];
-        for (final e in const [
-          [0, 1],
-          [1, 2],
-          [2, 3],
-          [3, 0],
-          [4, 5],
-          [5, 6],
-          [6, 7],
-          [7, 4],
-          [0, 4],
-          [1, 5],
-          [2, 6],
-          [3, 7],
-        ]) {
-          line(model, k[e[0]], k[e[1]]);
-        }
-        c.drawPath(model, lime2);
-        final hd = Path();
-        line(hd, b(L, 0, H), b(L + 2, 0, H));
+        c.drawPath(rings, st(VC.lime, 1.25));
         c.drawPath(hd, st(VC.white));
       case DeviceKind.rocket:
         final p = S.rPos, ph = S.mode, chute = ph == 'DROGUE' || ph == 'MAIN';

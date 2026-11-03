@@ -7,6 +7,7 @@ enum DeviceKind {
   plane('Plane'),
   rover('Ground robot'),
   boat('Boat'),
+  legged('Legged robot'),
   arm('Robot arm'),
   rocket('Rocket'),
   bench('Test bench'),
@@ -21,6 +22,7 @@ enum DeviceKind {
     plane => t.kindPlane,
     rover => t.kindRover,
     boat => t.kindBoat,
+    legged => t.kindLegged,
     arm => t.kindArm,
     rocket => t.kindRocket,
     bench => t.kindBench,
@@ -33,8 +35,28 @@ enum DeviceKind {
   /// Driven on a surface, steered and throttled (ground robots, boats).
   bool get drives => this == rover || this == boat;
 
+  /// Walks on legs: forward, sideways and turning at once, a body height,
+  /// standing or sitting (quadrupeds, hexapods).
+  bool get walks => this == legged;
+
+  /// Moves on a surface, without a height to fly at.
+  bool get onGround => drives || walks;
+
   /// Goes places: a position, home, waypoints, a map.
-  bool get travels => flies || drives;
+  bool get travels => flies || onGround;
+
+  /// The body shapes the 3D view draws for this kind; the first is the default.
+  List<String> get bodies => switch (this) {
+    drone => const ['quad', 'hexa', 'octo', 'heli'],
+    plane => const ['trainer', 'wing', 'vtol'],
+    rover => const ['4wd', 'car', 'tracked'],
+    boat => const ['hull', 'catamaran'],
+    legged => const ['quadruped', 'hexapod'],
+    _ => const [],
+  };
+
+  /// [body] if this kind has it, else the default shape.
+  String bodyOr(String? body) => bodies.contains(body) ? body! : (bodies.firstOrNull ?? '');
 
   static DeviceKind parse(String? s) => DeviceKind.values.firstWhere((k) => k.name == s, orElse: () => DeviceKind.generic);
 }
@@ -127,6 +149,7 @@ class DeviceInfo {
     this.module,
     this.lib,
     this.protocol,
+    this.body = '',
   });
 
   final String id;
@@ -172,6 +195,10 @@ class DeviceInfo {
   String? lib;
   int? protocol;
 
+  /// Its body shape for the 3D view (`hexa`, `car`…; see [DeviceKind.bodies]),
+  /// as it declared it; empty for its kind's default.
+  String body;
+
   bool get simulated => transport == TransportKind.sim;
 
   Map<String, dynamic> toJson() => {
@@ -192,6 +219,7 @@ class DeviceInfo {
     'module': ?module,
     'lib': ?lib,
     'protocol': ?protocol,
+    if (body.isNotEmpty) 'body': body,
   };
 
   factory DeviceInfo.fromJson(Map<String, dynamic> j) => DeviceInfo(
@@ -212,6 +240,7 @@ class DeviceInfo {
     module: j['module'] as String?,
     lib: j['lib'] as String?,
     protocol: (j['protocol'] as num?)?.toInt(),
+    body: j['body'] as String? ?? '',
     online: true, // reachability is only known when connecting
   );
 }

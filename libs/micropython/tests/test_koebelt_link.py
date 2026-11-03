@@ -80,6 +80,7 @@ def pair(tmp_path):
 
 def test_handshake_telemetry_and_channels(pair):
     dev, app = pair
+    dev.body = "tracked"
     dev.param("MAX_SPD", 4, 0.5, 8, unit="m/s")
     temp = dev.channel("motor_temp", ["L", "R"], "C", 10)
     app.send({"t": "hello", "v": 1})
@@ -87,6 +88,7 @@ def test_handshake_telemetry_and_channels(pair):
     h = app.of("hello")[0]
     assert h["ok"] and h["kind"] == "rover" and h["id"] == "test-1" and h["lib"] == "micropython/" + kl.__version__
     assert "seq" not in h, "sequences run from the app"
+    assert h["body"] == "tracked"
     assert app.of("params")[0]["p"][0][:2] == ["MAX_SPD", 4.0]
     assert app.of("chan")[0]["ch"][0]["axes"] == ["L", "R"]
     dev.imu(0, 0, 9.81, 0, 0, 0.1)
@@ -211,9 +213,11 @@ def test_serial_radio_announces_and_telemetry_only_takes_stop(tmp_path):
 
 
 def test_kinds_and_bad_input():
-    assert "plane" in kl.KINDS and "boat" in kl.KINDS
+    assert "plane" in kl.KINDS and "boat" in kl.KINDS and "legged" in kl.KINDS
     with pytest.raises(ValueError):
         kl.Device("X", kind="submarine")
+    with pytest.raises(ValueError):
+        kl.Device("X", kind="rover", body="hexa")
     assert kl.decode(b"not json") is None and kl.decode(b'{"no":"t"}') is None
     assert kl._slug("Mule 3 / Front!") == "mule-3-front"
 

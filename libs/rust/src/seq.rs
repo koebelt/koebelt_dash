@@ -96,7 +96,7 @@ pub(super) fn parse(kind: Kind, w: &[u8]) -> Result<Step, &[u8]> {
     let a = it.next().unwrap_or(b"{}");
     let ty = json::as_str(t).unwrap_or("");
     let num = |k: &str| json::get(a, k).and_then(json::as_f64).map(|v| v as f32);
-    let (flies, drives, arm, bench) = (kind.flies(), kind.drives(), kind == Kind::Arm, kind == Kind::Bench);
+    let (flies, drives, arm, bench) = (kind.flies(), kind.on_ground(), kind == Kind::Arm, kind == Kind::Bench);
     let moving = !bench && kind != Kind::Rocket;
     Ok(match ty {
         "takeoff" if flies => Step::Takeoff(num("alt").unwrap_or(6.0)),
@@ -280,7 +280,7 @@ impl<T: Transport> Link<T> {
         let cur = self.stored.as_ref().and_then(|s| s.steps.get(r.i as usize).copied().flatten());
         match cur {
             Some(Step::Throttle(..) | Step::Ramp(..)) => self.seq_cmd("throttle", args(|w| w.raw(r#"{"v":0}"#))),
-            _ if (self.kind.flies() || self.kind.drives()) && self.armed => self.seq_mode(Mode::Hold),
+            _ if (self.kind.flies() || self.kind.on_ground()) && self.armed => self.seq_mode(Mode::Hold),
             _ => {}
         }
     }
@@ -296,7 +296,7 @@ impl<T: Transport> Link<T> {
         if self.kind == Kind::Bench {
             self.seq_cmd("throttle", args(|w| w.raw(r#"{"v":0}"#)));
         }
-        if (self.kind.flies() || self.kind.drives()) && self.armed && !self.estop {
+        if (self.kind.flies() || self.kind.on_ground()) && self.armed && !self.estop {
             self.seq_mode(Mode::Hold);
         }
     }
@@ -422,7 +422,7 @@ impl<T: Transport> Link<T> {
                 r.set_msg(|w| {
                     let _ = core::fmt::Write::write_fmt(w, format_args!("Step {i} timed out"));
                 });
-                if (self.kind.flies() || self.kind.drives()) && self.armed {
+                if (self.kind.flies() || self.kind.on_ground()) && self.armed {
                     self.seq_mode(Mode::Hold);
                 }
             }

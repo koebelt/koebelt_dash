@@ -207,3 +207,22 @@ fn planes_fly_their_steps_and_boats_do_not_take_off() {
         assert_eq!(json::get(ack.as_bytes(), "ok").and_then(json::as_bool), Some(ok), "{}: {ack}", kind.as_str());
     }
 }
+
+#[test]
+fn legged_robots_walk_their_steps_and_hello_carries_the_body() {
+    assert!(Kind::Legged.on_ground() && !Kind::Legged.flies() && Kind::Legged.as_str() == "legged");
+    assert_eq!(Kind::Legged.bodies()[0], "quadruped");
+    let wire = Mem::default();
+    let mut link = Link::new("Scout", Kind::Legged, wire.clone());
+    link.set_body("hexapod");
+    wire.app(r#"{"t":"hello","v":1}"#);
+    wire.app(r#"{"t":"seq","id":"t","steps":[["goto",{"x":3,"y":1}],["takeoff",{"alt":2}]]}"#);
+    for i in 1..30 {
+        link.update(i * 10);
+        while link.poll_event().is_some() {}
+    }
+    let hello = wire.of("hello").pop().unwrap();
+    assert!(hello.contains(r#""kind":"legged""#) && hello.contains(r#""body":"hexapod""#), "{hello}");
+    let ack = wire.of("seqack").pop().unwrap();
+    assert!(ack.contains("takeoff"), "a legged robot does not take off: {ack}");
+}

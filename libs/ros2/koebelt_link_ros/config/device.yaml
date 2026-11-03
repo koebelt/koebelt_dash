@@ -1,6 +1,8 @@
 # koebelt_link_ros bridge configuration
 name: Cell-B
-kind: arm            # drone, plane, rover, boat, arm, rocket, bench, generic
+kind: arm            # drone, plane, rover, boat, legged, arm, rocket, bench, generic
+# body: hexa         # the shape the app draws: drone quad/hexa/octo/heli, plane trainer/wing/vtol,
+#                    # rover 4wd/car/tracked, boat hull/catamaran, legged quadruped/hexapod
 transport: wifi      # wifi | ble | serial:/dev/ttyUSB0 | radio:/dev/ttyUSB1:sik
 # fallback: radio:/dev/ttyUSB1:sik   # takes over telemetry when the first link goes quiet
 port: 47800

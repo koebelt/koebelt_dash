@@ -26,7 +26,7 @@ class Bridge(Node):
             cfg = yaml.safe_load(f) or {}
         self.cfg = cfg
 
-        self.dev = Device(cfg.get("name", "ROS robot"), kind=cfg.get("kind", "generic"), model=cfg.get("model", "ROS 2"),
+        self.dev = Device(cfg.get("name", "ROS robot"), kind=cfg.get("kind", "generic"), model=cfg.get("model", "ROS 2"), body=cfg.get("body", ""),
                           sensors=[k.upper() for k in (cfg.get("sensors") or {})])
         fb = parse_fallback(cfg["fallback"]) if cfg.get("fallback") else None
         self.dev.connect(port=int(cfg.get("port", 47800)), fallback=fb, **parse_transport(cfg.get("transport", "wifi")))

@@ -291,7 +291,7 @@ class Device:
 
     @property
     def kind(self) -> str:
-        """drone, plane, rover, boat, arm, bench, rocket or generic."""
+        """drone, plane, rover, boat, legged, arm, bench, rocket or generic."""
         return self.info.get("kind", "generic")
 
     @property
@@ -315,8 +315,9 @@ class Device:
 
     # ------------------------------------------------------------------ acting
     def sticks(self, *values: float, **axes: float) -> None:
-        """Sets the sticks, −1…1, until changed. Drones: ``throttle``, ``yaw``,
-        ``pitch``, ``roll``; rovers: ``throttle``, ``steer``; any device:
+        """Sets the sticks, −1…1, until changed. Drones and planes: ``throttle``,
+        ``yaw``, ``pitch``, ``roll``; rovers and boats: ``throttle``, ``steer``;
+        legged robots: ``forward``, ``strafe``, ``turn``, ``height``; any device:
         ``lx``, ``ly``, ``rx``, ``ry``. dash scales them to the script's speed
         limit, and the operator's sticks win."""
         if values:

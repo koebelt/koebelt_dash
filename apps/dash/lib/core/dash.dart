@@ -313,6 +313,14 @@ List<DeviceInfo> simTemplates() => [
     sensors: ['IMU', 'BARO', 'AIRSPEED', 'GPS', 'CAMERA'],
   ),
   DeviceInfo(
+    id: 'scout',
+    name: 'Scout',
+    kind: DeviceKind.legged,
+    model: 'Quadruped · 12 servos',
+    battery: 71,
+    sensors: ['IMU', 'GPS', 'FOOT CONTACTS', 'CAMERA'],
+  ),
+  DeviceInfo(
     id: 'otter',
     name: 'Otter',
     kind: DeviceKind.boat,
@@ -405,6 +413,15 @@ class Dash extends ChangeNotifier implements PadTarget {
   }
 
   DeviceKind get kind => replay?.session.kind ?? device?.kind ?? DeviceKind.generic;
+
+  /// The body shape the 3D view draws for what is shown (a replay: the
+  /// recorded device's, if it is still paired).
+  String get body {
+    final r = replay;
+    final info = r == null ? device : devices.where((x) => x.id == r.session.deviceId).firstOrNull;
+    return kind.bodyOr(info?.body);
+  }
+
   bool get hasDevice => focus != null;
 
   /// True when what is on screen does not come from real hardware.
@@ -896,6 +913,7 @@ class Dash extends ChangeNotifier implements PadTarget {
       if (h['name'] is String) d.name = h['name'];
       if (h['kind'] is String) d.kind = DeviceKind.parse(h['kind']);
       if (h['model'] is String && (h['model'] as String).isNotEmpty) d.model = h['model'];
+      d.body = h['body'] is String ? h['body'] : '';
       if (h['sensors'] is List && (h['sensors'] as List).isNotEmpty) d.sensors = List<String>.from(h['sensors']);
       d.prox = [for (final p in h['prox'] as List? ?? const []) ?ProxSensor.fromJson(p)];
       l.tel.proxDown = [for (final p in d.prox) p.down];

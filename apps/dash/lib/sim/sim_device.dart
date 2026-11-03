@@ -280,6 +280,8 @@ class SimDevice {
         if (estop) break;
         armed = m['v'] == true;
         if (armed && kind.flies && pos[2] < .2) mode = 'HOLD';
+        // A legged robot stands up when armed and sits down when disarmed.
+        if (kind.walks) stance = armed ? 'stand' : 'sit';
         _sendState();
       case 'stop':
         _stop();
@@ -438,6 +440,18 @@ class SimDevice {
         _goto = [numOr(a['x'], pos[0] - homeXY[0]) + homeXY[0], numOr(a['y'], pos[1] - homeXY[1]) + homeXY[1], numOr(a['z'], pos[2])];
         mode = 'AUTO';
         _gotoActive = true;
+      case 'stance':
+        // Sitting needs it still; standing back up works while armed.
+        final v = '${a['v'] ?? ''}';
+        if (v != 'stand' && v != 'sit') return;
+        stance = v;
+        if (v == 'sit') _gotoActive = false;
+        _sendState();
+      case 'gait':
+        final v = '${a['v'] ?? ''}';
+        if (v != 'walk' && v != 'trot') return;
+        gait = v;
+        _sendState();
       case 'gripper':
         if (!live) return;
         gripper = numOr(a['v'], gripper);
@@ -499,6 +513,7 @@ class SimDevice {
     _gotoActive = false;
     estop = true;
     armed = false;
+    if (kind.walks) stance = 'sit';
     mode = kind == DeviceKind.rocket
         ? (mode == 'COUNT' ? 'PAD' : mode)
         : kind == DeviceKind.bench
@@ -553,6 +568,7 @@ class SimDevice {
     'fs': fsActive,
     'ext': {
       if (kind == DeviceKind.rocket) 'pyro': pyro,
+      if (kind.walks) ...{'stance': stance, 'gait': gait},
       if (cutoff != null) 'cutoff': cutoff,
       if (seqKind != null) 'seq': {'kind': seqKind, 't': seqT},
       'run': ?_seqExt,
@@ -604,7 +620,7 @@ class SimDevice {
       'rssi': [rssi],
     };
     switch (kind) {
-      case DeviceKind.drone || DeviceKind.plane || DeviceKind.rover || DeviceKind.boat || DeviceKind.rocket:
+      case DeviceKind.drone || DeviceKind.plane || DeviceKind.rover || DeviceKind.boat || DeviceKind.legged || DeviceKind.rocket:
         // IMU, baro/rangefinder or wheel odometry, compass, GNSS
         d['imu'] = [...acc, ...gyro];
         d['att'] = [roll, pitch, yaw];
@@ -644,6 +660,7 @@ class SimDevice {
       DeviceKind.rover: [45.0, -30.0],
       DeviceKind.plane: [-130.0, -20.0],
       DeviceKind.boat: [90.0, 70.0],
+      DeviceKind.legged: [-25.0, 35.0],
       DeviceKind.rocket: [-70.0, 55.0],
       DeviceKind.arm: [20.0, 60.0],
       DeviceKind.bench: [-40.0, -50.0],
@@ -695,6 +712,8 @@ class SimDevice {
         _rover(dt, live, inp);
       case DeviceKind.boat:
         _rover(dt, live, inp, boat: true);
+      case DeviceKind.legged:
+        _legged(dt, live, inp);
       case DeviceKind.rocket:
         _rocket(dt, live);
       case DeviceKind.bench:
@@ -713,6 +732,7 @@ class SimDevice {
           DeviceKind.plane => pos[2] > .1 ? .12 : .2 * hypot2(vel[0], vel[1]) / 10,
           DeviceKind.rover => .25 * hypot2(vel[0], vel[1]),
           DeviceKind.boat => .05,
+          DeviceKind.legged => .1 + hypot2(vel[0], vel[1]) * .4,
           _ => .03,
         };
     acc = [a[0] * .15 + _rnd(vib), a[1] * .15 + _rnd(vib), 9.81 + a[2] * .15 + _rnd(vib)];
@@ -728,6 +748,7 @@ class SimDevice {
       DeviceKind.drone => (13.2, 3.6),
       DeviceKind.plane || DeviceKind.boat => (14.0, 2.8),
       DeviceKind.rover => (22.0, 3.2),
+      DeviceKind.legged => (7.0, 1.4),
       DeviceKind.rocket => (7.0, 1.4),
       DeviceKind.bench => (22.2, 0.0),
       _ => (48.0, 0.0),
@@ -944,6 +965,54 @@ class SimDevice {
 
   /// Where a plane circles while it holds.
   List<double>? _holdAt;
+
+  /// Legged robots: standing or sitting, the gait, and where in its stride.
+  String stance = 'sit', gait = 'walk';
+
+  /// A legged robot: walks forward, sideways and turning at once, its body
+  /// at a height the left stick trims; sitting, it does not move.
+  void _legged(double dt, bool live, List<double> inp) {
+    final trot = gait == 'trot';
+    final vmax = P('MAX_SPD', .6) * (trot ? 1.6 : 1) * speed * 2;
+    var fwd = 0.0, side = 0.0, turn = 0.0, trim = 0.0;
+    final up = live && stance == 'stand';
+    if (up && mode == 'AUTO' && _gotoActive) {
+      final dx = _goto[0] - pos[0], dy = _goto[1] - pos[1], dist = hypot2(dx, dy);
+      var a = math.atan2(dy, dx) - yaw;
+      a = math.atan2(math.sin(a), math.cos(a));
+      // turn on the spot when facing away, slow down on approach
+      fwd = a.abs() > .8 ? 0 : math.min(vmax, dist * .8) / math.max(vmax, 1e-3);
+      turn = (a * 1.5).clamp(-1.0, 1.0);
+      if (dist < .2) {
+        mode = 'HOLD';
+        _gotoActive = false;
+        _sendState();
+      }
+    } else if (up && (mode == 'MANUAL' || mode == 'AUTO')) {
+      fwd = inp[3];
+      side = inp[2];
+      turn = -inp[0];
+      trim = inp[1];
+    }
+    final h = stance == 'stand' && live ? P('BODY_H', .22) + trim * .05 : .08;
+    final k = math.min(1.0, dt * 4);
+    final c = math.cos(yaw), s = math.sin(yaw);
+    // Forward along the heading; sideways to the right.
+    final want = [(c * fwd + s * side) * vmax, (s * fwd - c * side) * vmax];
+    vel = [vel[0] + (want[0] - vel[0]) * k, vel[1] + (want[1] - vel[1]) * k, 0];
+    yawRate += (turn * P('TURN_RATE', 90) / 57.3 - yawRate) * k;
+    yaw += yawRate * dt;
+    final moving = hypot2(vel[0], vel[1]) + yawRate.abs() * .2;
+    _stride += dt * (trot ? 3.2 : 2.0) * (moving > .02 ? 1 : 0);
+    final bob = moving > .02 ? math.sin(_stride * math.pi * 2 * 2) * .006 : 0.0;
+    final z = pos[2] + (h - pos[2]) * math.min(1.0, dt * 3);
+    pos = [pos[0] + vel[0] * dt, pos[1] + vel[1] * dt, z + bob];
+    roll = moving > .02 ? math.sin(_stride * math.pi * 2) * (trot ? .04 : .02) + _rnd(.004) : _rnd(.002);
+    pitch = (h - z) * 2 + _rnd(.004);
+    current = up ? 2.5 + moving * 6 + _rnd(.3) : .6;
+  }
+
+  double _stride = 0;
 
   void _rocket(double dt, bool live) {
     const g = 9.81;

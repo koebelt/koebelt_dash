@@ -436,7 +436,9 @@ class MobileControl extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final s = d.liveTel, drone = d.kind.flies, stacked = w < 640;
+    // Drones and planes fly mode 2; legged robots use all four axes too:
+    // turn and body height on the left, walk and strafe on the right.
+    final s = d.liveTel, drone = d.kind.flies, legs = d.kind.walks, four = drone || legs, stacked = w < 640;
     final live = s.armed && !s.estop, dis = !live || d.linkLost;
     final inv = d.settings.invertY ? -1.0 : 1.0, cs = d.settings.control, I = d.input;
     void g() {
@@ -445,12 +447,12 @@ class MobileControl extends StatelessWidget {
 
     void setL(double x, double y) {
       I[0] = x;
-      I[1] = drone ? y : 0;
+      I[1] = four ? y : 0;
       g();
     }
 
     void setR(double x, double y) {
-      I[2] = drone ? x : 0;
+      I[2] = four ? x : 0;
       I[3] = y * inv;
       g();
     }
@@ -458,7 +460,7 @@ class MobileControl extends StatelessWidget {
     // A phone held sideways: little height, so a game-controller layout.
     final short = !stacked && h < 420;
     final js = stacked
-        ? math.min(150.0, (w - 72) / (cs == 'sliders' && drone ? 2.8 : 2))
+        ? math.min(150.0, (w - 72) / (cs == 'sliders' && four ? 2.8 : 2))
         : short
         ? (h * .46).clamp(120.0, 170.0)
         : math.min(180.0, math.max(130.0, h * .28));
@@ -472,14 +474,18 @@ class MobileControl extends StatelessWidget {
           SpringSlider(
             len: js,
             onMove: (v) {
-              drone ? I[1] = v : I[3] = v * inv;
+              four ? I[1] = v : I[3] = v * inv;
               g();
             },
             disabled: dis,
-            label: drone ? t.stickThrottle : t.stickDrive,
-            ends: drone ? [t.axUp, t.axDn] : [t.axFwd, t.axRev],
+            label: drone
+                ? t.stickThrottle
+                : legs
+                ? t.legHeight
+                : t.stickDrive,
+            ends: four ? [t.axUp, t.axDn] : [t.axFwd, t.axRev],
           ),
-          if (drone) ...[
+          if (four) ...[
             const SizedBox(width: 12),
             SpringSlider(
               len: js * .8,
@@ -489,14 +495,21 @@ class MobileControl extends StatelessWidget {
                 g();
               },
               disabled: dis,
-              label: t.stickYaw,
+              label: legs ? t.stickTurn : t.stickYaw,
               ends: [t.axL, t.axR],
             ),
           ],
         ],
       );
-      R = drone
-          ? Joystick(size: js, onMove: setR, disabled: dis, label: t.stickPitchRoll, axes: [t.axFwd, t.axBack, t.axL, t.axR], onCentre: centre)
+      R = four
+          ? Joystick(
+              size: js,
+              onMove: setR,
+              disabled: dis,
+              label: legs ? t.stickWalk : t.stickPitchRoll,
+              axes: [t.axFwd, t.axBack, t.axL, t.axR],
+              onCentre: centre,
+            )
           : SpringSlider(
               len: js,
               vertical: false,
@@ -509,7 +522,7 @@ class MobileControl extends StatelessWidget {
               ends: [t.axL, t.axR],
             );
     } else if (cs == 'tilt') {
-      L = drone
+      L = four
           ? SpringSlider(
               len: js,
               onMove: (v) {
@@ -517,16 +530,20 @@ class MobileControl extends StatelessWidget {
                 g();
               },
               disabled: dis,
-              label: t.stickThrottle,
+              label: legs ? t.legHeight : t.stickThrottle,
               ends: [t.axUp, t.axDn],
             )
           : const SizedBox();
       R = TiltPad(
         size: js,
         disabled: dis,
-        label: drone ? t.tiltPitchRoll : t.tiltSteerDrive,
+        label: drone
+            ? t.tiltPitchRoll
+            : legs
+            ? t.tiltWalk
+            : t.tiltSteerDrive,
         onMove: (x, y) {
-          if (drone) {
+          if (four) {
             I[2] = x;
             I[3] = y * inv;
           } else {
@@ -540,20 +557,32 @@ class MobileControl extends StatelessWidget {
       final pad = d.padMapper.driving;
       L = Joystick(
         size: js,
-        mirror: pad ? Offset(I[0], drone ? I[1] : 0) : null,
+        mirror: pad ? Offset(I[0], four ? I[1] : 0) : null,
         onMove: setL,
         disabled: dis,
-        label: drone ? t.stickThrottleYaw : t.stickSteer,
-        axes: drone ? [t.axUp, t.axDn, t.axYaw, t.axYaw] : ['', '', t.axL, t.axR],
+        label: drone
+            ? t.stickThrottleYaw
+            : legs
+            ? t.stickTurnHeight
+            : t.stickSteer,
+        axes: drone
+            ? [t.axUp, t.axDn, t.axYaw, t.axYaw]
+            : legs
+            ? [t.axUp, t.axDn, t.axL, t.axR]
+            : ['', '', t.axL, t.axR],
         onCentre: centre,
       );
       R = Joystick(
         size: js,
-        mirror: pad ? Offset(drone ? I[2] : 0, I[3] * inv) : null,
+        mirror: pad ? Offset(four ? I[2] : 0, I[3] * inv) : null,
         onMove: setR,
         disabled: dis,
-        label: drone ? t.stickPitchRoll : t.stickDrive,
-        axes: drone ? [t.axFwd, t.axBack, t.axL, t.axR] : [t.axFwd, t.axRev, '', ''],
+        label: drone
+            ? t.stickPitchRoll
+            : legs
+            ? t.stickWalk
+            : t.stickDrive,
+        axes: four ? [t.axFwd, t.axBack, t.axL, t.axR] : [t.axFwd, t.axRev, '', ''],
         onCentre: centre,
       );
     }
@@ -568,6 +597,22 @@ class MobileControl extends StatelessWidget {
     final topItems = <Widget>[
       ModePicker(d, small: stacked),
       if (drone) Seg(items: const ['TAKEOFF', 'LAND', 'RTH'], value: s.mode, onChanged: d.operatorMode, small: stacked),
+      if (legs) ...[
+        Seg(
+          items: const ['STAND', 'SIT'],
+          labels: {'STAND': t.legStand, 'SIT': t.legSit},
+          value: (s.stance ?? 'sit').toUpperCase(),
+          onChanged: (v) => dis ? null : d.cmd('stance', {'v': v.toLowerCase()}),
+          small: stacked,
+        ),
+        Seg(
+          items: const ['WALK', 'TROT'],
+          labels: {'WALK': t.gaitWalk, 'TROT': t.gaitTrot},
+          value: (s.gait ?? 'walk').toUpperCase(),
+          onChanged: (v) => dis ? null : d.cmd('gait', {'v': v.toLowerCase()}),
+          small: stacked,
+        ),
+      ],
       RecordButton(d, small: stacked),
       if (viewItems(d, cameras3d: false).length > 1)
         ViewSeg(

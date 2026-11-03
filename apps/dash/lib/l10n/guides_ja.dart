@@ -7,8 +7,8 @@ const guidesJa = <String, String>{
   'Install the library': 'ライブラリをインストール',
   'Add the library to your project. It has no runtime dependencies beyond the platform\'s network stack.': 'ライブラリをプロジェクトに追加します。実行時の依存はプラットフォームのネットワークスタックだけです。',
   'Declare the device': 'デバイスを宣言',
-  'Give the device a name and a kind. The kind picks the default dashboard, controls and 3D model in the app: drone, plane, rover, boat, arm, rocket, bench or generic.':
-      'デバイスに名前と種類を付けます。種類によって、アプリの標準ダッシュボード、操縦方法、3D モデルが決まります：drone、plane、rover、boat、arm、rocket、bench、generic。',
+  'Give the device a name and a kind. The kind picks the default dashboard, controls and 3D model in the app: drone, plane, rover, boat, legged, arm, rocket, bench or generic.':
+      'デバイスに名前と種類を付けます。種類によって、アプリの標準ダッシュボード、操縦方法、3D モデルが決まります：drone、plane、rover、boat、legged、arm、rocket、bench、generic。',
   'Stream sensors': 'センサーをストリーミング',
   'Publish values at the rate you read them. The library batches and down-samples to the telemetry rate set in the app, so publishing faster than the link is fine.':
       '値は読み取ったタイミングで publish します。ライブラリがまとめて、アプリで設定したテレメトリレートに間引くので、リンクより速く publish しても問題ありません。',

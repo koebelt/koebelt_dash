@@ -481,7 +481,7 @@ class ReadoutBody extends StatelessWidget {
         [t.rdTemp, u.temp(s.temp).toStringAsFixed(0), u.tempUnit],
       ],
       _ => [
-        if (!d.kind.drives) [t.rdAlt, u.len(s.pos[2]).toStringAsFixed(1), u.lenUnit],
+        if (!d.kind.onGround) [t.rdAlt, u.len(s.pos[2]).toStringAsFixed(1), u.lenUnit],
         [t.rdSpeed, u.speed(s.speed).toStringAsFixed(1), u.speedUnit],
         [t.rdHdg, s.heading.round().toString().padLeft(3, '0'), '°'],
         [t.rdHome, u.len(s.range).toStringAsFixed(0), u.lenUnit],
@@ -650,7 +650,7 @@ List<HudItem> hudDefault(DeviceKind type, String cls) {
       DeviceKind.bench => [h('readout', 0, 0, 5, 4), h('thrust', 0, 8, 5, 4), h('temp', 9, 8, 3, 4)],
       DeviceKind.arm => [h('readout', 0, 0, 5, 4), h('joints', 8, 0, 4, 8), h('power', 0, 8, 4, 4)],
       DeviceKind.rover => [h('readout', 0, 0, 5, 4), h('gps', 9, 0, 3, 4), h('attitude', 0, 8, 3, 4), h('lidar', 9, 8, 3, 4)],
-      DeviceKind.boat => [h('readout', 0, 0, 5, 4), h('gps', 9, 0, 3, 4), h('attitude', 0, 8, 3, 4), h('gyro', 9, 8, 3, 4)],
+      DeviceKind.boat || DeviceKind.legged => [h('readout', 0, 0, 5, 4), h('gps', 9, 0, 3, 4), h('attitude', 0, 8, 3, 4), h('gyro', 9, 8, 3, 4)],
       DeviceKind.drone || DeviceKind.plane => [h('readout', 0, 0, 5, 4), h('gps', 9, 0, 3, 4), h('attitude', 0, 8, 3, 4), h('alt', 9, 8, 3, 4)],
       DeviceKind.generic => [h('readout', 0, 0, 5, 4), h('attitude', 0, 8, 3, 4), h('power', 9, 8, 3, 4)],
     };
@@ -670,7 +670,7 @@ List<HudItem> hudDefault(DeviceKind type, String cls) {
       return p
           ? [h('readout', 0, 0, 12, 2), h('attitude', 0, 9, 6, 3), h('lidar', 6, 9, 6, 3)]
           : [h('readout', 0, 0, 5, 2), h('gps', 9, 0, 3, 4), h('attitude', 0, 9, 2, 3), h('gyro', 3, 10, 5, 2), h('lidar', 10, 9, 2, 3)];
-    case DeviceKind.boat:
+    case DeviceKind.boat || DeviceKind.legged:
       return p
           ? [h('readout', 0, 0, 12, 2), h('attitude', 0, 9, 6, 3), h('gyro', 6, 9, 6, 3)]
           : [h('readout', 0, 0, 5, 2), h('gps', 9, 0, 3, 4), h('attitude', 0, 9, 2, 3), h('gyro', 3, 10, 5, 2)];

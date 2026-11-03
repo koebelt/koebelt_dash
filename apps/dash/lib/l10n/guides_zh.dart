@@ -7,8 +7,8 @@ const guidesZh = <String, String>{
   'Install the library': '安装库',
   'Add the library to your project. It has no runtime dependencies beyond the platform\'s network stack.': '将库添加到你的项目中。除了平台的网络协议栈，它在运行时没有其他依赖。',
   'Declare the device': '声明设备',
-  'Give the device a name and a kind. The kind picks the default dashboard, controls and 3D model in the app: drone, plane, rover, boat, arm, rocket, bench or generic.':
-      '为设备指定名称和类型。类型决定应用中的默认仪表盘、操控方式和 3D 模型：drone、plane、rover、boat、arm、rocket、bench 或 generic。',
+  'Give the device a name and a kind. The kind picks the default dashboard, controls and 3D model in the app: drone, plane, rover, boat, legged, arm, rocket, bench or generic.':
+      '为设备指定名称和类型。类型决定应用中的默认仪表盘、操控方式和 3D 模型：drone、plane、rover、boat、legged、arm、rocket、bench 或 generic。',
   'Stream sensors': '传输传感器数据',
   'Publish values at the rate you read them. The library batches and down-samples to the telemetry rate set in the app, so publishing faster than the link is fine.':
       '按你读取的频率 publish 数值。库会打包并降采样到应用中设置的遥测频率，所以 publish 得比链路快也没问题。',

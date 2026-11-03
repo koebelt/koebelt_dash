@@ -143,6 +143,15 @@ final Map<DeviceKind, List<PCat>> paramDefs = {
       ]),
     ]),
   ],
+  DeviceKind.legged: [
+    const PCat('Gait', [
+      PGroup('Body', [PDef('BODY_H', 'Standing height', .22, .1, .32, .01, 'm'), PDef('STEP_H', 'Step height', .04, .01, .1, .005, 'm')]),
+      PGroup('Motion', [PDef('MAX_SPD', 'Max speed', .6, .1, 1.5, .05, 'm/s'), PDef('TURN_RATE', 'Max turn rate', 90, 20, 180, 5, '°/s')]),
+    ]),
+    PCat('Servo gains', [
+      PGroup('Legs', _pid('LEG', 4, .1, .05), ['gx', 'gy']),
+    ]),
+  ],
   DeviceKind.arm: [
     PCat('Joint gains', [
       for (var i = 0; i < 6; i++)

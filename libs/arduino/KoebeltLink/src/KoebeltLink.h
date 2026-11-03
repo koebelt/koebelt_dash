@@ -117,13 +117,15 @@ class KProx {
 
 class KLink {
  public:
-  // PLANE and BOAT come last so the older kinds keep their numbers.
-  enum Kind : uint8_t { DRONE, ROVER, ARM, ROCKET, BENCH, GENERIC, PLANE, BOAT };
+  // New kinds come last so the older ones keep their numbers.
+  enum Kind : uint8_t { DRONE, ROVER, ARM, ROCKET, BENCH, GENERIC, PLANE, BOAT, LEGGED };
 
   // Flies: takes off, holds a height, lands (drones, planes).
   bool flies() const { return _kind == DRONE || _kind == PLANE; }
   // Driven on a surface (ground robots, boats).
   bool drives() const { return _kind == ROVER || _kind == BOAT; }
+  // Moves on a surface: driven, or walking on legs.
+  bool onGround() const { return drives() || _kind == LEGGED; }
   enum TransportType : uint8_t { WIFI, BLE, SERIAL_PORT, LORA };
 
   KLink(const char* name, Kind kind, const char* id = nullptr);
@@ -167,6 +169,9 @@ class KLink {
 
   // ---- identity
   void setModel(const char* model) { _model = model; }
+  // The shape the app draws: "hexa", "car", "hexapod"… (protocol/PROTOCOL.md,
+  // Device kinds); empty for the kind's usual one.
+  void setBody(const char* body) { _body = body; }
   void setFirmware(const char* fw) { _fw = fw; }
   void setSensors(const char* csv) { _sensors = csv; }
   /// Declares a camera stream the app shows (MJPEG over HTTP). `url` may be
@@ -330,6 +335,7 @@ class KLink {
   char _id[32];
   Kind _kind;
   const char* _model = "";
+  const char* _body = "";
   const char* _fw = "";
   const char* _sensors = "";
 

@@ -9,7 +9,7 @@ const guidesEs = <String, String>{
   'Add the library to your project. It has no runtime dependencies beyond the platform\'s network stack.':
       'Añade la librería a tu proyecto. No tiene dependencias en tiempo de ejecución más allá de la pila de red de la plataforma.',
   'Declare the device': 'Declarar el dispositivo',
-  'Give the device a name and a kind. The kind picks the default dashboard, controls and 3D model in the app: drone, plane, rover, boat, arm, rocket, bench or generic.': 'Dale al dispositivo un nombre y un tipo. El tipo elige el panel, los controles y el modelo 3D por defecto en la app: drone, plane, rover, boat, arm, rocket, bench o generic.',
+  'Give the device a name and a kind. The kind picks the default dashboard, controls and 3D model in the app: drone, plane, rover, boat, legged, arm, rocket, bench or generic.': 'Dale al dispositivo un nombre y un tipo. El tipo elige el panel, los controles y el modelo 3D por defecto en la app: drone, plane, rover, boat, legged, arm, rocket, bench o generic.',
   'Stream sensors': 'Enviar sensores',
   'Publish values at the rate you read them. The library batches and down-samples to the telemetry rate set in the app, so publishing faster than the link is fine.': 'Publica los valores al ritmo al que los lees. La librería agrupa y submuestrea a la frecuencia de telemetría fijada en la app, así que publicar más rápido que el enlace no es problema.',
   'Receive control input': 'Recibir los controles',

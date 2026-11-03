@@ -3029,6 +3029,50 @@ class AppLocalizationsEn extends AppLocalizations {
   String get kindBoat => 'Boat';
 
   @override
+  String get kindLegged => 'Legged robot';
+
+  @override
+  String get stWalkTo => 'Walk to';
+
+  @override
+  String sumWalkTo(String x, String y) {
+    return 'Walk to $x, $y';
+  }
+
+  @override
+  String get stepsLegged => 'walk to waypoints, wait, change speed';
+
+  @override
+  String get planNoteLegged => 'Waypoints are metres east and north of the start point. The robot stops and stands at each one before the next step.';
+
+  @override
+  String get legStand => 'Stand';
+
+  @override
+  String get legSit => 'Sit';
+
+  @override
+  String get gaitWalk => 'Walk';
+
+  @override
+  String get gaitTrot => 'Trot';
+
+  @override
+  String get stickTurnHeight => 'Turn · height';
+
+  @override
+  String get stickWalk => 'Walk · strafe';
+
+  @override
+  String get stickTurn => 'Turn';
+
+  @override
+  String get legHeight => 'Height';
+
+  @override
+  String get tiltWalk => 'Tilt · walk and strafe';
+
+  @override
   String get kindArm => 'Robot arm';
 
   @override

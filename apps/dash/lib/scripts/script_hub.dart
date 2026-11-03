@@ -45,12 +45,14 @@ class ScriptLimits {
 
 /// Stick names per kind, as the protocol's axes (lx ly rx ry): drones and
 /// planes fly "mode 2", ground robots and boats steer on the left and drive
-/// on the right.
+/// on the right, legged robots turn and set their height on the left and
+/// walk on the right.
 const stickAxes = <DeviceKind, Map<String, int>>{
   DeviceKind.drone: {'yaw': 0, 'throttle': 1, 'roll': 2, 'pitch': 3},
   DeviceKind.plane: {'yaw': 0, 'throttle': 1, 'roll': 2, 'pitch': 3},
   DeviceKind.rover: {'steer': 0, 'throttle': 3},
   DeviceKind.boat: {'steer': 0, 'throttle': 3},
+  DeviceKind.legged: {'turn': 0, 'height': 1, 'strafe': 2, 'forward': 3},
 };
 
 /// A request dash refuses, with its code (protocol/SCRIPTS.md, Errors).

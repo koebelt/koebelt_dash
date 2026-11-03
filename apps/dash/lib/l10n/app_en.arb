@@ -1910,6 +1910,30 @@
   "kindPlane": "Plane",
   "kindRover": "Ground robot",
   "kindBoat": "Boat",
+  "kindLegged": "Legged robot",
+  "stWalkTo": "Walk to",
+  "sumWalkTo": "Walk to {x}, {y}",
+  "@sumWalkTo": {
+    "placeholders": {
+      "x": {
+        "type": "String"
+      },
+      "y": {
+        "type": "String"
+      }
+    }
+  },
+  "stepsLegged": "walk to waypoints, wait, change speed",
+  "planNoteLegged": "Waypoints are metres east and north of the start point. The robot stops and stands at each one before the next step.",
+  "legStand": "Stand",
+  "legSit": "Sit",
+  "gaitWalk": "Walk",
+  "gaitTrot": "Trot",
+  "stickTurnHeight": "Turn · height",
+  "stickWalk": "Walk · strafe",
+  "stickTurn": "Turn",
+  "legHeight": "Height",
+  "tiltWalk": "Tilt · walk and strafe",
   "kindArm": "Robot arm",
   "kindRocket": "Rocket",
   "kindBench": "Test bench",

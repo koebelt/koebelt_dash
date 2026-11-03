@@ -5473,6 +5473,90 @@ abstract class AppLocalizations {
   /// **'Boat'**
   String get kindBoat;
 
+  /// No description provided for @kindLegged.
+  ///
+  /// In en, this message translates to:
+  /// **'Legged robot'**
+  String get kindLegged;
+
+  /// No description provided for @stWalkTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Walk to'**
+  String get stWalkTo;
+
+  /// No description provided for @sumWalkTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Walk to {x}, {y}'**
+  String sumWalkTo(String x, String y);
+
+  /// No description provided for @stepsLegged.
+  ///
+  /// In en, this message translates to:
+  /// **'walk to waypoints, wait, change speed'**
+  String get stepsLegged;
+
+  /// No description provided for @planNoteLegged.
+  ///
+  /// In en, this message translates to:
+  /// **'Waypoints are metres east and north of the start point. The robot stops and stands at each one before the next step.'**
+  String get planNoteLegged;
+
+  /// No description provided for @legStand.
+  ///
+  /// In en, this message translates to:
+  /// **'Stand'**
+  String get legStand;
+
+  /// No description provided for @legSit.
+  ///
+  /// In en, this message translates to:
+  /// **'Sit'**
+  String get legSit;
+
+  /// No description provided for @gaitWalk.
+  ///
+  /// In en, this message translates to:
+  /// **'Walk'**
+  String get gaitWalk;
+
+  /// No description provided for @gaitTrot.
+  ///
+  /// In en, this message translates to:
+  /// **'Trot'**
+  String get gaitTrot;
+
+  /// No description provided for @stickTurnHeight.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn · height'**
+  String get stickTurnHeight;
+
+  /// No description provided for @stickWalk.
+  ///
+  /// In en, this message translates to:
+  /// **'Walk · strafe'**
+  String get stickWalk;
+
+  /// No description provided for @stickTurn.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn'**
+  String get stickTurn;
+
+  /// No description provided for @legHeight.
+  ///
+  /// In en, this message translates to:
+  /// **'Height'**
+  String get legHeight;
+
+  /// No description provided for @tiltWalk.
+  ///
+  /// In en, this message translates to:
+  /// **'Tilt · walk and strafe'**
+  String get tiltWalk;
+
   /// No description provided for @kindArm.
   ///
   /// In en, this message translates to:

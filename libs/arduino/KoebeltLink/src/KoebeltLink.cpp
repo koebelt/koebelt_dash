@@ -10,7 +10,7 @@
 
 static const char* const MODE_NAMES[] = {"AUTO", "MANUAL", "HOLD", "TAKEOFF", "LAND", "RTH", "PAD", "COUNT", "BOOST",
                                          "COAST", "DROGUE", "MAIN", "LANDED", "IDLE", "RAMP", "STEPS", "CUTOFF", "UNKNOWN"};
-static const char* const KIND_NAMES[] = {"drone", "rover", "arm", "rocket", "bench", "generic", "plane", "boat"};
+static const char* const KIND_NAMES[] = {"drone", "rover", "arm", "rocket", "bench", "generic", "plane", "boat", "legged"};
 
 const char* kModeName(KMode m) { return MODE_NAMES[static_cast<uint8_t>(m)]; }
 
@@ -564,6 +564,7 @@ void KLink::sendHello(KTransport* t) {
   d["name"] = _name;
   d["kind"] = KIND_NAMES[_kind];
   d["model"] = _model;
+  if (*_body) d["body"] = _body;
   d["fw"] = _fw;
   d["lib"] = "arduino/" KOEBELT_LINK_VERSION;
   d["seq"] = KLINK_MAX_STEPS;
@@ -679,7 +680,7 @@ void KLink::seqStore(KTransport* t, JsonDocument& m) {
   const char* err = nullptr;
   char why[64];
   uint8_t n = 0;
-  bool drone = flies(), rover = drives(), arm = _kind == ARM, bench = _kind == BENCH;
+  bool drone = flies(), rover = onGround(), arm = _kind == ARM, bench = _kind == BENCH;
   bool moving = !bench && _kind != ROCKET;
   if (sequenceRunning()) {
     err = "A sequence is running";
@@ -790,7 +791,7 @@ void KLink::seqPause() {
     JsonDocument a;
     a["v"] = 0;
     seqCmd("throttle", a);
-  } else if ((flies() || drives()) && _armed) {
+  } else if ((flies() || onGround()) && _armed) {
     seqMode(KMode::HOLD);
   }
 }
@@ -805,7 +806,7 @@ void KLink::seqStop(const char* why) {
     a["v"] = 0;
     seqCmd("throttle", a);
   }
-  if ((flies() || drives()) && _armed && !_estop) seqMode(KMode::HOLD);
+  if ((flies() || onGround()) && _armed && !_estop) seqMode(KMode::HOLD);
 }
 
 // The same callbacks the app's messages reach.
@@ -934,7 +935,7 @@ void KLink::seqStep(float dt) {
       float d = sqrtf(dx * dx + dy * dy + dz * dz);
       snprintf(_runMsg, sizeof(_runMsg), "%.1f m to go", d);
       // A plane cannot stop on a point, it passes it; a boat drifts.
-      float arrive = _kind == PLANE ? 15.0f : _kind == BOAT ? 1.5f : _kind == DRONE ? 1.0f : 0.6f;
+      float arrive = _kind == PLANE ? 15.0f : _kind == BOAT ? 1.5f : _kind == DRONE ? 1.0f : _kind == LEGGED ? 0.5f : 0.6f;
       r = within(300, d < arrive);
       break;
     }
@@ -989,7 +990,7 @@ void KLink::seqStep(float dt) {
   } else if (r == -1) {
     _run = R_FAIL;
     snprintf(_runMsg, sizeof(_runMsg), "Step %d timed out", _runI + 1);
-    if ((flies() || drives()) && _armed) seqMode(KMode::HOLD);
+    if ((flies() || onGround()) && _armed) seqMode(KMode::HOLD);
   }
 }
 

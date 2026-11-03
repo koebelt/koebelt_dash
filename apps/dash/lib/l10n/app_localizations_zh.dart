@@ -2992,6 +2992,50 @@ class AppLocalizationsZh extends AppLocalizations {
   String get kindBoat => '船';
 
   @override
+  String get kindLegged => '足式机器人';
+
+  @override
+  String get stWalkTo => '行走至';
+
+  @override
+  String sumWalkTo(String x, String y) {
+    return '行走至 $x, $y';
+  }
+
+  @override
+  String get stepsLegged => '行走至航点、等待、改变速度';
+
+  @override
+  String get planNoteLegged => '航点是相对起点向东和向北的米数。机器人在每个航点停下并站立，然后执行下一步。';
+
+  @override
+  String get legStand => '站立';
+
+  @override
+  String get legSit => '坐下';
+
+  @override
+  String get gaitWalk => '步行';
+
+  @override
+  String get gaitTrot => '小跑';
+
+  @override
+  String get stickTurnHeight => '转向 · 高度';
+
+  @override
+  String get stickWalk => '行走 · 侧移';
+
+  @override
+  String get stickTurn => '转向';
+
+  @override
+  String get legHeight => '高度';
+
+  @override
+  String get tiltWalk => '倾斜 · 行走和侧移';
+
+  @override
   String get kindArm => '机械臂';
 
   @override

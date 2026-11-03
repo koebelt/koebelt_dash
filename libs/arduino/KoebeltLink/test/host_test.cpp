@@ -586,6 +586,23 @@ void test_planes_and_boats() {
   }
 }
 
+// A legged robot walks to points, does not take off, and says what it looks like.
+void test_legged() {
+  KLink l("Scout", KLink::LEGGED);
+  l.setBody("hexapod");
+  FakeTransport t;
+  l.addTransport(&t);
+  run(l, t, 100, false);
+  t.in.push_back("{\"t\":\"hello\",\"v\":1}");
+  t.in.push_back("{\"t\":\"seq\",\"id\":\"t\",\"steps\":[[\"goto\",{\"x\":3,\"y\":1}],[\"takeoff\",{\"alt\":2}]]}");
+  run(l, t, 100);
+  auto h = t.of("hello");
+  CHECK(h.size() == 1 && strcmp(h[0]["kind"], "legged") == 0 && strcmp(h[0]["body"], "hexapod") == 0);
+  CHECK(l.onGround() && !l.flies());
+  auto ack = t.of("seqack");
+  CHECK(ack.size() == 1 && ack[0]["ok"] == false);
+}
+
 int main() {
   test_handshake();
   test_control_stop_failsafe();
@@ -601,6 +618,7 @@ int main() {
   test_bluetooth_module_rates();
   test_stored_sequences();
   test_planes_and_boats();
+  test_legged();
   printf("%d checks, %d failures\n", checks, failures);
   return failures ? 1 : 0;
 }

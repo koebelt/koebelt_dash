@@ -231,7 +231,7 @@ class ReplayScreen extends StatelessWidget {
       ...switch (R.session.kind) {
         DeviceKind.arm => ['joints', 'power'],
         DeviceKind.bench => ['thrust', 'rpm'],
-        DeviceKind.rover || DeviceKind.boat => ['gyro', 'power'],
+        DeviceKind.rover || DeviceKind.boat || DeviceKind.legged => ['gyro', 'power'],
         _ => ['accel', 'alt'],
       },
       // What scripts showed while recording.

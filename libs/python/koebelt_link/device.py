@@ -12,7 +12,7 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tupl
 
 from . import __version__
 from . import sequence as seqmod
-from .protocol import COMPACT_FIELDS, FLYING, KINDS, VERSION, Msg, encode_points
+from .protocol import BODIES, COMPACT_FIELDS, FLYING, KINDS, VERSION, Msg, encode_points
 from .transports import RadioTransport, SerialTransport, Transport, UdpTransport
 
 #: A radio port: "/dev/ttyUSB1" (SiK) or ("/dev/ttyUSB1", "hc12").
@@ -147,9 +147,13 @@ class Device:
     """
 
     def __init__(self, name: str, kind: str = "generic", *, id: Optional[str] = None, model: str = "", sensors: Optional[Iterable[str]] = None,
-                 fw: str = "", state_dir: Optional[str] = None):
+                 fw: str = "", state_dir: Optional[str] = None, body: str = ""):
         if kind not in KINDS:
             raise ValueError(f"kind must be one of {KINDS}")
+        if body and body not in BODIES.get(kind, ()):
+            raise ValueError(f"a {kind} body is one of {BODIES.get(kind, ())}")
+        #: The shape the app draws (hexa, car, hexapod…); empty: the kind's usual one.
+        self.body = body
         self.name = name
         self.kind = kind
         self.id = id or re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
@@ -561,6 +565,8 @@ class Device:
     def _hello(self) -> Msg:
         m = {"t": "hello", "v": VERSION, "id": self.id, "name": self.name, "kind": self.kind, "model": self.model, "fw": self.fw,
              "lib": f"python/{__version__}", "sensors": self.sensors, "seq": seqmod.MAX_STEPS, "ok": True}
+        if self.body:
+            m["body"] = self.body
         if self.video_streams:
             m["video"] = self.video_streams
         if self.prox:

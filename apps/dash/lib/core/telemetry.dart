@@ -62,6 +62,9 @@ class Telemetry {
   bool armed = false, estop = false, failsafe = false;
   String? cutoff;
   String? seqKind;
+
+  /// Legged robots: standing or sitting, and the gait (`walk`, `trot`).
+  String? stance, gait;
   double seqT = 0;
 
   // environment
@@ -182,6 +185,8 @@ class Telemetry {
     if (ext is Map) {
       if (ext['pyro'] is List) pyro = List<String>.from((ext['pyro'] as List).map((e) => e == '-' ? '—' : '$e'));
       cutoff = ext['cutoff'];
+      if (ext['stance'] is String) stance = ext['stance'];
+      if (ext['gait'] is String) gait = ext['gait'];
       final s = ext['seq'];
       if (s is Map) {
         seqKind = s['kind'];
@@ -326,6 +331,8 @@ class Telemetry {
       'yaw': r(yaw, 4),
       'mode': mode,
       'armed': armed,
+      'stance': ?stance,
+      'gait': ?gait,
       'seen': seen.toList(),
       if (has('vel')) 'vel': rl(vel, 3),
       if (has('imu')) ...{'acc': rl(acc, 3), 'gyro': rl(gyro, 4)},
@@ -383,6 +390,8 @@ class Telemetry {
     countdown = d('countdown') ?? countdown;
     if (f['pyro'] is List) pyro = List<String>.from(f['pyro']);
     if (f['mode'] is String) mode = f['mode'];
+    if (f['stance'] is String) stance = f['stance'];
+    if (f['gait'] is String) gait = f['gait'];
     if (f['armed'] is bool) armed = f['armed'];
     if (f['custom'] is Map) {
       custom

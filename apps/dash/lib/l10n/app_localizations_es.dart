@@ -3037,6 +3037,51 @@ class AppLocalizationsEs extends AppLocalizations {
   String get kindBoat => 'Barco';
 
   @override
+  String get kindLegged => 'Robot con patas';
+
+  @override
+  String get stWalkTo => 'Caminar a';
+
+  @override
+  String sumWalkTo(String x, String y) {
+    return 'Caminar a $x, $y';
+  }
+
+  @override
+  String get stepsLegged => 'caminar a waypoints, esperar, cambiar la velocidad';
+
+  @override
+  String get planNoteLegged =>
+      'Los waypoints son metros al este y al norte del punto de partida. El robot se detiene y se queda de pie en cada uno antes del paso siguiente.';
+
+  @override
+  String get legStand => 'De pie';
+
+  @override
+  String get legSit => 'Sentado';
+
+  @override
+  String get gaitWalk => 'Paso';
+
+  @override
+  String get gaitTrot => 'Trote';
+
+  @override
+  String get stickTurnHeight => 'Girar · altura';
+
+  @override
+  String get stickWalk => 'Caminar · lateral';
+
+  @override
+  String get stickTurn => 'Girar';
+
+  @override
+  String get legHeight => 'Altura';
+
+  @override
+  String get tiltWalk => 'Tilt · caminar y desplazarse';
+
+  @override
   String get kindArm => 'Brazo robótico';
 
   @override

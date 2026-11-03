@@ -55,15 +55,24 @@ manufacturer data (company id `0xFFFF`) holds the ASCII string `KL1`.
 
 ## Device kinds
 
-`drone`, `plane`, `rover`, `boat`, `arm`, `rocket`, `bench`, `generic`. The
-kind picks the app's default dashboard, the control screen and the 3D model.
-A plane is flown like a drone (it takes off, flies to points, lands, returns
-home) but cannot stop: it holds by circling. A boat is driven like a rover.
-Apps before 1.4 show a plane or a boat as a generic device.
+`drone`, `plane`, `rover`, `boat`, `legged`, `arm`, `rocket`, `bench`,
+`generic`. The kind picks the app's default dashboard, the control screen and
+the 3D model. A plane is flown like a drone (it takes off, flies to points,
+lands, returns home) but cannot stop: it holds by circling. A boat is driven
+like a rover. A legged robot (quadruped, hexapod) walks forward, sideways and
+turning at once; its `pos` z is its body height, and it stands or sits.
+Its `ctl` axes: `lx` turns, `ly` raises or lowers the body, `rx` steps
+sideways (right is positive), `ry` walks forward.
+Apps before 1.4 show a plane, a boat or a legged robot as a generic device.
+
+The optional `body` in `hello` says which shape the app draws, the first
+being the default: drone `quad`, `hexa`, `octo`, `heli`; plane `trainer`,
+`wing`, `vtol`; rover `4wd`, `car`, `tracked`; boat `hull`, `catamaran`;
+legged `quadruped`, `hexapod`. MAVLink vehicles get theirs from MAV_TYPE.
 
 ## Modes
 
-`AUTO`, `MANUAL`, `HOLD`, `TAKEOFF`, `LAND`, `RTH` (drones, planes, rovers, boats, arms)
+`AUTO`, `MANUAL`, `HOLD`, `TAKEOFF`, `LAND`, `RTH` (drones, planes, rovers, boats, legged robots, arms)
 
 - `HOLD`: hold still (position, or stopped). A device powers on disarmed in
   HOLD; the app puts a disarmed device in HOLD when it connects (an armed one
@@ -93,6 +102,8 @@ Rockets use flight phases: `PAD`, `COUNT`, `BOOST`, `COAST`, `DROGUE`,
  "fw":"2.4.1","lib":"arduino/1.0.0","sensors":["GPS","IMU","BARO","LIDAR"],"ok":true}
 ```
 `ok:false` with `err:"key"` when the pairing key does not match.
+
+Optional `body`: the shape the app draws (see [Device kinds](#device-kinds)).
 
 Optional `video` lists camera streams the app can show (see [Video](#video)):
 ```json
@@ -242,10 +253,12 @@ Echoes `ts` from `ping` so the app can measure round-trip latency.
 | Kind   | `c`         | `a`                           |
 |--------|-------------|-------------------------------|
 | drone, plane | `takeoff` | `{"alt":10}` arm, climb to alt (m), then HOLD |
-| drone, plane, rover, boat | `goto` | `{"x":15,"y":0,"z":10}` fly/drive to a point (m, ENU from home; `z` drones and planes only). Report `AUTO` while moving, `HOLD` on arrival |
+| drone, plane, rover, boat, legged | `goto` | `{"x":15,"y":0,"z":10}` fly/drive/walk to a point (m, ENU from home; `z` drones and planes only). Report `AUTO` while moving, `HOLD` on arrival |
 | arm    | `pose`      | `{"j":[0,-0.5,1.1,0,0.6,0]}` joint targets (rad), mode MANUAL |
 | arm    | `home`      | –  move to the home pose     |
-| drone, plane, rover, boat | `sethome` | – current position becomes home: `pos` restarts at (0, 0), RTH returns here |
+| drone, plane, rover, boat, legged | `sethome` | – current position becomes home: `pos` restarts at (0, 0), RTH returns here |
+| legged | `stance` | `{"v":"stand"}` stand up or `sit` down; report it in `state.ext.stance` |
+| legged | `gait` | `{"v":"trot"}` `walk` or `trot`; report it in `state.ext.gait` |
 | arm    | `sethome`   | `{"j":[…]}` joint angles (rad) that `home` moves to; current joints when omitted |
 | arm    | `gripper`   | `{"v":0.9}` open fraction     |
 | rocket | `countdown` | `{"s":10}`                    |
@@ -392,7 +405,7 @@ complete:
 | Step | Args | Runs as | Complete when (times out after) |
 |------|------|---------|---------------------------------|
 | `takeoff` | `{"alt":10}` | `cmd takeoff` | 0.3 s passed, mode is not `TAKEOFF`, `z > alt − 0.6` (60 s) |
-| `goto` | `{"x":15,"y":0,"z":10}` | `cmd goto` | within 1 m (drones, 3D), 15 m (planes, 3D: they pass it), 1.5 m (boats, 2D) or 0.6 m (rovers, 2D) (300 s) |
+| `goto` | `{"x":15,"y":0,"z":10}` | `cmd goto` | within 1 m (drones, 3D), 15 m (planes, 3D: they pass it), 1.5 m (boats, 2D), 0.6 m (rovers, 2D) or 0.5 m (legged robots, 2D) (300 s) |
 | `land` / `rth` | `{}` | `mode LAND` / `RTH` | 0.5 s passed and disarmed, or `z < 0.1` with the mode changed (300 s) |
 | `pose` | `{"j":[…6 rad]}` | `cmd pose` | every joint within 0.03 rad (60 s) |
 | `home` | `{}` | `cmd home` | 0.6 s passed and the joints still for 0.4 s (60 s) |

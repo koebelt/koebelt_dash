@@ -3001,6 +3001,50 @@ class AppLocalizationsJa extends AppLocalizations {
   String get kindBoat => 'ボート';
 
   @override
+  String get kindLegged => '脚型ロボット';
+
+  @override
+  String get stWalkTo => '歩行';
+
+  @override
+  String sumWalkTo(String x, String y) {
+    return '$x、$y へ歩行';
+  }
+
+  @override
+  String get stepsLegged => 'ウェイポイントへの歩行、待機、速度の変更';
+
+  @override
+  String get planNoteLegged => 'ウェイポイントはスタート地点から東と北へのメートルです。ロボットは各地点で止まって立ってから次のステップに進みます。';
+
+  @override
+  String get legStand => '立つ';
+
+  @override
+  String get legSit => '座る';
+
+  @override
+  String get gaitWalk => 'ウォーク';
+
+  @override
+  String get gaitTrot => 'トロット';
+
+  @override
+  String get stickTurnHeight => '旋回 · 高さ';
+
+  @override
+  String get stickWalk => '歩行 · 横移動';
+
+  @override
+  String get stickTurn => '旋回';
+
+  @override
+  String get legHeight => '高さ';
+
+  @override
+  String get tiltWalk => 'チルト · 歩行と横移動';
+
+  @override
   String get kindArm => 'ロボットアーム';
 
   @override

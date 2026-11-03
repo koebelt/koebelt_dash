@@ -8,7 +8,7 @@ import '../core/model.dart';
 ///     # requires: drone, rover      a kind: any one of them
 ///     # requires: gps, camera       capabilities: all of them
 ///
-/// Words that are kinds (drone, plane, rover, boat, arm, rocket, bench, generic) choose
+/// Words that are kinds (drone, plane, rover, boat, legged, arm, rocket, bench, generic) choose
 /// the kinds; the others are capabilities (see [capabilitiesOf]).
 class ScriptRequirements {
   const ScriptRequirements({this.kinds = const {}, this.needs = const []});

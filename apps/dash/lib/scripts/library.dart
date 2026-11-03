@@ -208,6 +208,7 @@ String scriptTemplate(String template, DeviceKind kind, String title) {
   final sticks = switch (kind) {
     DeviceKind.drone || DeviceKind.plane => 'dev.sticks(throttle=0, yaw=0, pitch=0, roll=0)',
     DeviceKind.rover || DeviceKind.boat => 'dev.sticks(throttle=0, steer=0)',
+    DeviceKind.legged => 'dev.sticks(forward=0, strafe=0, turn=0)',
     _ => '# dev.cmd(...)',
   };
   final head =

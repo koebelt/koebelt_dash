@@ -122,7 +122,7 @@ koebelt-link = { path = "$root/libs/rust", features = ["ble"] }
   test('ROS 2 configs only use keys the bridge understands', () {
     const check = r'''
 import sys, yaml
-top = {"name", "kind", "model", "transport", "fallback", "port", "sensors", "proximity", "controls", "safety", "params", "channels", "video"}
+top = {"name", "kind", "model", "body", "transport", "fallback", "port", "sensors", "proximity", "controls", "safety", "params", "channels", "video"}
 sensors = {"imu", "lidar", "joints", "power", "odom", "gps"}
 controls = {"twist", "jog", "mode", "max_linear", "max_angular", "joint_names"}
 safety = {"stop_service", "failsafe_timeout", "failsafe_action"}
@@ -130,7 +130,7 @@ for path in sys.argv[1:]:
     c = yaml.safe_load(open(path))
     bad = (set(c) - top) | (set(c.get("sensors") or {}) - sensors) | (set(c.get("controls") or {}) - controls) | (set(c.get("safety") or {}) - safety)
     assert not bad, f"{path}: unknown keys {sorted(bad)}"
-    assert c.get("kind") in ("drone", "plane", "rover", "boat", "arm", "rocket", "bench", "generic"), path
+    assert c.get("kind") in ("drone", "plane", "rover", "boat", "legged", "arm", "rocket", "bench", "generic"), path
     assert set(c.get("video") or {}) <= {"topic", "port", "label"}, path
     for ch in c.get("channels") or []:
         assert {"id", "topic"} <= set(ch), f"{path}: channel needs id and topic"
