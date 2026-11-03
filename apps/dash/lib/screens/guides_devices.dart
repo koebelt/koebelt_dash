@@ -528,6 +528,304 @@ safety:
     ],
   ),
 
+  // ---------------------------------------------------------------- legged
+  Guide(
+    'ex-legged',
+    'Legged robot',
+    'Quadrupeds, hexapods and humanoids: walking, body height, stand and sit, gaits.',
+    15,
+    section: 'devices',
+    kind: 'legged',
+    platforms: ['arduino', 'python', 'micropython'],
+    [
+      Step.rich(
+        'What the app gives you',
+        'Legged robots walk forward, sideways and turning at once. The app sends the walking; your gait code moves the legs.',
+        bullets: [
+          'Live: the body at its height in 3D with its legs stepping, its track and attitude.',
+          'Control: the right stick walks and steps sideways, the left one turns and sets the body height; Stand and Sit, Walk and Trot.',
+          'Sequences (Automate): walk to waypoints, wait, change the speed limit.',
+          'Shape: quadruped, hexapod or humanoid. Declare yours, or pick it on the Devices screen.',
+        ],
+      ),
+      Step.rich(
+        'Sticks and commands',
+        'What arrives, and what to do with it:',
+        bullets: [
+          'ry walks forward (−1 backward … 1 forward) and rx steps sideways, right positive.',
+          'lx turns; ly raises or lowers the body around its standing height.',
+          'stance {v: "stand" | "sit"}: stand up or sit down, and report it with the state stance.',
+          'gait {v: "walk" | "trot"}: switch gaits, and report it the same way.',
+          'goto {x, y}: walk there, report AUTO while moving and HOLD on arrival.',
+        ],
+        note: 'Report the body height as the position’s z. Stand up when armed, and sit when disarmed or stopped.',
+      ),
+      Step.rich(
+        'Complete example',
+        'The gait is a stub: hand the walking command to your gait engine or inverse kinematics, or to your servo controller’s walk mode.',
+        complete: true,
+        c: {
+          'arduino': [
+            'cpp',
+            r'''// Legged robot: walking with sideways steps and turns, body height,
+// stand and sit, walk and trot, waypoints.
+#include <KoebeltLink.h>
+
+KLink klink("Scout", KLink::LEGGED);
+KParam maxSpeed, standHeight;
+
+float x = 0, y = 0, heading = 0, height = 0.08f; // metres from home; body height
+float fwd = 0, side = 0, turn = 0, trim = 0;     // what is asked, each −1…1
+bool standing = false, trot = false, goingTo = false;
+float goalX = 0, goalY = 0;
+
+void gaitStep(float dt) {                        // replace with your gait engine
+  if (!standing) fwd = side = turn = 0;
+  float v = (float)maxSpeed * (trot ? 1.6f : 1.0f) * klink.speedLimit() * 2;
+  heading += turn * 1.5f * dt;
+  x += (cosf(heading) * fwd + sinf(heading) * side) * v * dt;
+  y += (sinf(heading) * fwd - cosf(heading) * side) * v * dt;
+  float want = standing ? (float)standHeight + trim * 0.05f : 0.08f;
+  height += (want - height) * fminf(1, dt * 3);
+}
+
+void stance(bool up) {
+  standing = up;
+  klink.setState("stance", up ? "stand" : "sit");
+}
+
+void setup() {
+  klink.setModel("Quadruped · 12 servos");
+  klink.setBody("quadruped");                    // or "hexapod", "humanoid"
+  klink.setSensors("IMU,FOOT CONTACTS");
+  klink.begin("your-ssid", "your-password");
+  maxSpeed = klink.param("MAX_SPD", 0.6, 0.1, 1.5, "m/s");
+  standHeight = klink.param("BODY_H", 0.22, 0.1, 0.32, "m");
+  stance(false);
+  klink.setState("gait", "walk");
+
+  klink.onControl([](const KControl& c) {
+    if (klink.mode() != KMode::MANUAL) return;
+    fwd = c.ry;
+    side = c.rx;
+    turn = -c.lx;
+    trim = c.ly;
+  });
+  klink.onArm([](bool armed) { stance(armed); }); // stand up when armed
+  klink.onStop([] { stance(false); goingTo = false; });
+  klink.onMode([](KMode m) {
+    goingTo = false;
+    if (m == KMode::HOLD) fwd = side = turn = 0;
+  });
+  klink.onCommand([](const char* c, JsonObjectConst a) {
+    if (!strcmp(c, "stance")) {
+      stance(!strcmp(a["v"] | "", "stand"));
+    } else if (!strcmp(c, "gait")) {
+      trot = !strcmp(a["v"] | "", "trot");
+      klink.setState("gait", trot ? "trot" : "walk");
+    } else if (!strcmp(c, "goto")) {
+      goalX = a["x"] | x;
+      goalY = a["y"] | y;
+      goingTo = true;
+      klink.setMode(KMode::AUTO);
+    } else if (!strcmp(c, "sethome")) {
+      x = y = 0;
+    }
+  });
+  klink.failsafe(1000, KMode::HOLD);
+}
+
+void loop() {
+  static uint32_t last = millis();
+  float dt = (millis() - last) / 1000.0f;
+  last = millis();
+  if (goingTo && klink.armed() && !klink.stopped()) {
+    float dx = goalX - x, dy = goalY - y, dist = sqrtf(dx * dx + dy * dy);
+    float err = atan2f(dy, dx) - heading;
+    err = atan2f(sinf(err), cosf(err));
+    if (dist < 0.2f) {
+      fwd = turn = 0;
+      goingTo = false;
+      klink.setMode(KMode::HOLD);                // the app moves to the next step
+    } else {
+      fwd = fabsf(err) > 0.8f ? 0 : 1;           // turn on the spot first
+      side = 0;
+      turn = constrain(err * 1.5f, -1.0f, 1.0f);
+    }
+  }
+  gaitStep(dt);
+  klink.position(x, y, height);
+  klink.attitude(0, 0, heading);
+  klink.battery(7.4, 70);
+  klink.update();
+}''',
+          ],
+          'python': [
+            'python',
+            r'''"""Legged robot on a Raspberry Pi: walking, body height, stand and sit, gaits."""
+import math
+
+from koebelt_link import Device
+
+dev = Device("Scout", kind="legged", body="quadruped", model="Quadruped · 12 servos", sensors=["IMU", "FOOT CONTACTS"])
+dev.connect(wifi=True)
+dev.failsafe(timeout=1.0, action="hold")
+max_speed = dev.param("MAX_SPD", 0.6, min=0.1, max=1.5, unit="m/s")
+stand_height = dev.param("BODY_H", 0.22, min=0.1, max=0.32, unit="m")
+STILL = (0.0, 0.0, 0.0, 0.0)
+s = {"x": 0.0, "y": 0.0, "h": 0.0, "z": 0.08, "walk": STILL, "standing": False, "trot": False, "goal": None}
+dev.set_state(stance="sit", gait="walk")
+
+
+def stance(up):
+    s["standing"] = up
+    dev.set_state(stance="stand" if up else "sit")
+
+
+@dev.on_control
+def sticks(c):
+    if dev.mode == "MANUAL":
+        s["walk"] = (c.ry, c.rx, -c.lx, c.ly)   # forward, sideways, turn, height
+
+
+@dev.on_arm
+def armed(on):
+    stance(on)   # stand up when armed, sit when disarmed
+
+
+@dev.on_stop
+def stop():
+    stance(False)
+    s["goal"], s["walk"] = None, STILL
+
+
+@dev.on_command
+def command(name, a):
+    if name == "stance":
+        stance(a.get("v") == "stand")
+    elif name == "gait":
+        s["trot"] = a.get("v") == "trot"
+        dev.set_state(gait="trot" if s["trot"] else "walk")
+    elif name == "goto":
+        s["goal"] = (a["x"], a["y"])
+        dev.set_mode("AUTO")
+    elif name == "sethome":
+        s["x"] = s["y"] = 0.0
+
+
+def loop():
+    dt = 1 / 50
+    goal = s["goal"]
+    if goal and dev.armed and not dev.estop:
+        dx, dy = goal[0] - s["x"], goal[1] - s["y"]
+        err = math.atan2(dy, dx) - s["h"]
+        err = math.atan2(math.sin(err), math.cos(err))
+        if math.hypot(dx, dy) < 0.2:
+            s["goal"], s["walk"] = None, STILL
+            dev.set_mode("HOLD")
+        else:
+            s["walk"] = (0.0 if abs(err) > 0.8 else 1.0, 0.0, max(-1.0, min(1.0, err * 1.5)), 0.0)
+    # Replace with your gait engine: here the body just moves as asked.
+    fwd, side, turn, trim = s["walk"] if s["standing"] else STILL
+    v = max_speed.value * (1.6 if s["trot"] else 1.0) * dev.speed * 2
+    s["h"] += turn * 1.5 * dt
+    s["x"] += (math.cos(s["h"]) * fwd + math.sin(s["h"]) * side) * v * dt
+    s["y"] += (math.sin(s["h"]) * fwd - math.cos(s["h"]) * side) * v * dt
+    want = stand_height.value + trim * 0.05 if s["standing"] else 0.08
+    s["z"] += (want - s["z"]) * min(1.0, dt * 3)
+    dev.publish("pos", x=s["x"], y=s["y"], z=s["z"])
+    dev.publish("att", roll=0, pitch=0, yaw=s["h"])
+    dev.battery(7.4, 70)
+
+
+dev.run(hz=50, loop=loop)''',
+          ],
+          'micropython': [
+            'python',
+            r'''"""Legged robot on an ESP32 with MicroPython: walking, body height, stand and sit."""
+import math
+
+import koebelt_link as kl
+
+kl.wifi("my-network", "password")
+dev = kl.Device("Scout", kind="legged", body="quadruped", model="Quadruped · 12 servos", sensors=["IMU", "FOOT CONTACTS"])
+dev.connect(wifi=True)
+dev.failsafe(timeout=1.0, action="hold")
+max_speed = dev.param("MAX_SPD", 0.6, min=0.1, max=1.5, unit="m/s")
+stand_height = dev.param("BODY_H", 0.22, min=0.1, max=0.32, unit="m")
+STILL = (0.0, 0.0, 0.0, 0.0)
+s = {"x": 0.0, "y": 0.0, "h": 0.0, "z": 0.08, "walk": STILL, "standing": False, "trot": False, "goal": None}
+dev.set_state(stance="sit", gait="walk")
+
+
+def stance(up):
+    s["standing"] = up
+    dev.set_state(stance="stand" if up else "sit")
+
+
+@dev.on_control
+def sticks(c):
+    if dev.mode == "MANUAL":
+        s["walk"] = (c.ry, c.rx, -c.lx, c.ly)   # forward, sideways, turn, height
+
+
+@dev.on_arm
+def armed(on):
+    stance(on)   # stand up when armed, sit when disarmed
+
+
+@dev.on_stop
+def stop():
+    stance(False)
+    s["goal"], s["walk"] = None, STILL
+
+
+@dev.on_command
+def command(name, a):
+    if name == "stance":
+        stance(a.get("v") == "stand")
+    elif name == "gait":
+        s["trot"] = a.get("v") == "trot"
+        dev.set_state(gait="trot" if s["trot"] else "walk")
+    elif name == "goto":
+        s["goal"] = (a["x"], a["y"])
+        dev.set_mode("AUTO")
+    elif name == "sethome":
+        s["x"] = s["y"] = 0.0
+
+
+def loop():
+    dt = 1 / 50
+    goal = s["goal"]
+    if goal and dev.armed and not dev.estop:
+        dx, dy = goal[0] - s["x"], goal[1] - s["y"]
+        err = math.atan2(dy, dx) - s["h"]
+        err = math.atan2(math.sin(err), math.cos(err))
+        if math.sqrt(dx * dx + dy * dy) < 0.2:
+            s["goal"], s["walk"] = None, STILL
+            dev.set_mode("HOLD")
+        else:
+            s["walk"] = (0.0 if abs(err) > 0.8 else 1.0, 0.0, max(-1.0, min(1.0, err * 1.5)), 0.0)
+    # Replace with your gait engine: here the body just moves as asked.
+    fwd, side, turn, trim = s["walk"] if s["standing"] else STILL
+    v = max_speed.value * (1.6 if s["trot"] else 1.0) * dev.speed * 2
+    s["h"] += turn * 1.5 * dt
+    s["x"] += (math.cos(s["h"]) * fwd + math.sin(s["h"]) * side) * v * dt
+    s["y"] += (math.sin(s["h"]) * fwd - math.cos(s["h"]) * side) * v * dt
+    want = stand_height.value + trim * 0.05 if s["standing"] else 0.08
+    s["z"] += (want - s["z"]) * min(1.0, dt * 3)
+    dev.position(s["x"], s["y"], s["z"])
+    dev.attitude(0, 0, s["h"])
+    dev.battery(7.4, 70)
+
+
+dev.run(hz=50, loop=loop)''',
+          ],
+        },
+      ),
+    ],
+  ),
+
   // ---------------------------------------------------------------- arm
   Guide(
     'ex-arm',

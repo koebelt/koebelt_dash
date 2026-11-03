@@ -59,6 +59,7 @@ const _screens = [
   // Two guides with long text and wide tables.
   'guide:link',
   'guide:sequence-or-script',
+  'guide:ex-legged',
   'settings',
 ];
 

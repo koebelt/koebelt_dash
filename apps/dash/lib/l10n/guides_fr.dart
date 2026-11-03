@@ -1046,4 +1046,29 @@ const guidesFr = <String, String>{
   'Small robots and sensor boards, in Python': 'Petits robots et cartes capteurs, en Python',
   'Robots that already publish ROS topics': 'Robots qui publient déjà des topics ROS',
   'Custom firmware, high-rate control loops': 'Firmware sur mesure, boucles de contrôle à haute fréquence',
+  'Legged robot': 'Robot à pattes',
+  'Quadrupeds, hexapods and humanoids: walking, body height, stand and sit, gaits.':
+      'Quadrupèdes, hexapodes et humanoïdes : marche, hauteur du corps, debout et assis, allures.',
+  'Legged robots walk forward, sideways and turning at once. The app sends the walking; your gait code moves the legs.':
+      'Les robots à pattes marchent en avant, de côté et en tournant à la fois. L’app envoie la marche ; votre code de gait bouge les pattes.',
+  'Live: the body at its height in 3D with its legs stepping, its track and attitude.':
+      'Live : le corps à sa hauteur en 3D avec ses pattes qui marchent, sa trace et son attitude.',
+  'Control: the right stick walks and steps sideways, the left one turns and sets the body height; Stand and Sit, Walk and Trot.':
+      'Pilotage : le stick droit fait marcher et se décaler, le gauche fait tourner et règle la hauteur du corps ; Debout et Assis, Marche et Trot.',
+  'Sequences (Automate): walk to waypoints, wait, change the speed limit.':
+      'Séquences (Automatiser) : marcher vers des waypoints, attendre, changer la limite de vitesse.',
+  'Shape: quadruped, hexapod or humanoid. Declare yours, or pick it on the Devices screen.':
+      'Forme : quadrupède, hexapode ou humanoïde. Déclarez la vôtre, ou choisissez-la dans l’écran Appareils.',
+  'Sticks and commands': 'Sticks et commandes',
+  'What arrives, and what to do with it:': 'Ce qui arrive, et quoi en faire :',
+  'ry walks forward (−1 backward … 1 forward) and rx steps sideways, right positive.':
+      'ry fait marcher en avant (−1 en arrière … 1 en avant) et rx se décaler, vers la droite en positif.',
+  'lx turns; ly raises or lowers the body around its standing height.': 'lx fait tourner ; ly monte ou baisse le corps autour de sa hauteur debout.',
+  'stance {v: "stand" | "sit"}: stand up or sit down, and report it with the state stance.':
+      'stance {v: "stand" | "sit"} : se lever ou s’asseoir, et l’indiquer avec l’état stance.',
+  'gait {v: "walk" | "trot"}: switch gaits, and report it the same way.': 'gait {v: "walk" | "trot"} : changer d’allure, et l’indiquer de la même façon.',
+  'goto {x, y}: walk there, report AUTO while moving and HOLD on arrival.': 'goto {x, y} : y marcher, indiquer AUTO en chemin et HOLD à l’arrivée.',
+  'Report the body height as the position’s z. Stand up when armed, and sit when disarmed or stopped.':
+      'Indiquez la hauteur du corps comme z de la position. Levez-vous une fois armé, et asseyez-vous une fois désarmé ou arrêté.',
+  'The gait is a stub: hand the walking command to your gait engine or inverse kinematics, or to your servo controller’s walk mode.': 'Le gait est un exemple : donnez la marche demandée à votre moteur de gait ou à votre cinématique inverse, ou au mode marche de votre contrôleur de servos.',
 };

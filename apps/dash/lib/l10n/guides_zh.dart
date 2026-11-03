@@ -1028,4 +1028,23 @@ const guidesZh = <String, String>{
   'Small robots and sensor boards, in Python': '小型机器人和传感器板，用 Python',
   'Robots that already publish ROS topics': '已经发布 ROS 话题的机器人',
   'Custom firmware, high-rate control loops': '自定义固件、高频控制回路',
+  'Legged robot': '足式机器人',
+  'Quadrupeds, hexapods and humanoids: walking, body height, stand and sit, gaits.': '四足、六足和人形机器人：行走、身体高度、站立与坐下、步态。',
+  'Legged robots walk forward, sideways and turning at once. The app sends the walking; your gait code moves the legs.':
+      '足式机器人可同时前进、侧移和转向。应用发送行走指令；你的步态代码驱动腿部。',
+  'Live: the body at its height in 3D with its legs stepping, its track and attitude.': '实时：3D 中身体处于其高度，腿部迈步，并显示轨迹和姿态。',
+  'Control: the right stick walks and steps sideways, the left one turns and sets the body height; Stand and Sit, Walk and Trot.':
+      '操控：右摇杆行走和侧移，左摇杆转向并调整身体高度；站立与坐下、步行与小跑。',
+  'Sequences (Automate): walk to waypoints, wait, change the speed limit.': '序列（自动化）：行走至航点、等待、改变速度限制。',
+  'Shape: quadruped, hexapod or humanoid. Declare yours, or pick it on the Devices screen.': '外形：四足、六足或人形。在设备中声明，或在“设备”页面选择。',
+  'Sticks and commands': '摇杆和指令',
+  'What arrives, and what to do with it:': '收到的内容及处理方式：',
+  'ry walks forward (−1 backward … 1 forward) and rx steps sideways, right positive.': 'ry 前进（−1 后退 … 1 前进），rx 侧移，向右为正。',
+  'lx turns; ly raises or lowers the body around its standing height.': 'lx 转向；ly 以站立高度为基准升降身体。',
+  'stance {v: "stand" | "sit"}: stand up or sit down, and report it with the state stance.': 'stance {v: "stand" | "sit"}：站起或坐下，并用状态 stance 报告。',
+  'gait {v: "walk" | "trot"}: switch gaits, and report it the same way.': 'gait {v: "walk" | "trot"}：切换步态，并以同样方式报告。',
+  'goto {x, y}: walk there, report AUTO while moving and HOLD on arrival.': 'goto {x, y}：走到那里，移动时报告 AUTO，到达时报告 HOLD。',
+  'Report the body height as the position’s z. Stand up when armed, and sit when disarmed or stopped.': '将身体高度作为位置的 z 报告。解锁时站起，上锁或停止时坐下。',
+  'The gait is a stub: hand the walking command to your gait engine or inverse kinematics, or to your servo controller’s walk mode.':
+      '步态只是占位：将行走指令交给你的步态引擎或逆运动学，或舵机控制器的行走模式。',
 };

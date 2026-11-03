@@ -1052,4 +1052,23 @@ const guidesJa = <String, String>{
   'Small robots and sensor boards, in Python': '小型ロボットとセンサーボードを Python で',
   'Robots that already publish ROS topics': '既に ROS トピックを publish しているロボット',
   'Custom firmware, high-rate control loops': 'カスタムファームウェア、高レートの制御ループ',
+  'Legged robot': '脚型ロボット',
+  'Quadrupeds, hexapods and humanoids: walking, body height, stand and sit, gaits.': '四足、六足、ヒューマノイド：歩行、体の高さ、立つ・座る、歩容。',
+  'Legged robots walk forward, sideways and turning at once. The app sends the walking; your gait code moves the legs.':
+      '脚型ロボットは前進、横移動、旋回を同時に行います。アプリは歩行の指示を送り、脚の動きはあなたの歩容コードが担います。',
+  'Live: the body at its height in 3D with its legs stepping, its track and attitude.': 'ライブ：3D で体がその高さにあり、脚が歩みます。軌跡と姿勢も表示されます。',
+  'Control: the right stick walks and steps sideways, the left one turns and sets the body height; Stand and Sit, Walk and Trot.':
+      '操縦：右スティックで歩行と横移動、左スティックで旋回と体の高さ。立つ・座る、ウォーク・トロット。',
+  'Sequences (Automate): walk to waypoints, wait, change the speed limit.': 'シーケンス（自動化）：ウェイポイントへの歩行、待機、速度制限の変更。',
+  'Shape: quadruped, hexapod or humanoid. Declare yours, or pick it on the Devices screen.': '形状：四足、六足、ヒューマノイド。デバイスで宣言するか、デバイス画面で選びます。',
+  'Sticks and commands': 'スティックとコマンド',
+  'What arrives, and what to do with it:': '届くものと、その扱い方：',
+  'ry walks forward (−1 backward … 1 forward) and rx steps sideways, right positive.': 'ry で前進（−1 後退 … 1 前進）、rx で横移動（右が正）。',
+  'lx turns; ly raises or lowers the body around its standing height.': 'lx で旋回、ly で立った高さを基準に体を上下します。',
+  'stance {v: "stand" | "sit"}: stand up or sit down, and report it with the state stance.': 'stance {v: "stand" | "sit"}：立つか座り、状態 stance で報告します。',
+  'gait {v: "walk" | "trot"}: switch gaits, and report it the same way.': 'gait {v: "walk" | "trot"}：歩容を切り替え、同じように報告します。',
+  'goto {x, y}: walk there, report AUTO while moving and HOLD on arrival.': 'goto {x, y}：そこへ歩き、移動中は AUTO、到着したら HOLD を報告します。',
+  'Report the body height as the position’s z. Stand up when armed, and sit when disarmed or stopped.': '体の高さは位置の z として報告します。アームで立ち、ディスアームまたは停止で座ってください。',
+  'The gait is a stub: hand the walking command to your gait engine or inverse kinematics, or to your servo controller’s walk mode.':
+      '歩容はスタブです：歩行の指示をあなたの歩容エンジンや逆運動学、またはサーボコントローラーの歩行モードに渡してください。',
 };
