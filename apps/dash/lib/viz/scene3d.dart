@@ -185,6 +185,27 @@ class _ScenePainter extends FramePainter {
         line((x / g).round() % 5 != 0 ? minor : major, [x, oy - n * g, 0], [x, oy + n * g, 0]);
         line((y / g).round() % 5 != 0 ? minor : major, [ox - n * g, y, 0], [ox + n * g, y, 0]);
       }
+      // Beyond it, as far as the camera sees from its height and distance:
+      // lines every 25 m (100 m far out), outside the fine square only.
+      if (!arm) {
+        final inner = n * g, reach = ((cam.dist + focus[2].abs()) * 8).clamp(inner, 2000.0);
+        final gg = reach > 400 ? 100.0 : 25.0, e = (reach / gg).ceil() * gg;
+        final fx = (focus[0] / gg).round() * gg, fy = (focus[1] / gg).round() * gg;
+        void span(double at, bool alongY) {
+          // A line at x = at (alongY) or y = at, leaving out the fine square.
+          final o = alongY ? fy : fx, inside = ((alongY ? at - ox : at - oy).abs()) <= inner;
+          final cuts = inside ? [(o - e, (alongY ? oy : ox) - inner), ((alongY ? oy : ox) + inner, o + e)] : [(o - e, o + e)];
+          for (final (a0, a1) in cuts) {
+            if (a1 <= a0) continue;
+            line(major, alongY ? [at, a0, 0] : [a0, at, 0], alongY ? [at, a1, 0] : [a1, at, 0]);
+          }
+        }
+
+        for (var v = -e; v <= e; v += gg) {
+          span(fx + v, true);
+          span(fy + v, false);
+        }
+      }
       c.drawPath(minor, st(const Color(0x24FFFFFF)));
       c.drawPath(major, st(const Color(0x4DFFFFFF)));
       final ax = Path(), ay = Path();
