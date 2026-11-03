@@ -955,8 +955,18 @@ class StatusCluster extends StatelessWidget {
         runSpacing: 22,
         crossAxisAlignment: WrapCrossAlignment.center,
         clipBehavior: Clip.hardEdge,
-        // An item wider than the whole room (a very narrow window) is clipped.
-        children: [for (final it in phone ? items : items.reversed) UnconstrainedBox(clipBehavior: Clip.hardEdge, child: it)],
+        // Each item centred in the bar's height. An item wider than the
+        // whole room (a very narrow window) is clipped.
+        children: [
+          for (final it in phone ? items : items.reversed)
+            SizedBox(
+              height: 22,
+              child: Center(
+                widthFactor: 1,
+                child: UnconstrainedBox(clipBehavior: Clip.hardEdge, child: it),
+              ),
+            ),
+        ],
       ),
     );
   }
