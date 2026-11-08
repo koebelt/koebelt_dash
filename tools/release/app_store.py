@@ -55,6 +55,10 @@ def whats_new(md: str) -> str:
         if s.lstrip().startswith("|"):
             continue
         s = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", s).replace("**", "").replace("`", "")
+        # Apple refuses < and > as markup: menu paths read Settings › Updates.
+        s = s.replace(" > ", " › ")
+        if "<" in s or ">" in s:
+            raise SystemExit(f"The App Store refuses < and > in What's New: {s.strip()}")
         if s.startswith("#"):
             s = re.sub(r"^#+\s*", "", s).upper()
         elif re.match(r"^\s*[-*]\s", s):
