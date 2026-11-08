@@ -26,6 +26,9 @@ versions = {
     "libs/arduino/KoebeltLink/src/KoebeltLink.h": find("libs/arduino/KoebeltLink/src/KoebeltLink.h", r'KOEBELT_LINK_VERSION "([^"]+)"'),
     "libs/ros2/koebelt_link_ros/package.xml": find("libs/ros2/koebelt_link_ros/package.xml", r"<version>([^<]+)</version>"),
     "libs/ros2/koebelt_link_ros/setup.py": find("libs/ros2/koebelt_link_ros/setup.py", r'version="([^"]+)"'),
+    # MicroPython is installed from this repository with mip: no registry, same version.
+    "libs/micropython/koebelt_link.py": find("libs/micropython/koebelt_link.py", r'^__version__ = "([^"]+)"'),
+    "libs/micropython/package.json": json.loads((root / "libs/micropython/package.json").read_text())["version"],
 }
 want = sys.argv[1] if len(sys.argv) > 1 else versions["libs/python/pyproject.toml"]
 bad = {f: v for f, v in versions.items() if v != want}

@@ -29,7 +29,7 @@ connects your hardware to it.
 
 | | |
 |---|---|
-| Arduino | Library Manager: search **KoebeltLink**. PlatformIO: `lib_deps = koebelt/KoebeltLink@^1.1.0` |
+| Arduino | Library Manager: search **KoebeltLink**. PlatformIO: `lib_deps = koebelt/KoebeltLink@^1.2.0` |
 | Python | `pip install koebelt-link` |
 | MicroPython | `mpremote mip install github:koebelt/koebelt_dash/libs/micropython` |
 | Rust | `cargo add koebelt-link` |

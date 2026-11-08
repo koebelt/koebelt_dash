@@ -42,7 +42,7 @@ except ImportError:  # CPython, for the tests
         _time.sleep(ms / 1000)
 
 
-__version__ = "1.0.0"
+__version__ = "1.2.0"
 VERSION = 1
 UDP_DEVICE_PORT = 47800
 UDP_ANNOUNCE_PORT = 47801

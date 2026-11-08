@@ -21,7 +21,8 @@ The ROS 2 bridge carries the same version but is not released to rosdistro yet.
 python3 tools/release/check_versions.py        # prints it, fails if one differs
 #    pyproject.toml, koebelt_link/__init__.py, Cargo.toml, library.properties,
 #    library.json, KoebeltLink.h (KOEBELT_LINK_VERSION), package.xml, setup.py,
-#    and the versions quoted in the guides and READMEs
+#    MicroPython's koebelt_link.py and package.json (mip installs it from this
+#    repository), and the versions quoted in the guides and READMEs
 
 # 2. Commit, then tag and push
 git tag link-v1.0.1 && git push origin main link-v1.0.1
